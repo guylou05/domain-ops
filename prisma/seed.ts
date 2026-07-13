@@ -210,6 +210,42 @@ async function main() {
       });
     }
   }
+
+  const notificationSeeds = [
+    {
+      title: 'Opportunity pipeline refreshed',
+      body: 'Six demo opportunities are ranked and ready for review in the persisted dashboard.',
+      readAt: null,
+    },
+    {
+      title: 'Portfolio review available',
+      body: 'The demo portfolio report includes renewal exposure, valuation, and follow-up highlights.',
+      readAt: new Date(Date.UTC(2026, 6, 12, 14, 30)),
+    },
+    {
+      title: 'Renewal follow-up recommended',
+      body: 'agentloop.io is set to manual renewal and should be reviewed before expiration.',
+      readAt: null,
+    },
+  ];
+
+  for (const notification of notificationSeeds) {
+    const existingNotification = await prisma.notification.findFirst({
+      where: { workspaceId: workspace.id, userId: user.id, title: notification.title },
+    });
+
+    if (!existingNotification) {
+      await prisma.notification.create({
+        data: {
+          workspaceId: workspace.id,
+          userId: user.id,
+          title: notification.title,
+          body: notification.body,
+          readAt: notification.readAt,
+        },
+      });
+    }
+  }
 }
 
 main().finally(() => prisma.$disconnect());
