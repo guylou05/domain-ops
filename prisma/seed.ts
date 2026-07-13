@@ -256,6 +256,61 @@ async function main() {
     }
   }
 
+  let outreachCampaign = await prisma.outreachCampaign.findFirst({
+    where: { workspaceId: workspace.id, name: 'AI buyer shortlist' },
+  });
+
+  outreachCampaign ??= await prisma.outreachCampaign.create({
+    data: {
+      workspaceId: workspace.id,
+      name: 'AI buyer shortlist',
+      status: Status.ACTIVE,
+    },
+  });
+
+  const outreachMessages = [
+    {
+      subject: 'Workflow domain fit for your AI product line',
+      body: 'Hi Dana,\n\nI noticed WorkflowNorth is expanding around automation workflows. workflowpilot.ai could be a direct-fit brand for an AI workflow assistant or campaign microsite.',
+      status: 'APPROVED',
+      approvedAt: new Date(Date.UTC(2026, 6, 12, 15, 0)),
+    },
+    {
+      subject: 'Revenue-focused domain opportunity',
+      body: 'Hi Mika,\n\nrevenueforge.com aligns with revenue operations, RevOps tooling, and high-intent SaaS positioning. Sharing in case your team is evaluating brandable assets.',
+      status: 'DRAFT',
+      approvedAt: null,
+    },
+  ];
+
+  for (const message of outreachMessages) {
+    const existingMessage = await prisma.outreachMessage.findFirst({
+      where: { workspaceId: workspace.id, campaignId: outreachCampaign.id, subject: message.subject },
+    });
+
+    if (existingMessage) {
+      await prisma.outreachMessage.update({
+        where: { id: existingMessage.id },
+        data: {
+          body: message.body,
+          status: message.status,
+          approvedAt: message.approvedAt,
+        },
+      });
+    } else {
+      await prisma.outreachMessage.create({
+        data: {
+          workspaceId: workspace.id,
+          campaignId: outreachCampaign.id,
+          subject: message.subject,
+          body: message.body,
+          status: message.status,
+          approvedAt: message.approvedAt,
+        },
+      });
+    }
+  }
+
   const hasDigestJob = await prisma.backgroundJob.findFirst({
     where: { workspaceId: workspace.id, type: 'daily_opportunity_digest' },
   });
