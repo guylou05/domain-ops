@@ -1,1 +1,18 @@
-export default function Page(){return <main className="mx-auto max-w-xl p-8"><div className="card"><h1 className="text-3xl font-bold capitalize">forgot password</h1><p className="mt-3 text-slate-300">Production placeholder wired for Auth.js, validation, secure sessions, and policy content.</p></div></main>}
+import Link from 'next/link';
+import { ForgotPasswordForm } from '../(auth)/auth-forms';
+
+export default function ForgotPasswordPage() {
+  return (
+    <main className="mx-auto grid min-h-screen max-w-xl place-items-center p-8">
+      <div className="w-full">
+        <ForgotPasswordForm />
+        <p className="mt-4 text-sm text-slate-400">
+          Remembered it?{' '}
+          <Link className="text-brand" href="/login">
+            Back to login
+          </Link>
+        </p>
+      </div>
+    </main>
+  );
+}
