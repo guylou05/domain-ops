@@ -162,6 +162,100 @@ async function main() {
     }
   }
 
+  const buyerSeeds = [
+    {
+      domain: domains[1],
+      companyName: 'WorkflowNorth',
+      website: 'https://example.com/workflownorth',
+      industry: 'Workflow automation',
+      location: 'Austin, TX',
+      reasonForFit: 'Uses workflow automation positioning and could brand a new AI assistant product around this domain.',
+      relevanceScore: 91,
+      outreachStatus: 'READY',
+      contacts: [
+        { name: 'Dana Lee', title: 'VP Growth', email: 'dana@example.com', linkedinUrl: 'https://www.linkedin.com/in/example-dana' },
+      ],
+    },
+    {
+      domain: domains[2],
+      companyName: 'RevenueForge Labs',
+      website: 'https://example.com/revenueforge',
+      industry: 'Revenue operations',
+      location: 'Remote',
+      reasonForFit: 'Revenue operations messaging aligns with high-intent SaaS buyer language and resale positioning.',
+      relevanceScore: 87,
+      outreachStatus: 'READY',
+      contacts: [
+        { name: 'Mika Patel', title: 'Founder', email: 'mika@example.com', linkedinUrl: null },
+      ],
+    },
+    {
+      domain: domains[3],
+      companyName: 'AgentLoop Systems',
+      website: 'https://example.com/agentloop',
+      industry: 'AI agents',
+      location: 'San Francisco, CA',
+      reasonForFit: 'The domain maps directly to agent orchestration, workflow loops, and AI infrastructure naming patterns.',
+      relevanceScore: 82,
+      outreachStatus: 'RESEARCHING',
+      contacts: [],
+    },
+  ];
+
+  for (const buyer of buyerSeeds) {
+    if (!buyer.domain) continue;
+
+    let buyerRecord = await prisma.buyer.findFirst({
+      where: { workspaceId: workspace.id, domainId: buyer.domain.id, companyName: buyer.companyName },
+    });
+
+    if (buyerRecord) {
+      buyerRecord = await prisma.buyer.update({
+        where: { id: buyerRecord.id },
+        data: {
+          website: buyer.website,
+          industry: buyer.industry,
+          location: buyer.location,
+          reasonForFit: buyer.reasonForFit,
+          relevanceScore: buyer.relevanceScore,
+          outreachStatus: buyer.outreachStatus,
+        },
+      });
+    } else {
+      buyerRecord = await prisma.buyer.create({
+        data: {
+          workspaceId: workspace.id,
+          domainId: buyer.domain.id,
+          companyName: buyer.companyName,
+          website: buyer.website,
+          industry: buyer.industry,
+          location: buyer.location,
+          reasonForFit: buyer.reasonForFit,
+          relevanceScore: buyer.relevanceScore,
+          outreachStatus: buyer.outreachStatus,
+        },
+      });
+    }
+
+    for (const contact of buyer.contacts) {
+      const existingContact = await prisma.buyerContact.findFirst({
+        where: { buyerId: buyerRecord.id, email: contact.email },
+      });
+
+      if (!existingContact) {
+        await prisma.buyerContact.create({
+          data: {
+            buyerId: buyerRecord.id,
+            name: contact.name,
+            title: contact.title,
+            email: contact.email,
+            linkedinUrl: contact.linkedinUrl,
+          },
+        });
+      }
+    }
+  }
+
   const hasDigestJob = await prisma.backgroundJob.findFirst({
     where: { workspaceId: workspace.id, type: 'daily_opportunity_digest' },
   });
