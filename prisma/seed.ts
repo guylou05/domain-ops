@@ -157,6 +157,22 @@ async function main() {
     });
   }
 
+  const hasBuyerResearchJob = await prisma.backgroundJob.findFirst({
+    where: { workspaceId: workspace.id, type: 'buyer_research_refresh' },
+  });
+
+  if (!hasBuyerResearchJob) {
+    await prisma.backgroundJob.create({
+      data: {
+        workspaceId: workspace.id,
+        type: 'buyer_research_refresh',
+        status: 'QUEUED',
+        progress: 0,
+        payload: { demo: true, source: 'seed' },
+      },
+    });
+  }
+
   const reportSeeds = [
     {
       type: 'PORTFOLIO_REVIEW',
@@ -242,6 +258,49 @@ async function main() {
           title: notification.title,
           body: notification.body,
           readAt: notification.readAt,
+        },
+      });
+    }
+  }
+
+  const featureFlagSeeds = [
+    { key: 'live_registrar_provider', enabled: false, description: 'Use live registrar pricing and availability providers.' },
+    { key: 'buyer_research_jobs', enabled: true, description: 'Enable queued buyer research enrichment workflows.' },
+    { key: 'ai_report_generation', enabled: false, description: 'Generate reports with AI-assisted summaries.' },
+  ];
+
+  for (const flag of featureFlagSeeds) {
+    await prisma.featureFlag.upsert({
+      where: { key: flag.key },
+      update: { enabled: flag.enabled, description: flag.description },
+      create: flag,
+    });
+  }
+
+  const auditSeeds = [
+    { action: 'seed.workspace_ready', targetType: 'Workspace', targetId: workspace.id, actorId: user.id },
+    { action: 'seed.opportunities_created', targetType: 'DomainOpportunity', targetId: null, actorId: user.id },
+    { action: 'seed.reports_created', targetType: 'Report', targetId: null, actorId: admin.id },
+  ];
+
+  for (const audit of auditSeeds) {
+    const existingAudit = await prisma.auditLog.findFirst({
+      where: {
+        workspaceId: workspace.id,
+        action: audit.action,
+        targetType: audit.targetType,
+      },
+    });
+
+    if (!existingAudit) {
+      await prisma.auditLog.create({
+        data: {
+          workspaceId: workspace.id,
+          actorId: audit.actorId,
+          action: audit.action,
+          targetType: audit.targetType,
+          targetId: audit.targetId,
+          metadata: { demo: true },
         },
       });
     }
