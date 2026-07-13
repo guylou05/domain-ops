@@ -1,3 +1,4 @@
+import { updateWorkspaceName } from './actions';
 import { getSettingsView } from '@/lib/server/settings';
 
 export const dynamic = 'force-dynamic';
@@ -32,7 +33,16 @@ export default async function SettingsPage() {
       <section className="mt-6 grid gap-4 lg:grid-cols-3">
         <div className="card lg:col-span-2">
           <h2 className="text-xl font-semibold">Workspace</h2>
-          <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+          <form action={updateWorkspaceName} className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <input
+              className="min-w-0 flex-1 rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm"
+              defaultValue={settings.workspace.name}
+              name="name"
+              required
+            />
+            <button className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">Save name</button>
+          </form>
+          <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-slate-400">Name</dt>
               <dd className="mt-1 font-medium">{settings.workspace.name}</dd>

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { toggleIntegrationStatus } from './actions';
 import { getIntegrations } from '@/lib/server/integrations';
 
 export const dynamic = 'force-dynamic';
@@ -45,9 +46,17 @@ export default async function IntegrationsPage() {
                   <h2 className="text-xl font-semibold">{integration.provider}</h2>
                   <p className="mt-2 text-sm text-slate-400">{integration.description}</p>
                 </div>
-                <span className={integration.configured ? 'text-sm font-semibold text-emerald-300' : 'text-sm font-semibold text-slate-500'}>
-                  {integration.configured ? 'Configured' : 'Missing key'}
-                </span>
+                <div className="flex flex-col items-end gap-2">
+                  <span className={integration.configured ? 'text-sm font-semibold text-emerald-300' : 'text-sm font-semibold text-slate-500'}>
+                    {integration.configured ? 'Configured' : 'Missing key'}
+                  </span>
+                  <form action={toggleIntegrationStatus}>
+                    <input name="integrationId" type="hidden" value={integration.id} />
+                    <button className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-white/10">
+                      {integration.status === 'ACTIVE' ? 'Disable' : 'Enable'}
+                    </button>
+                  </form>
+                </div>
               </div>
 
               <dl className="mt-5 grid grid-cols-2 gap-3 text-sm">

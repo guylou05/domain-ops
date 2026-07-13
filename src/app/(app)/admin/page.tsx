@@ -1,3 +1,4 @@
+import { toggleFeatureFlag } from './actions';
 import { getAdminDashboard } from '@/lib/server/admin';
 
 export const dynamic = 'force-dynamic';
@@ -94,9 +95,19 @@ export default async function AdminPage() {
                     <h3 className="font-semibold">{formatLabel(flag.key)}</h3>
                     <p className="mt-1 text-sm text-slate-400">{flag.description ?? 'No description saved.'}</p>
                   </div>
-                  <span className={flag.enabled ? 'text-sm font-semibold text-emerald-300' : 'text-sm font-semibold text-slate-500'}>
-                    {flag.enabled ? 'Enabled' : 'Off'}
-                  </span>
+                  <div className="flex flex-col items-end gap-2">
+                    <span className={flag.enabled ? 'text-sm font-semibold text-emerald-300' : 'text-sm font-semibold text-slate-500'}>
+                      {flag.enabled ? 'Enabled' : 'Off'}
+                    </span>
+                    {dashboard.canAdminister ? (
+                      <form action={toggleFeatureFlag}>
+                        <input name="key" type="hidden" value={flag.key} />
+                        <button className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-white/10">
+                          {flag.enabled ? 'Disable' : 'Enable'}
+                        </button>
+                      </form>
+                    ) : null}
+                  </div>
                 </div>
               ))}
             </div>
