@@ -156,6 +156,60 @@ async function main() {
       data: { workspaceId: workspace.id, type: 'daily_opportunity_digest', status: 'COMPLETED', progress: 100, payload: { demo: true } },
     });
   }
+
+  const reportSeeds = [
+    {
+      type: 'PORTFOLIO_REVIEW',
+      title: 'Demo portfolio review',
+      payload: {
+        summary: 'Snapshot of active holdings, renewal exposure, and resale targets for the demo workspace.',
+        metrics: [
+          { label: 'Holdings', value: '3' },
+          { label: 'Renewal exposure', value: '$63' },
+          { label: 'Current valuation', value: '$9,750' },
+          { label: 'Auto-renew enabled', value: '2 domains' },
+        ],
+        highlights: [
+          'workflowpilot.ai has the strongest blend of score, buyer fit, and resale target.',
+          'agentloop.io should be reviewed before renewal because auto-renew is disabled.',
+        ],
+      },
+    },
+    {
+      type: 'OPPORTUNITY_PIPELINE',
+      title: 'AI opportunity pipeline',
+      payload: {
+        summary: 'Ranked shortlist of seeded AI and automation domains prepared for buyer research.',
+        metrics: [
+          { label: 'Qualified opportunities', value: '6' },
+          { label: 'Average score', value: '80' },
+          { label: 'Watchlisted', value: '4' },
+          { label: 'Risk mix', value: '5 low / 1 moderate' },
+        ],
+        highlights: [
+          'Prioritize short .com and .ai names before speculative alternatives.',
+          'Use buyer research before outreach to avoid low-fit campaigns.',
+        ],
+      },
+    },
+  ];
+
+  for (const report of reportSeeds) {
+    const existingReport = await prisma.report.findFirst({
+      where: { workspaceId: workspace.id, title: report.title },
+    });
+
+    if (!existingReport) {
+      await prisma.report.create({
+        data: {
+          workspaceId: workspace.id,
+          type: report.type,
+          title: report.title,
+          payload: report.payload,
+        },
+      });
+    }
+  }
 }
 
 main().finally(() => prisma.$disconnect());
