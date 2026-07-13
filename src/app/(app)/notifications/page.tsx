@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { markAllNotificationsRead, markNotificationRead } from './actions';
 import { getNotifications } from '@/lib/server/notifications';
 
 export const dynamic = 'force-dynamic';
@@ -25,8 +26,15 @@ export default async function NotificationsPage() {
             Workspace alerts for opportunity changes, report readiness, and portfolio follow-up.
           </p>
         </div>
-        <div className="rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300">
-          {unreadCount} unread
+        <div className="flex flex-wrap gap-2">
+          <div className="rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300">
+            {unreadCount} unread
+          </div>
+          {unreadCount > 0 ? (
+            <form action={markAllNotificationsRead}>
+              <button className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">Mark all read</button>
+            </form>
+          ) : null}
         </div>
       </div>
 
@@ -53,7 +61,17 @@ export default async function NotificationsPage() {
                     </div>
                     <p className="mt-2 text-sm text-slate-400">{notification.body}</p>
                   </div>
-                  <div className="text-sm text-slate-500">{formatDate(notification.createdAt)}</div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="text-sm text-slate-500">{formatDate(notification.createdAt)}</div>
+                    {!notification.readAt ? (
+                      <form action={markNotificationRead}>
+                        <input name="notificationId" type="hidden" value={notification.id} />
+                        <button className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-white/10">
+                          Mark read
+                        </button>
+                      </form>
+                    ) : null}
+                  </div>
                 </div>
                 <p className="mt-2 text-xs text-slate-500">{notification.readAt ? `Read ${formatDate(notification.readAt)}` : 'Unread'}</p>
               </article>

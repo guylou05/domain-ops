@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { addWatchlistItemToPortfolio, removeWatchlistItem } from './actions';
 import { getWatchlists } from '@/lib/server/portfolio-views';
 
 export const dynamic = 'force-dynamic';
@@ -60,11 +61,12 @@ export default async function WatchlistsPage() {
                         <th className="pb-3">Retail range</th>
                         <th className="pb-3">Risk</th>
                         <th className="pb-3">Tags</th>
+                        <th className="pb-3">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {watchlist.items.map((item) => (
-                        <tr className="border-t border-white/10" key={item.domain}>
+                        <tr className="border-t border-white/10" key={item.id}>
                           <td className="py-3 pr-4">
                             <Link className="font-medium text-brand" href={`/opportunities/${encodeURIComponent(item.domain)}`}>
                               {item.domain}
@@ -88,6 +90,20 @@ export default async function WatchlistsPage() {
                             ) : (
                               <span className="text-slate-500">None</span>
                             )}
+                          </td>
+                          <td>
+                            <div className="flex flex-wrap gap-2">
+                              <form action={addWatchlistItemToPortfolio}>
+                                <input name="itemId" type="hidden" value={item.id} />
+                                <button className="rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white">Acquire</button>
+                              </form>
+                              <form action={removeWatchlistItem}>
+                                <input name="itemId" type="hidden" value={item.id} />
+                                <button className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-white/10">
+                                  Remove
+                                </button>
+                              </form>
+                            </div>
                           </td>
                         </tr>
                       ))}

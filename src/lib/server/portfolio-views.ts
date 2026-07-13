@@ -8,6 +8,7 @@ export type WatchlistView = {
   itemCount: number;
   createdAt: Date;
   items: Array<{
+    id: string;
     domain: string;
     notes: string | null;
     tags: string[];
@@ -65,6 +66,7 @@ export async function getWatchlists(): Promise<WatchlistView[]> {
     itemCount: watchlist.items.length,
     createdAt: watchlist.createdAt,
     items: watchlist.items.map((item) => ({
+      id: item.id,
       domain: item.domain.name,
       notes: item.notes,
       tags: item.tags,
