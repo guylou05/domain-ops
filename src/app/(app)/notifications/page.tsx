@@ -1,0 +1,1 @@
+export default function Page(){return <div><h1 className="text-3xl font-bold capitalize">notifications</h1><div className="card mt-6">Prepared Phase 2/3 module behind feature flags and provider abstractions.</div></div>}
