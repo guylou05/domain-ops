@@ -1,0 +1,1 @@
+export default function Page(){return <div><h1 className="text-3xl font-bold capitalize">admin</h1><div className="card mt-6"><p className="text-slate-300">Phase 1 admin foundation with workspace authorization, empty states, and extensible records prepared in Prisma.</p></div></div>}

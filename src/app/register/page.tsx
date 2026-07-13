@@ -1,0 +1,1 @@
+export default function Page(){return <main className="mx-auto max-w-xl p-8"><div className="card"><h1 className="text-3xl font-bold capitalize">register</h1><p className="mt-3 text-slate-300">Production placeholder wired for Auth.js, validation, secure sessions, and policy content.</p></div></main>}
