@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { runHistoryChecks } from './actions';
 import { getExpiredDomainHistory } from '@/lib/server/expired-domains';
 
 export const dynamic = 'force-dynamic';
@@ -20,8 +21,13 @@ export default async function ExpiredDomainsPage() {
             Historical risk checks for expired or previously owned domains in the workspace.
           </p>
         </div>
-        <div className="rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300">
-          {highRiskCount} high-risk checks
+        <div className="flex flex-wrap gap-2">
+          <div className="rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300">
+            {highRiskCount} high-risk checks
+          </div>
+          <form action={runHistoryChecks}>
+            <button className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">Run checks</button>
+          </form>
         </div>
       </div>
 
@@ -31,9 +37,14 @@ export default async function ExpiredDomainsPage() {
           <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">
             Seed the demo database or run history checks before acquiring expired domains.
           </p>
-          <Link className="mt-5 inline-block rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white" href="/opportunities">
-            Review opportunities
-          </Link>
+          <div className="mt-5 flex justify-center gap-2">
+            <form action={runHistoryChecks}>
+              <button className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">Run checks</button>
+            </form>
+            <Link className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-slate-200" href="/opportunities">
+              Review opportunities
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="mt-6 grid gap-4">

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { publishPortfolioListings } from './actions';
 import { getAuctionListings } from '@/lib/server/auctions';
 
 export const dynamic = 'force-dynamic';
@@ -21,8 +22,13 @@ export default async function AuctionsPage() {
             Persisted marketplace listings with pricing context from opportunities and portfolio records.
           </p>
         </div>
-        <div className="rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300">
-          {activeCount} active listings
+        <div className="flex flex-wrap gap-2">
+          <div className="rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300">
+            {activeCount} active listings
+          </div>
+          <form action={publishPortfolioListings}>
+            <button className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">Publish holdings</button>
+          </form>
         </div>
       </div>
 
@@ -32,9 +38,14 @@ export default async function AuctionsPage() {
           <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">
             Seed the demo database or publish portfolio domains to marketplace channels.
           </p>
-          <Link className="mt-5 inline-block rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white" href="/portfolio">
-            Open portfolio
-          </Link>
+          <div className="mt-5 flex justify-center gap-2">
+            <form action={publishPortfolioListings}>
+              <button className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">Publish holdings</button>
+            </form>
+            <Link className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-slate-200" href="/portfolio">
+              Open portfolio
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="card mt-6 overflow-x-auto">
