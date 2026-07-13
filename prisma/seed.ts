@@ -510,6 +510,74 @@ async function main() {
     }
   }
 
+  const usageSeeds = [
+    { key: 'domain_checks', quantity: 42 },
+    { key: 'buyer_research', quantity: 9 },
+    { key: 'reports_generated', quantity: 2 },
+    { key: 'outreach_messages', quantity: 2 },
+  ];
+
+  for (const usage of usageSeeds) {
+    const existingUsage = await prisma.usageRecord.findFirst({
+      where: { workspaceId: workspace.id, key: usage.key },
+    });
+
+    if (existingUsage) {
+      await prisma.usageRecord.update({
+        where: { id: existingUsage.id },
+        data: { quantity: usage.quantity },
+      });
+    } else {
+      await prisma.usageRecord.create({
+        data: {
+          workspaceId: workspace.id,
+          key: usage.key,
+          quantity: usage.quantity,
+        },
+      });
+    }
+  }
+
+  const aiUsageSeeds = [
+    {
+      model: 'gpt-4.1-mini',
+      promptTokens: 1800,
+      completionTokens: 620,
+      costCents: 18,
+      prompt: 'Summarize opportunity pipeline.',
+      output: 'Demo opportunity pipeline report summary.',
+    },
+    {
+      model: 'gpt-4.1-mini',
+      promptTokens: 1400,
+      completionTokens: 410,
+      costCents: 13,
+      prompt: 'Draft buyer outreach.',
+      output: 'Demo outreach message draft.',
+    },
+  ];
+
+  for (const usage of aiUsageSeeds) {
+    const existingAiUsage = await prisma.aiUsage.findFirst({
+      where: { workspaceId: workspace.id, prompt: usage.prompt },
+    });
+
+    if (!existingAiUsage) {
+      await prisma.aiUsage.create({
+        data: {
+          workspaceId: workspace.id,
+          userId: user.id,
+          model: usage.model,
+          promptTokens: usage.promptTokens,
+          completionTokens: usage.completionTokens,
+          costCents: usage.costCents,
+          prompt: usage.prompt,
+          output: usage.output,
+        },
+      });
+    }
+  }
+
   const featureFlagSeeds = [
     { key: 'live_registrar_provider', enabled: false, description: 'Use live registrar pricing and availability providers.' },
     { key: 'buyer_research_jobs', enabled: true, description: 'Enable queued buyer research enrichment workflows.' },
