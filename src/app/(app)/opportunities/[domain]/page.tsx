@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { addOpportunityToWatchlist } from '../actions';
 import { getOpportunityDetail } from '@/lib/server/opportunities';
 
 export const dynamic = 'force-dynamic';
@@ -31,8 +32,14 @@ export default async function Detail({ params }: { params: { domain: string } })
             {opportunity.source} · {formatAvailability(opportunity.available)}
           </p>
         </div>
-        <div className="rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300">
-          {opportunity.registrar ?? 'No registrar check'} · {opportunity.premium ? 'Premium' : 'Standard'}
+        <div className="flex flex-wrap gap-2">
+          <form action={addOpportunityToWatchlist}>
+            <input name="domain" type="hidden" value={opportunity.domain} />
+            <button className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">Save to watchlist</button>
+          </form>
+          <div className="rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300">
+            {opportunity.registrar ?? 'No registrar check'} · {opportunity.premium ? 'Premium' : 'Standard'}
+          </div>
         </div>
       </div>
 

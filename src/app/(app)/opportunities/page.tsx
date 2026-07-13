@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { addOpportunityToWatchlist } from './actions';
 import { getOpportunityList } from '@/lib/server/opportunities';
 
 export const dynamic = 'force-dynamic';
@@ -52,6 +53,7 @@ export default async function Opportunities() {
                 <th className="pb-3">Retail range</th>
                 <th className="pb-3">Risk</th>
                 <th className="pb-3">Buyers</th>
+                <th className="pb-3">Watchlist</th>
               </tr>
             </thead>
             <tbody>
@@ -69,7 +71,15 @@ export default async function Opportunities() {
                     {formatCurrency(opportunity.retailMin)}-{formatCurrency(opportunity.retailMax)}
                   </td>
                   <td className="pr-4">{opportunity.riskLevel}</td>
-                  <td>{opportunity.buyerCount}</td>
+                  <td className="pr-4">{opportunity.buyerCount}</td>
+                  <td>
+                    <form action={addOpportunityToWatchlist}>
+                      <input name="domain" type="hidden" value={opportunity.domain} />
+                      <button className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-white/10">
+                        Save
+                      </button>
+                    </form>
+                  </td>
                 </tr>
               ))}
             </tbody>
