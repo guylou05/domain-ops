@@ -162,6 +162,40 @@ async function main() {
     }
   }
 
+  const listingSeeds = [
+    { domain: domains[1], marketplace: 'Afternic', price: 5400, status: 'ACTIVE' },
+    { domain: domains[2], marketplace: 'DAN', price: 6800, status: 'ACTIVE' },
+    { domain: domains[3], marketplace: 'Sedo', price: 4800, status: 'PAUSED' },
+  ];
+
+  for (const listing of listingSeeds) {
+    if (!listing.domain) continue;
+
+    const existingListing = await prisma.marketplaceListing.findFirst({
+      where: { workspaceId: workspace.id, domainId: listing.domain.id, marketplace: listing.marketplace },
+    });
+
+    if (existingListing) {
+      await prisma.marketplaceListing.update({
+        where: { id: existingListing.id },
+        data: {
+          price: listing.price,
+          status: listing.status,
+        },
+      });
+    } else {
+      await prisma.marketplaceListing.create({
+        data: {
+          workspaceId: workspace.id,
+          domainId: listing.domain.id,
+          marketplace: listing.marketplace,
+          price: listing.price,
+          status: listing.status,
+        },
+      });
+    }
+  }
+
   const buyerSeeds = [
     {
       domain: domains[1],
