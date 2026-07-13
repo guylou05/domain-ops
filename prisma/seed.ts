@@ -1,4 +1,4 @@
-import { PrismaClient, Role, Status } from '@prisma/client';
+import { PrismaClient, RiskLevel, Role, Status } from '@prisma/client';
 import { hash } from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -191,6 +191,55 @@ async function main() {
           marketplace: listing.marketplace,
           price: listing.price,
           status: listing.status,
+        },
+      });
+    }
+  }
+
+  const historyCheckSeeds = [
+    {
+      domain: domains[0],
+      riskLevel: RiskLevel.MODERATE,
+      flags: ['Prior parking page detected', 'Historical outbound links need review'],
+      evidence: ['Archive snapshot contained marketplace parking content', 'No malware flags in demo provider data'],
+    },
+    {
+      domain: domains[2],
+      riskLevel: RiskLevel.LOW,
+      flags: ['Clean development history'],
+      evidence: ['No adult, gambling, or pharmaceutical patterns in demo provider data'],
+    },
+    {
+      domain: domains[3],
+      riskLevel: RiskLevel.HIGH,
+      flags: ['Previous spam-like anchor text', 'Manual review recommended before acquisition'],
+      evidence: ['Demo history provider found repetitive outbound anchor patterns'],
+    },
+  ];
+
+  for (const check of historyCheckSeeds) {
+    if (!check.domain) continue;
+
+    const existingCheck = await prisma.domainHistoryCheck.findFirst({
+      where: { domainId: check.domain.id },
+    });
+
+    if (existingCheck) {
+      await prisma.domainHistoryCheck.update({
+        where: { id: existingCheck.id },
+        data: {
+          riskLevel: check.riskLevel,
+          flags: check.flags,
+          evidence: check.evidence,
+        },
+      });
+    } else {
+      await prisma.domainHistoryCheck.create({
+        data: {
+          domainId: check.domain.id,
+          riskLevel: check.riskLevel,
+          flags: check.flags,
+          evidence: check.evidence,
         },
       });
     }
