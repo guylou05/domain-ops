@@ -33,7 +33,7 @@ async function main() {
     },
   });
 
-  await prisma.plan.upsert({
+  const professionalPlan = await prisma.plan.upsert({
     where: { name: 'Professional' },
     update: {},
     create: {
@@ -47,6 +47,21 @@ async function main() {
       },
     },
   });
+
+  const existingSubscription = await prisma.subscription.findFirst({
+    where: { workspaceId: workspace.id, planId: professionalPlan.id },
+  });
+
+  if (!existingSubscription) {
+    await prisma.subscription.create({
+      data: {
+        workspaceId: workspace.id,
+        planId: professionalPlan.id,
+        status: 'ACTIVE',
+        trialEndsAt: new Date(Date.UTC(2026, 7, 1)),
+      },
+    });
+  }
 
   const names = ['aiautomationhub.com', 'workflowpilot.ai', 'revenueforge.com', 'agentloop.io', 'saassignal.com', 'austinpros.com'];
   const domains = [];
