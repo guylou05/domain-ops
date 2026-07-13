@@ -1,30 +1,12 @@
 'use client';
 
 import { useActionState } from 'react';
-import { initialAuthActionState, registerWorkspaceUser, requestPasswordReset, verifyCredentials } from './auth-actions';
+import { registerWorkspaceUser, requestPasswordReset } from './auth-actions';
+import { initialAuthActionState } from './auth-state';
 
 function ActionMessage({ ok, message }: { ok: boolean; message: string }) {
   if (!message) return null;
   return <p className={`mt-4 rounded-lg px-3 py-2 text-sm ${ok ? 'bg-emerald-400/10 text-emerald-200' : 'bg-rose-400/10 text-rose-200'}`}>{message}</p>;
-}
-
-export function LoginForm() {
-  const [state, action, pending] = useActionState(verifyCredentials, initialAuthActionState);
-
-  return (
-    <form action={action} className="card grid gap-4">
-      <div>
-        <h1 className="text-3xl font-bold">Login</h1>
-        <p className="mt-3 text-slate-300">Verify demo credentials against stored users. Sessions are queued for the next auth slice.</p>
-      </div>
-      <input className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2" name="email" placeholder="email@example.com" type="email" required />
-      <input className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2" name="password" placeholder="Password" type="password" required />
-      <button className="rounded-xl bg-brand px-4 py-2 font-semibold disabled:opacity-60" disabled={pending}>
-        {pending ? 'Checking...' : 'Verify credentials'}
-      </button>
-      <ActionMessage ok={state.ok} message={state.message} />
-    </form>
-  );
 }
 
 export function RegisterForm() {

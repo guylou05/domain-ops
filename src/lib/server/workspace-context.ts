@@ -1,3 +1,5 @@
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export type WorkspaceContext = {
@@ -7,7 +9,8 @@ export type WorkspaceContext = {
 };
 
 export async function requireWorkspaceContext(): Promise<WorkspaceContext> {
-  const userEmail = process.env.DEMO_USER_EMAIL ?? 'investor@domainscout.demo';
+  const session = await getServerSession(authOptions);
+  const userEmail = session?.user?.email ?? process.env.DEMO_USER_EMAIL ?? 'investor@domainscout.demo';
   const workspaceSlug = process.env.DEMO_WORKSPACE_SLUG ?? 'demo-domain-portfolio';
 
   const membership = await prisma.workspaceMember.findFirst({

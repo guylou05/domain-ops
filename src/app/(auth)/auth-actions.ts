@@ -2,13 +2,7 @@
 
 import { hash, compare } from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-
-export type AuthActionState = {
-  ok: boolean;
-  message: string;
-};
-
-export const initialAuthActionState: AuthActionState = { ok: false, message: '' };
+import type { AuthActionState } from './auth-state';
 
 function readString(formData: FormData, key: string): string {
   return String(formData.get(key) ?? '').trim();
