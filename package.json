@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "latest",
-    "@prisma/client": "latest",
+    "@prisma/client": "^6.19.3",
     "@tanstack/react-table": "latest",
     "bcryptjs": "latest",
     "class-variance-authority": "latest",
@@ -41,8 +41,8 @@
     "eslint": "latest",
     "eslint-config-next": "latest",
     "postcss": "latest",
-    "prisma": "latest",
-    "tailwindcss": "latest",
+    "prisma": "^6.19.3",
+    "tailwindcss": "^3.4.19",
     "tsx": "latest",
     "typescript": "latest",
     "vitest": "latest"

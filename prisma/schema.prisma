@@ -1,51 +1,526 @@
-generator client { provider = "prisma-client-js" }
-datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+generator client {
+  provider = "prisma-client-js"
+}
 
-enum Role { OWNER ADMIN MEMBER VIEWER }
-enum Status { ACTIVE INACTIVE PENDING ARCHIVED }
-enum RiskLevel { LOW MODERATE HIGH PROHIBITED }
-enum JobStatus { QUEUED RUNNING COMPLETED FAILED CANCELLED }
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
 
-model User { id String @id @default(cuid()) email String @unique name String? passwordHash String? role Role @default(MEMBER) createdAt DateTime @default(now()) updatedAt DateTime @updatedAt memberships WorkspaceMember[] accounts Account[] sessions Session[] createdDomains Domain[] }
-model Account { id String @id @default(cuid()) userId String type String provider String providerAccountId String refresh_token String? access_token String? expires_at Int? token_type String? scope String? id_token String? session_state String? user User @relation(fields:[userId], references:[id], onDelete:Cascade) @@unique([provider, providerAccountId]) }
-model Session { id String @id @default(cuid()) sessionToken String @unique userId String expires DateTime user User @relation(fields:[userId], references:[id], onDelete:Cascade) }
-model VerificationToken { identifier String token String @unique expires DateTime @@unique([identifier, token]) }
-model Workspace { id String @id @default(cuid()) name String slug String @unique status Status @default(ACTIVE) metadata Json @default("{}") createdAt DateTime @default(now()) updatedAt DateTime @updatedAt members WorkspaceMember[] domains Domain[] watchlists Watchlist[] portfolio PortfolioItem[] jobs BackgroundJob[] }
-model WorkspaceMember { id String @id @default(cuid()) workspaceId String userId String role Role @default(MEMBER) createdAt DateTime @default(now()) workspace Workspace @relation(fields:[workspaceId], references:[id], onDelete:Cascade) user User @relation(fields:[userId], references:[id], onDelete:Cascade) @@unique([workspaceId,userId]) }
-model Plan { id String @id @default(cuid()) name String @unique priceCents Int entitlements FeatureEntitlement[] subscriptions Subscription[] }
-model Subscription { id String @id @default(cuid()) workspaceId String planId String status String trialEndsAt DateTime? createdAt DateTime @default(now()) plan Plan @relation(fields:[planId], references:[id]) }
-model FeatureEntitlement { id String @id @default(cuid()) planId String key String limit Int? enabled Boolean @default(true) plan Plan @relation(fields:[planId], references:[id]) @@unique([planId,key]) }
-model UsageRecord { id String @id @default(cuid()) workspaceId String key String quantity Int @default(1) createdAt DateTime @default(now()) }
-model Domain { id String @id @default(cuid()) workspaceId String createdById String name String tld String status Status @default(ACTIVE) source String metadata Json @default("{}") createdAt DateTime @default(now()) updatedAt DateTime @updatedAt workspace Workspace @relation(fields:[workspaceId], references:[id], onDelete:Cascade) createdBy User @relation(fields:[createdById], references:[id]) checks DomainCheck[] opportunity DomainOpportunity? scores DomainScore[] valuations Valuation[] trademarkChecks TrademarkCheck[] historyChecks DomainHistoryCheck[] watchlistItems WatchlistItem[] portfolioItems PortfolioItem[] buyers Buyer[] @@unique([workspaceId,name]) @@index([workspaceId,status]) }
-model DomainCheck { id String @id @default(cuid()) domainId String available Boolean registrationPrice Decimal renewalPrice Decimal transferPrice Decimal? premium Boolean @default(false) registrar String status String checkedAt DateTime @default(now()) domain Domain @relation(fields:[domainId], references:[id], onDelete:Cascade) }
-model DomainOpportunity { id String @id @default(cuid()) workspaceId String domainId String score Int riskLevel RiskLevel estimatedRetailMin Decimal estimatedRetailMax Decimal buyerCount Int status Status @default(ACTIVE) notes String? createdAt DateTime @default(now()) updatedAt DateTime @updatedAt domain Domain @relation(fields:[domainId], references:[id], onDelete:Cascade) @@unique([domainId]) @@index([workspaceId,score]) }
-model DomainScore { id String @id @default(cuid()) domainId String total Int summary String createdAt DateTime @default(now()) domain Domain @relation(fields:[domainId], references:[id], onDelete:Cascade) factors ScoreFactor[] }
-model ScoreFactor { id String @id @default(cuid()) scoreId String name String value Int maxValue Int explanation String score DomainScore @relation(fields:[scoreId], references:[id], onDelete:Cascade) }
-model Valuation { id String @id @default(cuid()) domainId String wholesale Decimal retailMin Decimal retailMax Decimal buyNow Decimal minOffer Decimal maxAcquisition Decimal confidence String explanation String createdAt DateTime @default(now()) domain Domain @relation(fields:[domainId], references:[id], onDelete:Cascade) }
-model ComparableSale { id String @id @default(cuid()) domain String tld String price Decimal saleDate DateTime marketplace String industry String? metadata Json @default("{}") @@unique([domain,price,saleDate]) }
-model TrademarkCheck { id String @id @default(cuid()) domainId String riskLevel RiskLevel matches Json @default("[]") disclaimer String reviewedBy String? createdAt DateTime @default(now()) domain Domain @relation(fields:[domainId], references:[id], onDelete:Cascade) }
-model DomainHistoryCheck { id String @id @default(cuid()) domainId String riskLevel RiskLevel flags Json @default("[]") evidence Json @default("[]") checkedAt DateTime @default(now()) domain Domain @relation(fields:[domainId], references:[id], onDelete:Cascade) }
-model DiscoveryJob { id String @id @default(cuid()) workspaceId String createdById String status JobStatus @default(QUEUED) source String criteria Json progress Int @default(0) error String? createdAt DateTime @default(now()) updatedAt DateTime @updatedAt }
-model DiscoverySource { id String @id @default(cuid()) name String type String enabled Boolean @default(true) config Json @default("{}") }
-model SavedSearch { id String @id @default(cuid()) workspaceId String name String schedule String criteria Json status Status @default(ACTIVE) }
-model Watchlist { id String @id @default(cuid()) workspaceId String name String notes String? status Status @default(ACTIVE) createdAt DateTime @default(now()) workspace Workspace @relation(fields:[workspaceId], references:[id], onDelete:Cascade) items WatchlistItem[] }
-model WatchlistItem { id String @id @default(cuid()) watchlistId String domainId String notes String? tags String[] createdAt DateTime @default(now()) watchlist Watchlist @relation(fields:[watchlistId], references:[id], onDelete:Cascade) domain Domain @relation(fields:[domainId], references:[id], onDelete:Cascade) @@unique([watchlistId,domainId]) }
-model PortfolioItem { id String @id @default(cuid()) workspaceId String domainId String registrar String purchaseDate DateTime purchaseCost Decimal renewalCost Decimal expirationDate DateTime autoRenew Boolean @default(false) currentValuation Decimal buyNowPrice Decimal? status Status @default(ACTIVE) workspace Workspace @relation(fields:[workspaceId], references:[id], onDelete:Cascade) domain Domain @relation(fields:[domainId], references:[id]) }
-model RegistrarAccount { id String @id @default(cuid()) workspaceId String provider String encryptedCredentials String status Status @default(ACTIVE) }
-model MarketplaceListing { id String @id @default(cuid()) workspaceId String domainId String marketplace String price Decimal status String }
-model Buyer { id String @id @default(cuid()) workspaceId String domainId String companyName String website String? industry String location String? reasonForFit String relevanceScore Int outreachStatus String domain Domain @relation(fields:[domainId], references:[id]) contacts BuyerContact[] }
-model BuyerContact { id String @id @default(cuid()) buyerId String name String? title String? email String? phone String? linkedinUrl String? buyer Buyer @relation(fields:[buyerId], references:[id], onDelete:Cascade) }
-model OutreachCampaign { id String @id @default(cuid()) workspaceId String name String status Status @default(ACTIVE) }
-model OutreachMessage { id String @id @default(cuid()) workspaceId String campaignId String? subject String body String status String approvedAt DateTime? }
-model Offer { id String @id @default(cuid()) workspaceId String domainId String amount Decimal status String createdAt DateTime @default(now()) }
-model Sale { id String @id @default(cuid()) workspaceId String domainId String salePrice Decimal fees Decimal netProfit Decimal saleDate DateTime }
-model Renewal { id String @id @default(cuid()) workspaceId String domainId String dueDate DateTime cost Decimal recommendation String status String }
-model Notification { id String @id @default(cuid()) workspaceId String userId String title String body String readAt DateTime? createdAt DateTime @default(now()) }
-model Report { id String @id @default(cuid()) workspaceId String type String title String payload Json createdAt DateTime @default(now()) }
-model Integration { id String @id @default(cuid()) workspaceId String provider String status Status @default(ACTIVE) config Json @default("{}") }
-model ApiCredential { id String @id @default(cuid()) workspaceId String provider String encryptedSecret String createdAt DateTime @default(now()) }
-model BackgroundJob { id String @id @default(cuid()) workspaceId String type String status JobStatus @default(QUEUED) progress Int @default(0) attempts Int @default(0) error String? payload Json @default("{}") createdAt DateTime @default(now()) updatedAt DateTime @updatedAt workspace Workspace @relation(fields:[workspaceId], references:[id], onDelete:Cascade) }
-model AuditLog { id String @id @default(cuid()) workspaceId String? actorId String? action String targetType String targetId String? metadata Json @default("{}") createdAt DateTime @default(now()) }
-model AiUsage { id String @id @default(cuid()) workspaceId String userId String? model String promptTokens Int completionTokens Int costCents Int prompt String output String createdAt DateTime @default(now()) }
-model Webhook { id String @id @default(cuid()) workspaceId String url String secretHash String status Status @default(ACTIVE) }
-model FeatureFlag { id String @id @default(cuid()) key String @unique enabled Boolean @default(false) description String? }
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+  PENDING
+  ARCHIVED
+}
+
+enum RiskLevel {
+  LOW
+  MODERATE
+  HIGH
+  PROHIBITED
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model User {
+  id             String            @id @default(cuid())
+  email          String            @unique
+  name           String?
+  passwordHash   String?
+  role           Role              @default(MEMBER)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  memberships    WorkspaceMember[]
+  accounts       Account[]
+  sessions       Session[]
+  createdDomains Domain[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Workspace {
+  id         String            @id @default(cuid())
+  name       String
+  slug       String            @unique
+  status     Status            @default(ACTIVE)
+  metadata   Json              @default("{}")
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  members    WorkspaceMember[]
+  domains    Domain[]
+  watchlists Watchlist[]
+  portfolio  PortfolioItem[]
+  jobs       BackgroundJob[]
+}
+
+model WorkspaceMember {
+  id          String    @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        Role      @default(MEMBER)
+  createdAt   DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+}
+
+model Plan {
+  id            String               @id @default(cuid())
+  name          String               @unique
+  priceCents    Int
+  entitlements  FeatureEntitlement[]
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id          String    @id @default(cuid())
+  workspaceId String
+  planId      String
+  status      String
+  trialEndsAt DateTime?
+  createdAt   DateTime  @default(now())
+  plan        Plan      @relation(fields: [planId], references: [id])
+}
+
+model FeatureEntitlement {
+  id      String  @id @default(cuid())
+  planId  String
+  key     String
+  limit   Int?
+  enabled Boolean @default(true)
+  plan    Plan    @relation(fields: [planId], references: [id])
+
+  @@unique([planId, key])
+}
+
+model UsageRecord {
+  id          String   @id @default(cuid())
+  workspaceId String
+  key         String
+  quantity    Int      @default(1)
+  createdAt   DateTime @default(now())
+}
+
+model Domain {
+  id              String               @id @default(cuid())
+  workspaceId     String
+  createdById     String
+  name            String
+  tld             String
+  status          Status               @default(ACTIVE)
+  source          String
+  metadata        Json                 @default("{}")
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  workspace       Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy       User                 @relation(fields: [createdById], references: [id])
+  checks          DomainCheck[]
+  opportunity     DomainOpportunity?
+  scores          DomainScore[]
+  valuations      Valuation[]
+  trademarkChecks TrademarkCheck[]
+  historyChecks   DomainHistoryCheck[]
+  watchlistItems  WatchlistItem[]
+  portfolioItems  PortfolioItem[]
+  buyers          Buyer[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId, status])
+}
+
+model DomainCheck {
+  id                String   @id @default(cuid())
+  domainId          String
+  available         Boolean
+  registrationPrice Decimal
+  renewalPrice      Decimal
+  transferPrice     Decimal?
+  premium           Boolean  @default(false)
+  registrar         String
+  status            String
+  checkedAt         DateTime @default(now())
+  domain            Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+}
+
+model DomainOpportunity {
+  id                 String    @id @default(cuid())
+  workspaceId        String
+  domainId           String
+  score              Int
+  riskLevel          RiskLevel
+  estimatedRetailMin Decimal
+  estimatedRetailMax Decimal
+  buyerCount         Int
+  status             Status    @default(ACTIVE)
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  domain             Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
+
+  @@unique([domainId])
+  @@index([workspaceId, score])
+}
+
+model DomainScore {
+  id        String        @id @default(cuid())
+  domainId  String
+  total     Int
+  summary   String
+  createdAt DateTime      @default(now())
+  domain    Domain        @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  factors   ScoreFactor[]
+}
+
+model ScoreFactor {
+  id          String      @id @default(cuid())
+  scoreId     String
+  name        String
+  value       Int
+  maxValue    Int
+  explanation String
+  score       DomainScore @relation(fields: [scoreId], references: [id], onDelete: Cascade)
+}
+
+model Valuation {
+  id             String   @id @default(cuid())
+  domainId       String
+  wholesale      Decimal
+  retailMin      Decimal
+  retailMax      Decimal
+  buyNow         Decimal
+  minOffer       Decimal
+  maxAcquisition Decimal
+  confidence     String
+  explanation    String
+  createdAt      DateTime @default(now())
+  domain         Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+}
+
+model ComparableSale {
+  id          String   @id @default(cuid())
+  domain      String
+  tld         String
+  price       Decimal
+  saleDate    DateTime
+  marketplace String
+  industry    String?
+  metadata    Json     @default("{}")
+
+  @@unique([domain, price, saleDate])
+}
+
+model TrademarkCheck {
+  id         String    @id @default(cuid())
+  domainId   String
+  riskLevel  RiskLevel
+  matches    Json      @default("[]")
+  disclaimer String
+  reviewedBy String?
+  createdAt  DateTime  @default(now())
+  domain     Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
+}
+
+model DomainHistoryCheck {
+  id        String    @id @default(cuid())
+  domainId  String
+  riskLevel RiskLevel
+  flags     Json      @default("[]")
+  evidence  Json      @default("[]")
+  checkedAt DateTime  @default(now())
+  domain    Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
+}
+
+model DiscoveryJob {
+  id          String    @id @default(cuid())
+  workspaceId String
+  createdById String
+  status      JobStatus @default(QUEUED)
+  source      String
+  criteria    Json
+  progress    Int       @default(0)
+  error       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model DiscoverySource {
+  id      String  @id @default(cuid())
+  name    String
+  type    String
+  enabled Boolean @default(true)
+  config  Json    @default("{}")
+}
+
+model SavedSearch {
+  id          String @id @default(cuid())
+  workspaceId String
+  name        String
+  schedule    String
+  criteria    Json
+  status      Status @default(ACTIVE)
+}
+
+model Watchlist {
+  id          String          @id @default(cuid())
+  workspaceId String
+  name        String
+  notes       String?
+  status      Status          @default(ACTIVE)
+  createdAt   DateTime        @default(now())
+  workspace   Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  items       WatchlistItem[]
+}
+
+model WatchlistItem {
+  id          String    @id @default(cuid())
+  watchlistId String
+  domainId    String
+  notes       String?
+  tags        String[]
+  createdAt   DateTime  @default(now())
+  watchlist   Watchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+  domain      Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
+
+  @@unique([watchlistId, domainId])
+}
+
+model PortfolioItem {
+  id               String    @id @default(cuid())
+  workspaceId      String
+  domainId         String
+  registrar        String
+  purchaseDate     DateTime
+  purchaseCost     Decimal
+  renewalCost      Decimal
+  expirationDate   DateTime
+  autoRenew        Boolean   @default(false)
+  currentValuation Decimal
+  buyNowPrice      Decimal?
+  status           Status    @default(ACTIVE)
+  workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  domain           Domain    @relation(fields: [domainId], references: [id])
+}
+
+model RegistrarAccount {
+  id                   String @id @default(cuid())
+  workspaceId          String
+  provider             String
+  encryptedCredentials String
+  status               Status @default(ACTIVE)
+}
+
+model MarketplaceListing {
+  id          String  @id @default(cuid())
+  workspaceId String
+  domainId    String
+  marketplace String
+  price       Decimal
+  status      String
+}
+
+model Buyer {
+  id             String         @id @default(cuid())
+  workspaceId    String
+  domainId       String
+  companyName    String
+  website        String?
+  industry       String
+  location       String?
+  reasonForFit   String
+  relevanceScore Int
+  outreachStatus String
+  domain         Domain         @relation(fields: [domainId], references: [id])
+  contacts       BuyerContact[]
+}
+
+model BuyerContact {
+  id          String  @id @default(cuid())
+  buyerId     String
+  name        String?
+  title       String?
+  email       String?
+  phone       String?
+  linkedinUrl String?
+  buyer       Buyer   @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+}
+
+model OutreachCampaign {
+  id          String @id @default(cuid())
+  workspaceId String
+  name        String
+  status      Status @default(ACTIVE)
+}
+
+model OutreachMessage {
+  id          String    @id @default(cuid())
+  workspaceId String
+  campaignId  String?
+  subject     String
+  body        String
+  status      String
+  approvedAt  DateTime?
+}
+
+model Offer {
+  id          String   @id @default(cuid())
+  workspaceId String
+  domainId    String
+  amount      Decimal
+  status      String
+  createdAt   DateTime @default(now())
+}
+
+model Sale {
+  id          String   @id @default(cuid())
+  workspaceId String
+  domainId    String
+  salePrice   Decimal
+  fees        Decimal
+  netProfit   Decimal
+  saleDate    DateTime
+}
+
+model Renewal {
+  id             String   @id @default(cuid())
+  workspaceId    String
+  domainId       String
+  dueDate        DateTime
+  cost           Decimal
+  recommendation String
+  status         String
+}
+
+model Notification {
+  id          String    @id @default(cuid())
+  workspaceId String
+  userId      String
+  title       String
+  body        String
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  workspaceId String
+  type        String
+  title       String
+  payload     Json
+  createdAt   DateTime @default(now())
+}
+
+model Integration {
+  id          String @id @default(cuid())
+  workspaceId String
+  provider    String
+  status      Status @default(ACTIVE)
+  config      Json   @default("{}")
+}
+
+model ApiCredential {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  provider        String
+  encryptedSecret String
+  createdAt       DateTime @default(now())
+}
+
+model BackgroundJob {
+  id          String    @id @default(cuid())
+  workspaceId String
+  type        String
+  status      JobStatus @default(QUEUED)
+  progress    Int       @default(0)
+  attempts    Int       @default(0)
+  error       String?
+  payload     Json      @default("{}")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  workspaceId String?
+  actorId     String?
+  action      String
+  targetType  String
+  targetId    String?
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+}
+
+model AiUsage {
+  id               String   @id @default(cuid())
+  workspaceId      String
+  userId           String?
+  model            String
+  promptTokens     Int
+  completionTokens Int
+  costCents        Int
+  prompt           String
+  output           String
+  createdAt        DateTime @default(now())
+}
+
+model Webhook {
+  id          String @id @default(cuid())
+  workspaceId String
+  url         String
+  secretHash  String
+  status      Status @default(ACTIVE)
+}
+
+model FeatureFlag {
+  id          String  @id @default(cuid())
+  key         String  @unique
+  enabled     Boolean @default(false)
+  description String?
+}
