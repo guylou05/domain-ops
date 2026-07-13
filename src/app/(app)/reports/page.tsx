@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { createPortfolioSnapshotReport } from './actions';
 import { getReports } from '@/lib/server/reports';
 
 export const dynamic = 'force-dynamic';
@@ -26,9 +27,14 @@ export default async function ReportsPage() {
             Persisted workspace snapshots for portfolio review, opportunity triage, and operating cadence.
           </p>
         </div>
-        <Link className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white" href="/overview">
-          Open dashboard
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <form action={createPortfolioSnapshotReport}>
+            <button className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">Generate snapshot</button>
+          </form>
+          <Link className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-slate-200" href="/overview">
+            Open dashboard
+          </Link>
+        </div>
       </div>
 
       {reports.length === 0 ? (

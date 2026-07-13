@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { approveOutreachMessage } from './actions';
 import { getOutreachCampaigns } from '@/lib/server/outreach';
 
 export const dynamic = 'force-dynamic';
@@ -68,9 +69,14 @@ export default async function OutreachPage() {
                             {message.status} · {formatDate(message.approvedAt)}
                           </p>
                         </div>
-                        <span className={message.approvedAt ? 'text-sm font-semibold text-emerald-300' : 'text-sm font-semibold text-amber-200'}>
-                          {message.approvedAt ? 'Approved' : 'Review'}
-                        </span>
+                        {message.approvedAt ? (
+                          <span className="text-sm font-semibold text-emerald-300">Approved</span>
+                        ) : (
+                          <form action={approveOutreachMessage}>
+                            <input name="messageId" type="hidden" value={message.id} />
+                            <button className="rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white">Approve</button>
+                          </form>
+                        )}
                       </div>
                       <p className="mt-4 whitespace-pre-line text-sm text-slate-300">{message.body}</p>
                     </article>

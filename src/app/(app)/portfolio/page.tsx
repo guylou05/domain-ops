@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { archivePortfolioHolding, togglePortfolioAutoRenew } from './actions';
 import { getPortfolioHoldings } from '@/lib/server/portfolio-views';
 
 export const dynamic = 'force-dynamic';
@@ -67,6 +68,7 @@ export default async function PortfolioPage() {
                 <th className="pb-3">Renewal</th>
                 <th className="pb-3">Expires</th>
                 <th className="pb-3">Registrar</th>
+                <th className="pb-3">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -86,7 +88,23 @@ export default async function PortfolioPage() {
                   <td className="pr-4">{formatCurrency(holding.buyNowPrice)}</td>
                   <td className="pr-4">{formatCurrency(holding.renewalCost)}</td>
                   <td className="pr-4">{formatDate(holding.expirationDate)}</td>
-                  <td>{holding.registrar}</td>
+                  <td className="pr-4">{holding.registrar}</td>
+                  <td>
+                    <div className="flex flex-wrap gap-2">
+                      <form action={togglePortfolioAutoRenew}>
+                        <input name="holdingId" type="hidden" value={holding.id} />
+                        <button className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-white/10">
+                          {holding.autoRenew ? 'Manual' : 'Auto'}
+                        </button>
+                      </form>
+                      <form action={archivePortfolioHolding}>
+                        <input name="holdingId" type="hidden" value={holding.id} />
+                        <button className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-white/10">
+                          Archive
+                        </button>
+                      </form>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
