@@ -1,4 +1,4 @@
-import { PrismaClient, Role } from '@prisma/client';
+import { PrismaClient, Role, Status } from '@prisma/client';
 import { hash } from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -275,6 +275,77 @@ async function main() {
       update: { enabled: flag.enabled, description: flag.description },
       create: flag,
     });
+  }
+
+  const integrationSeeds = [
+    {
+      provider: 'mock_registrar',
+      status: Status.ACTIVE,
+      config: {
+        mode: 'mock',
+        description: 'Development registrar provider for deterministic availability and pricing.',
+        featureFlag: 'live_registrar_provider',
+      },
+      credential: 'encrypted:demo-mock-registrar',
+    },
+    {
+      provider: 'buyer_research',
+      status: Status.ACTIVE,
+      config: {
+        mode: 'queued',
+        description: 'Buyer research enrichment workflow prepared for background execution.',
+        featureFlag: 'buyer_research_jobs',
+      },
+      credential: 'encrypted:demo-buyer-research',
+    },
+    {
+      provider: 'ai_reports',
+      status: Status.PENDING,
+      config: {
+        mode: 'disabled',
+        description: 'AI-assisted report generation waiting on model and policy configuration.',
+        featureFlag: 'ai_report_generation',
+      },
+      credential: null,
+    },
+  ];
+
+  for (const integration of integrationSeeds) {
+    const existingIntegration = await prisma.integration.findFirst({
+      where: { workspaceId: workspace.id, provider: integration.provider },
+    });
+
+    if (existingIntegration) {
+      await prisma.integration.update({
+        where: { id: existingIntegration.id },
+        data: { status: integration.status, config: integration.config },
+      });
+    } else {
+      await prisma.integration.create({
+        data: {
+          workspaceId: workspace.id,
+          provider: integration.provider,
+          status: integration.status,
+          config: integration.config,
+        },
+      });
+    }
+
+    if (integration.credential) {
+      const existingCredential = await prisma.apiCredential.findFirst({
+        where: { workspaceId: workspace.id, provider: integration.provider },
+      });
+
+      if (!existingCredential) {
+        await prisma.apiCredential.create({
+          data: {
+            workspaceId: workspace.id,
+            provider: integration.provider,
+            encryptedSecret: integration.credential,
+          },
+        });
+      }
+    }
   }
 
   const auditSeeds = [
