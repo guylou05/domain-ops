@@ -43,6 +43,8 @@ export async function generateDomainOpportunities(_previousState: ActionState, f
       maxLength: readNumber(formData.get('maxLength'), 18),
       count: readNumber(formData.get('count'), 20),
     });
+    revalidatePath('/analytics');
+    revalidatePath('/domain-generator');
     revalidatePath('/opportunities');
     revalidatePath('/overview');
     return { ok: true, message: `Saved ${results.length} generated opportunities.`, results };
@@ -59,6 +61,8 @@ export async function importDomainOpportunities(_previousState: ActionState, for
       String(formData.get('domains') ?? ''),
       String(formData.get('industry') ?? 'general'),
     );
+    revalidatePath('/analytics');
+    revalidatePath('/domain-generator');
     revalidatePath('/opportunities');
     revalidatePath('/overview');
     return { ok: true, message: `Imported and scored ${results.length} opportunities.`, results };
