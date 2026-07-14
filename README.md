@@ -128,6 +128,7 @@ npm install
 - `npm run worker -- --list` - list registered worker tasks without requiring a database connection.
 - `npm run docker:up` / `npm run docker:down` - local infrastructure.
 - `npm run doctor:db` - validate schema and checked-in migration readiness.
+- `npm run doctor:auth` - verify seeded demo users and demo password hashes.
 
 ## Provider Integration Guide
 

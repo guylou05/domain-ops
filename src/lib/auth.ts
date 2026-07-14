@@ -7,6 +7,11 @@ import { prisma } from '@/lib/prisma';
 
 type AuthProviders = NextAuthOptions['providers'];
 
+function logAuthDiagnostic(message: string, metadata: Record<string, string | boolean | undefined> = {}) {
+  if (process.env.AUTH_DEBUG !== '1') return;
+  console.log('[auth]', message, metadata);
+}
+
 function authProviders(): AuthProviders {
   const providers: AuthProviders = [
     CredentialsProvider({
@@ -18,14 +23,24 @@ function authProviders(): AuthProviders {
       async authorize(credentials) {
         const email = credentials?.email?.trim().toLowerCase();
         const password = credentials?.password ?? '';
-        if (!email || !password) return null;
+        if (!email || !password) {
+          logAuthDiagnostic('missing credentials', { hasEmail: Boolean(email), hasPassword: Boolean(password) });
+          return null;
+        }
 
         const user = await prisma.user.findUnique({
           where: { email },
           select: { id: true, email: true, name: true, role: true, passwordHash: true },
         });
 
-        if (!user?.passwordHash || !(await compare(password, user.passwordHash))) return null;
+        if (!user?.passwordHash) {
+          logAuthDiagnostic('user missing or password hash missing', { email, found: Boolean(user) });
+          return null;
+        }
+
+        const passwordMatches = await compare(password, user.passwordHash);
+        logAuthDiagnostic('credential comparison completed', { email, passwordMatches });
+        if (!passwordMatches) return null;
 
         return {
           id: user.id,

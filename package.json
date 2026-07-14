@@ -20,7 +20,8 @@
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "doctor:registry": "node scripts/doctor-registry.mjs",
-    "doctor:db": "node scripts/doctor-db.mjs"
+    "doctor:db": "node scripts/doctor-db.mjs",
+    "doctor:auth": "node scripts/doctor-auth.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "latest",
