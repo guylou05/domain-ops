@@ -1,5 +1,6 @@
-import { toggleFeatureFlag } from './actions';
+import { queueBackgroundJob, toggleFeatureFlag } from './actions';
 import { getAdminDashboard } from '@/lib/server/admin';
+import { getRegisteredWorkerTasks } from '@/worker/task-registry';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +22,7 @@ function formatLabel(value: string): string {
 
 export default async function AdminPage() {
   const dashboard = await getAdminDashboard();
+  const workerTasks = getRegisteredWorkerTasks();
   const metrics = [
     ['Members', dashboard.counts.users],
     ['Active domains', dashboard.counts.activeDomains],
@@ -60,7 +62,21 @@ export default async function AdminPage() {
 
       <section className="mt-6 grid gap-4 xl:grid-cols-2">
         <div className="card">
-          <h2 className="text-xl font-semibold">Background jobs</h2>
+          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+            <h2 className="text-xl font-semibold">Background jobs</h2>
+            {dashboard.canAdminister ? (
+              <form action={queueBackgroundJob} className="flex flex-wrap gap-2">
+                <select className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm" name="type">
+                  {workerTasks.map((task) => (
+                    <option key={task.type} value={task.type}>
+                      {formatLabel(task.type)}
+                    </option>
+                  ))}
+                </select>
+                <button className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">Queue job</button>
+              </form>
+            ) : null}
+          </div>
           {dashboard.jobs.length === 0 ? (
             <p className="mt-4 text-sm text-slate-400">No jobs have been recorded for this workspace.</p>
           ) : (

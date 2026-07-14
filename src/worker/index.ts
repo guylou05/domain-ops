@@ -1,18 +1,42 @@
-type WorkerTask = {
-  type: string;
-  description: string;
-};
+import { prisma } from '@/lib/prisma';
+import { getRegisteredWorkerTasks } from './task-registry';
+import { runQueuedJobs } from './runner';
 
-const registeredTasks: WorkerTask[] = [
-  { type: 'daily_opportunity_digest', description: 'Summarize active opportunities and notification state.' },
-  { type: 'buyer_research_refresh', description: 'Refresh deterministic buyer research targets for queued workspaces.' },
-  { type: 'portfolio_snapshot', description: 'Create portfolio snapshot reports from current workspace data.' },
-];
+export { runBackgroundJob, runQueuedJobs } from './runner';
+export { getRegisteredWorkerTasks, isWorkerTaskType, registeredTasks } from './task-registry';
 
-export function getRegisteredWorkerTasks(): WorkerTask[] {
-  return registeredTasks;
+async function main() {
+  const limit = Number(process.env.WORKER_JOB_LIMIT ?? 5);
+  const tasks = getRegisteredWorkerTasks();
+  console.log(`DomainScout AI worker ready. Registered tasks: ${tasks.map((task) => task.type).join(', ')}`);
+
+  if (process.argv.includes('--list')) {
+    for (const task of tasks) {
+      console.log(`${task.type}: ${task.description}`);
+    }
+    return;
+  }
+
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL is required to process queued background jobs. Run npm run worker -- --list to inspect registered tasks without a database.');
+  }
+
+  const results = await runQueuedJobs(Number.isFinite(limit) && limit > 0 ? limit : 5);
+  if (results.length === 0) {
+    console.log('No queued background jobs found.');
+    return;
+  }
+
+  for (const result of results) {
+    console.log(`${result.status} ${result.type} ${result.id}: ${result.message}`);
+  }
 }
 
 if (require.main === module) {
-  console.log(`DomainScout AI worker ready. Registered tasks: ${registeredTasks.map((task) => task.type).join(', ')}`);
+  main()
+    .catch((error) => {
+      console.error(error instanceof Error ? error.message : error);
+      process.exitCode = 1;
+    })
+    .finally(() => prisma.$disconnect());
 }

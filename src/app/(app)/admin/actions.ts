@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { recordAuditEvent } from '@/lib/server/audit';
 import { assertWorkspaceAdmin, requireWorkspaceContext } from '@/lib/server/workspace-context';
+import { isWorkerTaskType } from '@/worker/task-registry';
 
 export async function toggleFeatureFlag(formData: FormData): Promise<void> {
   const context = await requireWorkspaceContext();
@@ -34,4 +35,32 @@ export async function toggleFeatureFlag(formData: FormData): Promise<void> {
   revalidatePath('/admin');
   revalidatePath('/settings');
   revalidatePath('/integrations');
+}
+
+export async function queueBackgroundJob(formData: FormData): Promise<void> {
+  const context = await requireWorkspaceContext();
+  assertWorkspaceAdmin(context);
+
+  const type = String(formData.get('type') ?? '').trim();
+  if (!isWorkerTaskType(type)) throw new Error('Unsupported background job type.');
+
+  const job = await prisma.backgroundJob.create({
+    data: {
+      workspaceId: context.workspaceId,
+      type,
+      status: 'QUEUED',
+      progress: 0,
+      payload: { source: 'admin' },
+    },
+    select: { id: true },
+  });
+
+  await recordAuditEvent(context, {
+    action: 'background_job.queued',
+    targetType: 'BackgroundJob',
+    targetId: job.id,
+    metadata: { type },
+  });
+
+  revalidatePath('/admin');
 }

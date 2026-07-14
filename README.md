@@ -27,6 +27,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 - [x] Outreach approval and notification read-state workflows.
 - [x] Settings, integrations, feature flags, and audit-backed admin controls.
 - [x] Server-rendered search, filter, and sort controls for opportunities, portfolio, and marketplace listings.
+- [x] Background job queueing and worker execution for digest, buyer research, and portfolio snapshot tasks.
 - [x] Seed script with demo users, workspace, opportunities, watchlists, portfolio, reports, notifications, integrations, and admin data.
 - [x] Docker Compose for PostgreSQL, Redis, and the web app.
 - [x] Unit tests for generation, scoring, and domain import parsing.
@@ -39,11 +40,15 @@ This phase centralized audit event recording, added reusable admin role guards, 
 
 This phase added shareable query-param controls for high-volume operating tables. Opportunities, portfolio holdings, and marketplace listings now support server-rendered search, filters, and sort modes without introducing client-side table state.
 
+## Background Jobs Phase
+
+This phase connected `BackgroundJob` records to executable worker task handlers. Admin users can queue supported workspace jobs, and `npm run worker` processes queued digest, buyer research refresh, and portfolio snapshot jobs.
+
 ## Remaining Hardening
 
 - [ ] Run Prisma migrations against the target PostgreSQL environment.
 - [ ] Add OAuth providers if the product needs non-credential sign-in.
-- [ ] Connect Redis-backed job execution to `BackgroundJob` processing.
+- [ ] Add Redis scheduling/locking around the executable `BackgroundJob` worker for multi-process deployments.
 - [ ] Add Playwright coverage for login, generator persistence, watchlist acquisition, and admin controls.
 - [ ] Configure live registrar, trademark, comparable-sales, and history providers behind feature flags.
 - [ ] Replace deterministic provider outputs with live adapters only after rate limits, caching, stale labels, and secrets are configured.
@@ -94,7 +99,8 @@ npm install
 - `npm run test:e2e` - Playwright test entry point.
 - `npm run db:migrate` - Prisma migrations.
 - `npm run db:seed` - seed demonstration data.
-- `npm run worker` - run the background worker entry point.
+- `npm run worker` - process queued background jobs.
+- `npm run worker -- --list` - list registered worker tasks without requiring a database connection.
 - `npm run docker:up` / `npm run docker:down` - local infrastructure.
 
 ## Provider Integration Guide
