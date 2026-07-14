@@ -17,6 +17,7 @@
     "db:validate": "node scripts/doctor-db.mjs",
     "db:seed": "tsx prisma/seed.ts",
     "worker": "tsx src/worker/index.ts",
+    "scheduler": "tsx src/scheduler/index.ts",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "doctor:registry": "node scripts/doctor-registry.mjs",
@@ -38,6 +39,7 @@
     "react-dom": "latest",
     "react-hook-form": "latest",
     "recharts": "latest",
+    "redis": "^5.12.1",
     "tailwind-merge": "latest",
     "zod": "latest"
   },

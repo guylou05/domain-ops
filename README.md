@@ -9,7 +9,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 - **Application logic:** `src/lib/domain-engine.ts` provides deterministic availability, generation, scoring, and valuation logic for local development.
 - **Database:** PostgreSQL via Prisma. The schema covers users, workspaces, RBAC, subscriptions, usage, domains, opportunities, scores, valuations, watchlists, portfolio records, buyers, outreach, jobs, reports, notifications, integrations, audit logs, AI usage, webhooks, and feature flags.
 - **Operations:** Server actions support generator persistence, watchlist saves, portfolio acquisition/archive/renewal controls, report snapshots, buyer research generation, history checks, marketplace listing publication, notification read state, integration toggles, workspace settings, feature flags, and audit logging.
-- **Background jobs:** `BackgroundJob` records plus a typed worker entry point for scheduled task execution.
+- **Background jobs:** `BackgroundJob` records, PostgreSQL worker leases, and Redis-coordinated recurring scheduling for scalable task execution.
 - **Analysis service:** `services/api/main.py` remains available as a FastAPI companion service for future external scoring or AI workflows.
 
 ## Implemented Milestones
@@ -32,6 +32,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 - [x] Playwright E2E smoke coverage plus opt-in seeded workflow coverage.
 - [x] Initial Prisma migration and database deployment readiness checks.
 - [x] GitHub Actions CI with Playwright browser install and seeded workflow E2E against migrated PostgreSQL.
+- [x] Redis-backed recurring scheduling with UI-managed task cadence and distributed worker execution.
 - [x] Seed script with demo users, workspace, opportunities, watchlists, portfolio, reports, notifications, integrations, and admin data.
 - [x] Docker Compose for PostgreSQL, Redis, and the web app.
 - [x] Unit tests for generation, scoring, and domain import parsing.
@@ -72,9 +73,12 @@ This phase added database-backed leases to `BackgroundJob` processing. Worker pr
 
 This phase added GitHub Actions checks for linting, typechecking, unit tests, production builds, Prisma validation, and seeded Playwright workflows against a migrated PostgreSQL service with Chromium installed in CI.
 
+## Recurring Scheduling Phase
+
+This phase added a persistent scheduler process that uses a Redis lock to coordinate recurring job creation across replicas and the existing PostgreSQL leases to process queued work. Runtime Settings controls scheduler enablement, polling frequency, and cadence for opportunity digests, buyer research refreshes, and portfolio snapshots.
+
 ## Remaining Hardening
 
-- [ ] Add Redis-backed recurring scheduling around the executable `BackgroundJob` worker for production intervals.
 - [ ] Implement live registrar, trademark, comparable-sales, and history adapters behind the provider interfaces.
 
 ## Local Setup
@@ -130,11 +134,13 @@ npm install
 - `npm run db:seed` - seed demonstration data.
 - `npm run worker` - process queued background jobs.
 - `npm run worker -- --list` - list registered worker tasks without requiring a database connection.
+- `npm run scheduler` - continuously schedule recurring jobs and process the queue using Redis coordination.
+- `npm run scheduler -- --once` - run one scheduling and worker cycle for operational verification.
 - `npm run docker:up` / `npm run docker:down` - local infrastructure.
 - `npm run doctor:db` - validate schema and checked-in migration readiness.
 - `npm run doctor:auth` - verify seeded demo users and demo password hashes.
 
-The Settings page stores runtime-tunable app configuration in the database, including availability provider mode, worker job limits, worker lease duration, and auth diagnostic visibility. Bootstrapping secrets such as `DATABASE_URL`, `NEXTAUTH_URL`, and `NEXTAUTH_SECRET` still belong in the deployment environment.
+The Settings page stores runtime-tunable app configuration in the database, including availability provider mode, worker limits, lease duration, recurring task cadence, scheduler polling, and auth diagnostic visibility. Bootstrapping secrets and infrastructure connection values such as `DATABASE_URL`, `REDIS_URL`, `NEXTAUTH_URL`, and `NEXTAUTH_SECRET` still belong in the deployment environment.
 
 ## Provider Integration Guide
 
@@ -152,16 +158,17 @@ This repository includes `railway.json` and a production Dockerfile so Railway c
 
 1. In Railway, create a project from the GitHub repository.
 2. Add a PostgreSQL database service.
-3. In the web service variables, add `DATABASE_URL` as a reference to the PostgreSQL service.
+3. Add a Redis service, then add `DATABASE_URL` and `REDIS_URL` references to the web service.
 4. Add required app variables:
    - `NEXTAUTH_SECRET` - strong random secret.
    - `NEXTAUTH_URL` - the generated Railway URL first, then your custom domain later.
    - `ENCRYPTION_KEY` - strong application secret.
    - `WORKER_ID=railway-web`.
 5. Optional variables:
-   - `REDIS_URL` if you add a Redis service.
    - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` for Google OAuth.
 6. Deploy from Railway. Watch the deployment logs for the Docker build, Prisma migration pre-deploy step, app boot, and `/api/health` check.
+
+To run recurring jobs, add a second Railway service from the same GitHub repository. Set its Railway config file path to `/railway.scheduler.json`, reference the same `DATABASE_URL` and `REDIS_URL`, and set a distinct `WORKER_ID`, such as `railway-scheduler-1`. This service does not need public networking. Once it is running, enable recurring background jobs and set each cadence from the web app's Settings page.
 
 Railway commonly injects `PORT=8080` for the running container. If you generate a public Railway service domain manually, use the port shown in the deploy logs, for example:
 

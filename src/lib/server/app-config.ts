@@ -7,6 +7,18 @@ export type AppConfig = {
   authDiagnosticsEnabled: boolean;
   workerJobLimit: number;
   workerLeaseMs: number;
+  schedulerEnabled: boolean;
+  schedulerPollMs: number;
+  jobSchedules: {
+    dailyOpportunityDigest: JobScheduleConfig;
+    buyerResearchRefresh: JobScheduleConfig;
+    portfolioSnapshot: JobScheduleConfig;
+  };
+};
+
+export type JobScheduleConfig = {
+  enabled: boolean;
+  intervalMinutes: number;
 };
 
 const CONFIG_KEY = 'runtime';
@@ -15,6 +27,13 @@ const DEFAULT_CONFIG: AppConfig = {
   authDiagnosticsEnabled: false,
   workerJobLimit: 5,
   workerLeaseMs: 300000,
+  schedulerEnabled: false,
+  schedulerPollMs: 60000,
+  jobSchedules: {
+    dailyOpportunityDigest: { enabled: true, intervalMinutes: 1440 },
+    buyerResearchRefresh: { enabled: true, intervalMinutes: 360 },
+    portfolioSnapshot: { enabled: true, intervalMinutes: 1440 },
+  },
 };
 
 function readObject(value: unknown): Record<string, unknown> {
@@ -32,13 +51,29 @@ function readPositiveInteger(value: unknown, fallback: number, minimum: number, 
   return Math.min(Math.max(Math.floor(numeric), minimum), maximum);
 }
 
+function readJobSchedule(value: unknown, fallback: JobScheduleConfig): JobScheduleConfig {
+  const object = readObject(value);
+  return {
+    enabled: typeof object.enabled === 'boolean' ? object.enabled : fallback.enabled,
+    intervalMinutes: readPositiveInteger(object.intervalMinutes, fallback.intervalMinutes, 5, 10080),
+  };
+}
+
 export function parseAppConfig(value: unknown): AppConfig {
   const object = readObject(value);
+  const schedules = readObject(object.jobSchedules);
   return {
     availabilityProvider: readProvider(object.availabilityProvider),
     authDiagnosticsEnabled: object.authDiagnosticsEnabled === true,
     workerJobLimit: readPositiveInteger(object.workerJobLimit, DEFAULT_CONFIG.workerJobLimit, 1, 50),
     workerLeaseMs: readPositiveInteger(object.workerLeaseMs, DEFAULT_CONFIG.workerLeaseMs, 10000, 3600000),
+    schedulerEnabled: object.schedulerEnabled === true,
+    schedulerPollMs: readPositiveInteger(object.schedulerPollMs, DEFAULT_CONFIG.schedulerPollMs, 10000, 600000),
+    jobSchedules: {
+      dailyOpportunityDigest: readJobSchedule(schedules.dailyOpportunityDigest, DEFAULT_CONFIG.jobSchedules.dailyOpportunityDigest),
+      buyerResearchRefresh: readJobSchedule(schedules.buyerResearchRefresh, DEFAULT_CONFIG.jobSchedules.buyerResearchRefresh),
+      portfolioSnapshot: readJobSchedule(schedules.portfolioSnapshot, DEFAULT_CONFIG.jobSchedules.portfolioSnapshot),
+    },
   };
 }
 

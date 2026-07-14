@@ -43,6 +43,13 @@ async function main() {
         authDiagnosticsEnabled: false,
         workerJobLimit: 5,
         workerLeaseMs: 300000,
+        schedulerEnabled: false,
+        schedulerPollMs: 60000,
+        jobSchedules: {
+          dailyOpportunityDigest: { enabled: true, intervalMinutes: 1440 },
+          buyerResearchRefresh: { enabled: true, intervalMinutes: 360 },
+          portfolioSnapshot: { enabled: true, intervalMinutes: 1440 },
+        },
       },
     },
   });

@@ -36,14 +36,32 @@ export async function updateRuntimeSettings(formData: FormData): Promise<void> {
 
   const availabilityProvider = String(formData.get('availabilityProvider') ?? 'mock');
   const workerJobLimit = Number(formData.get('workerJobLimit'));
-  const workerLeaseMs = Number(formData.get('workerLeaseMs'));
+  const workerLeaseMs = Number(formData.get('workerLeaseSeconds')) * 1000;
   const authDiagnosticsEnabled = formData.get('authDiagnosticsEnabled') === 'on';
+  const schedulerEnabled = formData.get('schedulerEnabled') === 'on';
+  const schedulerPollMs = Number(formData.get('schedulerPollSeconds')) * 1000;
 
   const config = await updateAppConfig({
     availabilityProvider: availabilityProvider === 'deterministic' || availabilityProvider === 'mock' || availabilityProvider === 'live' ? availabilityProvider : 'mock',
     workerJobLimit,
     workerLeaseMs,
     authDiagnosticsEnabled,
+    schedulerEnabled,
+    schedulerPollMs,
+    jobSchedules: {
+      dailyOpportunityDigest: {
+        enabled: formData.get('dailyOpportunityDigestEnabled') === 'on',
+        intervalMinutes: Number(formData.get('dailyOpportunityDigestIntervalMinutes')),
+      },
+      buyerResearchRefresh: {
+        enabled: formData.get('buyerResearchRefreshEnabled') === 'on',
+        intervalMinutes: Number(formData.get('buyerResearchRefreshIntervalMinutes')),
+      },
+      portfolioSnapshot: {
+        enabled: formData.get('portfolioSnapshotEnabled') === 'on',
+        intervalMinutes: Number(formData.get('portfolioSnapshotIntervalMinutes')),
+      },
+    },
   });
 
   await recordAuditEvent(context, {

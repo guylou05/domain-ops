@@ -97,14 +97,13 @@ export default async function SettingsPage() {
             />
           </label>
           <label className="grid gap-2 text-sm">
-            <span className="text-slate-300">Worker lease milliseconds</span>
+            <span className="text-slate-300">Worker lease seconds</span>
             <input
               className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2"
-              defaultValue={settings.appConfig.workerLeaseMs}
-              min={10000}
-              max={3600000}
-              name="workerLeaseMs"
-              step={1000}
+              defaultValue={settings.appConfig.workerLeaseMs / 1000}
+              min={10}
+              max={3600}
+              name="workerLeaseSeconds"
               type="number"
             />
           </label>
@@ -112,6 +111,61 @@ export default async function SettingsPage() {
             <input defaultChecked={settings.appConfig.authDiagnosticsEnabled} name="authDiagnosticsEnabled" type="checkbox" />
             <span>Enable auth diagnostics endpoint</span>
           </label>
+          <label className="flex items-center gap-3 rounded-lg border border-white/10 px-3 py-2 text-sm">
+            <input defaultChecked={settings.appConfig.schedulerEnabled} name="schedulerEnabled" type="checkbox" />
+            <span>Enable recurring background jobs</span>
+          </label>
+          <label className="grid gap-2 text-sm">
+            <span className="text-slate-300">Scheduler poll seconds</span>
+            <input
+              className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2"
+              defaultValue={settings.appConfig.schedulerPollMs / 1000}
+              min={10}
+              max={600}
+              name="schedulerPollSeconds"
+              type="number"
+            />
+          </label>
+          <fieldset className="grid gap-3 border-t border-white/10 pt-4 lg:col-span-2">
+            <legend className="pr-3 text-sm font-semibold text-slate-200">Recurring task cadence</legend>
+            <div className="grid gap-3 md:grid-cols-3">
+              {[
+                {
+                  key: 'dailyOpportunityDigest',
+                  label: 'Opportunity digest',
+                  schedule: settings.appConfig.jobSchedules.dailyOpportunityDigest,
+                },
+                {
+                  key: 'buyerResearchRefresh',
+                  label: 'Buyer research refresh',
+                  schedule: settings.appConfig.jobSchedules.buyerResearchRefresh,
+                },
+                {
+                  key: 'portfolioSnapshot',
+                  label: 'Portfolio snapshot',
+                  schedule: settings.appConfig.jobSchedules.portfolioSnapshot,
+                },
+              ].map((task) => (
+                <div className="grid gap-3 rounded-lg border border-white/10 p-3" key={task.key}>
+                  <label className="flex items-center gap-3 text-sm">
+                    <input defaultChecked={task.schedule.enabled} name={`${task.key}Enabled`} type="checkbox" />
+                    <span>{task.label}</span>
+                  </label>
+                  <label className="grid gap-2 text-xs text-slate-400">
+                    Interval in minutes
+                    <input
+                      className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-white"
+                      defaultValue={task.schedule.intervalMinutes}
+                      min={5}
+                      max={10080}
+                      name={`${task.key}IntervalMinutes`}
+                      type="number"
+                    />
+                  </label>
+                </div>
+              ))}
+            </div>
+          </fieldset>
           <div className="lg:col-span-2">
             <button className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">Save runtime settings</button>
           </div>
