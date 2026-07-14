@@ -26,6 +26,9 @@ test.describe('seeded workspace workflows', () => {
     await expect(page.getByText(/Saved \d+ generated opportunities\./)).toBeVisible();
     await page.goto('/opportunities?search=agent&sort=score');
     await expect(page.getByRole('heading', { name: 'Opportunities' })).toBeVisible();
+    await page.goto('/settings');
+    await expect(page.getByText('Domain Checks')).toBeVisible();
+    await expect(page.getByText(/\d+ \/ 5000/)).toBeVisible();
   });
 
   test('watchlisted opportunity can be acquired into portfolio', async ({ page }) => {
@@ -55,6 +58,7 @@ test.describe('seeded workspace workflows', () => {
     await page.locator('tbody a').first().click();
 
     await page.getByRole('button', { name: 'Run due diligence' }).click();
+    await expect(page.getByText('Due diligence completed.')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Trademark screening' })).toBeVisible();
     await expect(page.getByText('No matches returned.')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Comparable sales' })).toBeVisible();

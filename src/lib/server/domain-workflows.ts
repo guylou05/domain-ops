@@ -4,6 +4,7 @@ import { parseDomainLines } from '@/lib/domain-parsing';
 import { analyzeDomainsWithProviderMode, generateDomainIdeas, generationSchema, type DomainAnalysis, type GenerationInput } from '@/lib/domain-engine';
 import { assertWorkspaceWriter, type WorkspaceContext } from './workspace-context';
 import { getAppConfig } from './app-config';
+import { withEntitlementUsage } from './entitlements';
 import { resolveProviderCredential } from './provider-credentials';
 
 export type PersistedOpportunity = {
@@ -131,8 +132,10 @@ export async function generateAnalyzeAndPersist(context: WorkspaceContext, input
   const config = await getAppConfig();
   const apiKey = await resolveProviderCredential(context.workspaceId, 'registrar');
   const domains = generateDomainIdeas(parsed);
-  const analyses = await analyzeDomainsWithProviderMode(domains, parsed.industry, config.availabilityProvider, config.providerEndpoints.registrar, apiKey);
-  return persistAnalyzedOpportunities(context, analyses, 'GENERATOR');
+  return withEntitlementUsage(context.workspaceId, 'domain_checks', domains.length, async () => {
+    const analyses = await analyzeDomainsWithProviderMode(domains, parsed.industry, config.availabilityProvider, config.providerEndpoints.registrar, apiKey);
+    return persistAnalyzedOpportunities(context, analyses, 'GENERATOR');
+  }, (results) => results.length);
 }
 
 export async function importAnalyzeAndPersist(context: WorkspaceContext, rawDomains: string, industry: string): Promise<PersistedOpportunity[]> {
@@ -140,6 +143,8 @@ export async function importAnalyzeAndPersist(context: WorkspaceContext, rawDoma
   if (domains.length === 0) throw new Error('No valid domains were provided.');
   const config = await getAppConfig();
   const apiKey = await resolveProviderCredential(context.workspaceId, 'registrar');
-  const analyses = await analyzeDomainsWithProviderMode(domains, industry || 'general', config.availabilityProvider, config.providerEndpoints.registrar, apiKey);
-  return persistAnalyzedOpportunities(context, analyses, 'MANUAL_OR_CSV_IMPORT');
+  return withEntitlementUsage(context.workspaceId, 'domain_checks', domains.length, async () => {
+    const analyses = await analyzeDomainsWithProviderMode(domains, industry || 'general', config.availabilityProvider, config.providerEndpoints.registrar, apiKey);
+    return persistAnalyzedOpportunities(context, analyses, 'MANUAL_OR_CSV_IMPORT');
+  }, (results) => results.length);
 }

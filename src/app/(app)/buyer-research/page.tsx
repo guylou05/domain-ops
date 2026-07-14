@@ -4,7 +4,8 @@ import { getBuyerResearch } from '@/lib/server/buyer-research';
 
 export const dynamic = 'force-dynamic';
 
-export default async function BuyerResearchPage() {
+export default async function BuyerResearchPage({ searchParams }: { searchParams?: Promise<{ error?: string }> }) {
+  const error = (await searchParams)?.error;
   const buyers = await getBuyerResearch();
   const readyCount = buyers.filter((buyer) => buyer.outreachStatus === 'READY').length;
 
@@ -26,6 +27,8 @@ export default async function BuyerResearchPage() {
           </form>
         </div>
       </div>
+
+      {error ? <p className="mt-4 rounded-lg border border-red-400/30 bg-red-400/5 p-3 text-sm text-red-200">{error}</p> : null}
 
       {buyers.length === 0 ? (
         <div className="card mt-6 py-10 text-center">

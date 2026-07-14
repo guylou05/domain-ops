@@ -4,6 +4,7 @@ import { getComparableSalesProvider } from '@/lib/providers/comparable-sales';
 import { getHistoryProvider } from '@/lib/providers/history';
 import { getTrademarkProvider } from '@/lib/providers/trademark';
 import { getAppConfig } from './app-config';
+import { withEntitlementUsage } from './entitlements';
 import { resolveProviderCredential } from './provider-credentials';
 import { assertWorkspaceWriter, type WorkspaceContext } from './workspace-context';
 
@@ -13,6 +14,10 @@ function riskLevel(value: 'LOW' | 'MODERATE' | 'HIGH' | 'PROHIBITED'): RiskLevel
 
 export async function runDomainDueDiligence(context: WorkspaceContext, domainName: string) {
   assertWorkspaceWriter(context);
+  return withEntitlementUsage(context.workspaceId, 'due_diligence_checks', 1, () => executeDomainDueDiligence(context, domainName));
+}
+
+async function executeDomainDueDiligence(context: WorkspaceContext, domainName: string) {
   const domain = await prisma.domain.findFirst({
     where: { workspaceId: context.workspaceId, name: domainName },
     select: { id: true, name: true, opportunity: { select: { score: true } } },
@@ -79,6 +84,10 @@ export async function runDomainDueDiligence(context: WorkspaceContext, domainNam
 
 export async function runWorkspaceHistoryChecks(context: WorkspaceContext, limit = 8): Promise<number> {
   assertWorkspaceWriter(context);
+  return withEntitlementUsage(context.workspaceId, 'due_diligence_checks', limit, () => executeWorkspaceHistoryChecks(context, limit), (count) => count);
+}
+
+async function executeWorkspaceHistoryChecks(context: WorkspaceContext, limit: number): Promise<number> {
   const config = await getAppConfig();
   const apiKey = await resolveProviderCredential(context.workspaceId, 'domain_history');
   const provider = getHistoryProvider(config.historyProvider, config.providerEndpoints.history, apiKey);

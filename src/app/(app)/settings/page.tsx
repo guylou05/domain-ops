@@ -229,15 +229,29 @@ export default async function SettingsPage() {
                       <h3 className="font-semibold">{subscription.plan.name}</h3>
                       <p className="mt-1 text-sm text-slate-400">{formatCurrency(subscription.plan.priceCents)}/mo · {subscription.status}</p>
                     </div>
-                    <p className="text-sm text-slate-500">{subscription.trialEndsAt ? `Trial ends ${formatDate(subscription.trialEndsAt)}` : 'No trial'}</p>
+                    <p className="text-sm text-slate-500">
+                      {subscription.trialEndsAt ? `Trial ends ${formatDate(subscription.trialEndsAt)}` : `Usage resets ${formatDate(settings.monthlyUsage.periodEnd)}`}
+                    </p>
                   </div>
                   <div className="mt-4 grid gap-2 text-sm">
-                    {subscription.plan.entitlements.map((entitlement) => (
-                      <div className="flex justify-between rounded-lg border border-white/10 px-3 py-2" key={entitlement.key}>
-                        <span>{formatLabel(entitlement.key)}</span>
-                        <span>{entitlement.enabled ? entitlement.limit ?? 'Enabled' : 'Off'}</span>
-                      </div>
-                    ))}
+                    {subscription.plan.entitlements.map((entitlement) => {
+                      const usage = settings.monthlyUsage.entitlements.find((item) => item.key === entitlement.key);
+                      const used = usage?.used ?? 0;
+                      const percent = entitlement.limit ? Math.min(100, Math.round((used / entitlement.limit) * 100)) : 0;
+                      return (
+                        <div className="rounded-lg border border-white/10 px-3 py-2" key={entitlement.key}>
+                          <div className="flex justify-between gap-3">
+                            <span>{formatLabel(entitlement.key)}</span>
+                            <span>{entitlement.enabled ? `${used} / ${entitlement.limit ?? 'Unlimited'}` : 'Off'}</span>
+                          </div>
+                          {entitlement.enabled && entitlement.limit ? (
+                            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                              <div className="h-full bg-brand" style={{ width: `${percent}%` }} />
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ))}

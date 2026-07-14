@@ -8,7 +8,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 - **Auth and workspace context:** Auth.js credentials, JWT sessions, protected app routes, role-aware workspace access, and seeded demo users.
 - **Application logic:** `src/lib/domain-engine.ts` provides deterministic availability, generation, scoring, and valuation logic for local development.
 - **Database:** PostgreSQL via Prisma. The schema covers users, workspaces, RBAC, subscriptions, usage, domains, opportunities, scores, valuations, watchlists, portfolio records, buyers, outreach, jobs, reports, notifications, integrations, audit logs, AI usage, webhooks, and feature flags.
-- **Operations:** Server actions support generator persistence, watchlist saves, portfolio acquisition/archive/renewal controls, report snapshots, buyer research generation, history checks, marketplace listing publication, notification read state, integration toggles, workspace settings, feature flags, and audit logging.
+- **Operations:** Server actions support generator persistence, watchlist saves, portfolio acquisition/archive/renewal controls, report snapshots, buyer research generation, history checks, marketplace listing publication, notification read state, integration toggles, workspace settings, feature flags, entitlement enforcement, and audit logging.
 - **Background jobs:** `BackgroundJob` records, PostgreSQL worker leases, and Redis-coordinated recurring scheduling for scalable task execution.
 - **Analysis service:** `services/api/main.py` remains available as a FastAPI companion service for future external scoring or AI workflows.
 
@@ -35,6 +35,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 - [x] Redis-backed recurring scheduling with UI-managed task cadence and distributed worker execution.
 - [x] Live-ready registrar, trademark, comparable-sales, and domain-history adapters with due-diligence workflows.
 - [x] Encrypted workspace provider credentials managed from the Integrations UI.
+- [x] Monthly subscription entitlement enforcement with atomic usage reservations and visible quota state.
 - [x] Seed script with demo users, workspace, opportunities, watchlists, portfolio, reports, notifications, integrations, and admin data.
 - [x] Docker Compose for PostgreSQL, Redis, and the web app.
 - [x] Unit tests for generation, scoring, and domain import parsing.
@@ -86,6 +87,10 @@ This phase added normalized provider interfaces for registrar availability, trad
 ## Credential Vault Phase
 
 This phase made live provider keys manageable from Integrations. Credentials are encrypted with AES-256-GCM before persistence, bound to their workspace and provider, replaceable without exposing the saved value, removable by workspace admins, and covered by secret-free audit events. Deployment variables remain supported as a fallback.
+
+## Entitlement Enforcement Phase
+
+This phase connected subscriptions and plan entitlements to real workflows. Domain checks, buyer research, reports, and due diligence now reserve monthly usage in serializable PostgreSQL transactions, release failed reservations, adjust to actual output, and fail closed when a feature is disabled or its limit is exhausted. Settings and Analytics show current-period usage against plan limits.
 
 ## Local Setup
 

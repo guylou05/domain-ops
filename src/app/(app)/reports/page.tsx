@@ -15,7 +15,8 @@ function formatType(value: string): string {
     .join(' ');
 }
 
-export default async function ReportsPage() {
+export default async function ReportsPage({ searchParams }: { searchParams?: Promise<{ error?: string }> }) {
+  const error = (await searchParams)?.error;
   const reports = await getReports();
 
   return (
@@ -36,6 +37,8 @@ export default async function ReportsPage() {
           </Link>
         </div>
       </div>
+
+      {error ? <p className="mt-4 rounded-lg border border-red-400/30 bg-red-400/5 p-3 text-sm text-red-200">{error}</p> : null}
 
       {reports.length === 0 ? (
         <div className="card mt-6 py-10 text-center">

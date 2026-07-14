@@ -9,7 +9,12 @@ export async function runHistoryChecks(): Promise<void> {
   const context = await requireWorkspaceContext();
   assertWorkspaceWriter(context);
 
-  await runWorkspaceHistoryChecks(context);
+  try {
+    await runWorkspaceHistoryChecks(context);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to run history checks.';
+    redirect(`/expired-domains?error=${encodeURIComponent(message)}`);
+  }
 
   revalidatePath('/expired-domains');
   revalidatePath('/opportunities');

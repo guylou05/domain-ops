@@ -24,15 +24,21 @@ export async function runOpportunityDueDiligence(formData: FormData): Promise<vo
   const domainName = normalizeDomain(formData.get('domain'));
   if (!domainName) throw new Error('Domain is required.');
 
-  const result = await runDomainDueDiligence(context, domainName);
-  await recordAuditEvent(context, {
-    action: 'domain.due_diligence_completed',
-    targetType: 'Domain',
-    targetId: domainName,
-    metadata: result,
-  });
-  revalidatePath(`/opportunities/${encodeURIComponent(domainName)}`);
-  revalidatePath('/expired-domains');
+  try {
+    const result = await runDomainDueDiligence(context, domainName);
+    await recordAuditEvent(context, {
+      action: 'domain.due_diligence_completed',
+      targetType: 'Domain',
+      targetId: domainName,
+      metadata: result,
+    });
+    revalidatePath(`/opportunities/${encodeURIComponent(domainName)}`);
+    revalidatePath('/expired-domains');
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to run due diligence.';
+    redirect(`/opportunities/${encodeURIComponent(domainName)}?error=${encodeURIComponent(message)}`);
+  }
+  redirect(`/opportunities/${encodeURIComponent(domainName)}?notice=${encodeURIComponent('Due diligence completed.')}`);
 }
 
 export async function addOpportunityToWatchlist(formData: FormData): Promise<void> {

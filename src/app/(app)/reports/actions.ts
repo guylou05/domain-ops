@@ -9,7 +9,12 @@ export async function createPortfolioSnapshotReport(): Promise<void> {
   const context = await requireWorkspaceContext();
   assertWorkspaceWriter(context);
 
-  await createPortfolioSnapshotForWorkspace(context.workspaceId);
+  try {
+    await createPortfolioSnapshotForWorkspace(context.workspaceId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to create the portfolio snapshot.';
+    redirect(`/reports?error=${encodeURIComponent(message)}`);
+  }
 
   revalidatePath('/reports');
   revalidatePath('/overview');

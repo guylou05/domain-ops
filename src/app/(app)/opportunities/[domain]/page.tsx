@@ -15,7 +15,8 @@ function formatAvailability(value: boolean | null): string {
   return value ? 'Available' : 'Taken';
 }
 
-export default async function Detail({ params }: { params: { domain: string } }) {
+export default async function Detail({ params, searchParams }: { params: { domain: string }; searchParams?: Promise<{ error?: string; notice?: string }> }) {
+  const feedback = await searchParams;
   const opportunity = await getOpportunityDetail(params.domain);
   if (!opportunity) notFound();
 
@@ -24,6 +25,9 @@ export default async function Detail({ params }: { params: { domain: string } })
       <Link className="text-sm text-slate-400 hover:text-slate-100" href="/opportunities">
         Back to opportunities
       </Link>
+
+      {feedback?.error ? <p className="mt-4 rounded-lg border border-red-400/30 bg-red-400/5 p-3 text-sm text-red-200">{feedback.error}</p> : null}
+      {feedback?.notice ? <p className="mt-4 rounded-lg border border-emerald-400/30 bg-emerald-400/5 p-3 text-sm text-emerald-200">{feedback.notice}</p> : null}
 
       <div className="mt-4 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>

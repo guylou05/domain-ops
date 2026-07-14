@@ -1,10 +1,11 @@
 import { prisma } from '@/lib/prisma';
 import { requireWorkspaceContext } from './workspace-context';
+import { getMonthlyEntitlementUsage } from './entitlements';
 
 export type AnalyticsView = {
   metrics: Array<{ label: string; value: string }>;
   riskMix: Array<{ label: string; value: number }>;
-  usage: Array<{ key: string; quantity: number }>;
+  usage: Array<{ key: string; quantity: number; limit: number | null }>;
   aiUsage: Array<{
     model: string;
     tokens: number;
@@ -25,7 +26,7 @@ function formatCurrency(value: number): string {
 export async function getAnalytics(): Promise<AnalyticsView> {
   const context = await requireWorkspaceContext();
 
-  const [opportunityStats, riskGroups, portfolioStats, listingStats, usageGroups, aiUsage] = await Promise.all([
+  const [opportunityStats, riskGroups, portfolioStats, listingStats, monthlyUsage, aiUsage] = await Promise.all([
     prisma.domainOpportunity.aggregate({
       where: { workspaceId: context.workspaceId, status: 'ACTIVE' },
       _avg: { score: true },
@@ -49,12 +50,7 @@ export async function getAnalytics(): Promise<AnalyticsView> {
       _sum: { price: true },
       _count: { id: true },
     }),
-    prisma.usageRecord.groupBy({
-      by: ['key'],
-      where: { workspaceId: context.workspaceId },
-      _sum: { quantity: true },
-      orderBy: { key: 'asc' },
-    }),
+    getMonthlyEntitlementUsage(context.workspaceId),
     prisma.aiUsage.findMany({
       where: { workspaceId: context.workspaceId },
       orderBy: { createdAt: 'desc' },
@@ -89,9 +85,10 @@ export async function getAnalytics(): Promise<AnalyticsView> {
       label: group.riskLevel,
       value: group._count.riskLevel,
     })),
-    usage: usageGroups.map((group) => ({
-      key: group.key,
-      quantity: group._sum.quantity ?? 0,
+    usage: monthlyUsage.entitlements.map((entitlement) => ({
+      key: entitlement.key,
+      quantity: entitlement.used,
+      limit: entitlement.limit,
     })),
     aiUsage: aiUsage.map((usage) => ({
       model: usage.model,

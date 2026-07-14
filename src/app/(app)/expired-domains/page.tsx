@@ -8,7 +8,8 @@ function formatDate(value: Date): string {
   return value.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export default async function ExpiredDomainsPage() {
+export default async function ExpiredDomainsPage({ searchParams }: { searchParams?: Promise<{ error?: string }> }) {
+  const error = (await searchParams)?.error;
   const checks = await getExpiredDomainHistory();
   const highRiskCount = checks.filter((check) => check.riskLevel === 'HIGH' || check.riskLevel === 'PROHIBITED').length;
 
@@ -30,6 +31,8 @@ export default async function ExpiredDomainsPage() {
           </form>
         </div>
       </div>
+
+      {error ? <p className="mt-4 rounded-lg border border-red-400/30 bg-red-400/5 p-3 text-sm text-red-200">{error}</p> : null}
 
       {checks.length === 0 ? (
         <div className="card mt-6 py-10 text-center">

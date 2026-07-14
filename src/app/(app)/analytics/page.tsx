@@ -64,7 +64,7 @@ export default async function AnalyticsPage() {
               {analytics.usage.map((item) => (
                 <div className="flex justify-between rounded-lg bg-white/5 px-3 py-2 text-sm" key={item.key}>
                   <span>{formatLabel(item.key)}</span>
-                  <span className="font-semibold">{item.quantity}</span>
+                  <span className="font-semibold">{item.quantity} / {item.limit ?? 'Unlimited'}</span>
                 </div>
               ))}
             </div>

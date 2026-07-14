@@ -67,7 +67,9 @@ async function main() {
       entitlements: {
         create: [
           { key: 'domain_checks', limit: 5000 },
-          { key: 'buyer_research', enabled: true },
+          { key: 'buyer_research', enabled: true, limit: 500 },
+          { key: 'reports_generated', enabled: true, limit: 100 },
+          { key: 'due_diligence_checks', enabled: true, limit: 500 },
         ],
       },
     },

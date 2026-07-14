@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { withEntitlementUsage } from './entitlements';
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
@@ -17,6 +18,10 @@ function titleCase(value: string): string {
 }
 
 export async function generateBuyerTargetsForWorkspace(workspaceId: string, limit = 5): Promise<number> {
+  return withEntitlementUsage(workspaceId, 'buyer_research', limit, () => generateBuyerTargets(workspaceId, limit), (count) => count);
+}
+
+async function generateBuyerTargets(workspaceId: string, limit: number): Promise<number> {
   const opportunities = await prisma.domainOpportunity.findMany({
     where: {
       workspaceId,
@@ -65,6 +70,10 @@ export async function generateBuyerTargetsForWorkspace(workspaceId: string, limi
 }
 
 export async function createPortfolioSnapshotForWorkspace(workspaceId: string): Promise<string> {
+  return withEntitlementUsage(workspaceId, 'reports_generated', 1, () => createPortfolioSnapshot(workspaceId));
+}
+
+async function createPortfolioSnapshot(workspaceId: string): Promise<string> {
   const [holdings, opportunities, watchlists] = await Promise.all([
     prisma.portfolioItem.findMany({
       where: { workspaceId, status: 'ACTIVE' },

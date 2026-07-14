@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { getAppConfig, type AppConfig } from './app-config';
+import { getMonthlyEntitlementUsage } from './entitlements';
 import { requireWorkspaceContext } from './workspace-context';
 
 export type SettingsView = {
@@ -40,12 +41,13 @@ export type SettingsView = {
     description: string | null;
   }>;
   appConfig: AppConfig;
+  monthlyUsage: Awaited<ReturnType<typeof getMonthlyEntitlementUsage>>;
 };
 
 export async function getSettingsView(): Promise<SettingsView> {
   const context = await requireWorkspaceContext();
 
-  const [workspace, currentMember, subscriptions, featureFlags, appConfig] = await Promise.all([
+  const [workspace, currentMember, subscriptions, featureFlags, appConfig, monthlyUsage] = await Promise.all([
     prisma.workspace.findUniqueOrThrow({
       where: { id: context.workspaceId },
       select: {
@@ -87,6 +89,7 @@ export async function getSettingsView(): Promise<SettingsView> {
       select: { key: true, enabled: true, description: true },
     }),
     getAppConfig(),
+    getMonthlyEntitlementUsage(context.workspaceId),
   ]);
 
   return {
@@ -123,5 +126,6 @@ export async function getSettingsView(): Promise<SettingsView> {
     })),
     featureFlags,
     appConfig,
+    monthlyUsage,
   };
 }

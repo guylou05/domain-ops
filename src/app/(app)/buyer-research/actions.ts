@@ -9,7 +9,12 @@ export async function generateBuyerTargets(): Promise<void> {
   const context = await requireWorkspaceContext();
   assertWorkspaceWriter(context);
 
-  await generateBuyerTargetsForWorkspace(context.workspaceId);
+  try {
+    await generateBuyerTargetsForWorkspace(context.workspaceId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to generate buyer targets.';
+    redirect(`/buyer-research?error=${encodeURIComponent(message)}`);
+  }
 
   revalidatePath('/buyer-research');
   revalidatePath('/outreach');
