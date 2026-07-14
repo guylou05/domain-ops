@@ -48,4 +48,16 @@ test.describe('seeded workspace workflows', () => {
     await expect(page.getByText(/Portfolio Snapshot/i)).toBeVisible();
     await expect(page.getByText(/QUEUED|RUNNING|COMPLETED/)).toBeVisible();
   });
+
+  test('opportunity due diligence persists provider results', async ({ page }) => {
+    await login(page);
+    await page.goto('/opportunities');
+    await page.locator('tbody a').first().click();
+
+    await page.getByRole('button', { name: 'Run due diligence' }).click();
+    await expect(page.getByRole('heading', { name: 'Trademark screening' })).toBeVisible();
+    await expect(page.getByText('No matches returned.')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Comparable sales' })).toBeVisible();
+    await expect(page.getByText(/Deterministic|risk/).first()).toBeVisible();
+  });
 });

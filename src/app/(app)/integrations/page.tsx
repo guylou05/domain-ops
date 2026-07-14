@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { toggleIntegrationStatus } from './actions';
 import { getIntegrations } from '@/lib/server/integrations';
-import { getAvailabilityStatusFromConfig } from '@/lib/server/app-config';
+import { getProviderStatusesFromConfig } from '@/lib/server/app-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +12,7 @@ function formatDate(value: Date | null): string {
 
 export default async function IntegrationsPage() {
   const integrations = await getIntegrations();
-  const providerStatus = await getAvailabilityStatusFromConfig();
+  const providerStatuses = await getProviderStatusesFromConfig();
   const configuredCount = integrations.filter((integration) => integration.configured).length;
 
   return (
@@ -29,21 +29,16 @@ export default async function IntegrationsPage() {
         </div>
       </div>
 
-      <section className="card mt-6">
-        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-          <div>
-            <h2 className="text-xl font-semibold">Availability runtime</h2>
-            <p className="mt-2 text-sm text-slate-400">{providerStatus.label}</p>
+      <section className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {providerStatuses.map((provider) => (
+          <div className="border-l-2 border-white/10 pl-3" key={provider.key}>
+            <h2 className="font-semibold">{provider.label}</h2>
+            <p className="mt-1 text-sm text-slate-400">Mode: {provider.mode}</p>
+            <p className={provider.liveReady ? 'mt-2 text-xs font-semibold text-emerald-300' : 'mt-2 text-xs font-semibold text-amber-200'}>
+              {provider.liveReady ? 'Ready' : 'Endpoint or API key missing'}
+            </p>
           </div>
-          <div className="rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300">
-            Provider mode: {providerStatus.mode}
-          </div>
-        </div>
-        {providerStatus.mode === 'live' && !providerStatus.liveReady ? (
-          <p className="mt-4 rounded-lg border border-amber-400/30 bg-amber-400/5 p-3 text-sm text-amber-100">
-            Live provider mode is selected, but registrar credentials are not ready.
-          </p>
-        ) : null}
+        ))}
       </section>
 
       {integrations.length === 0 ? (

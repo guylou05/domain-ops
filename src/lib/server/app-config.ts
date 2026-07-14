@@ -1,9 +1,21 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../prisma';
 import { getAvailabilityProviderStatus, type AvailabilityProviderMode } from '../providers/availability';
+import { getComparableSalesProviderStatus } from '../providers/comparable-sales';
+import { getHistoryProviderStatus } from '../providers/history';
+import { getTrademarkProviderStatus } from '../providers/trademark';
 
 export type AppConfig = {
   availabilityProvider: AvailabilityProviderMode;
+  trademarkProvider: AvailabilityProviderMode;
+  comparableSalesProvider: AvailabilityProviderMode;
+  historyProvider: AvailabilityProviderMode;
+  providerEndpoints: {
+    registrar: string;
+    trademark: string;
+    comparableSales: string;
+    history: string;
+  };
   authDiagnosticsEnabled: boolean;
   workerJobLimit: number;
   workerLeaseMs: number;
@@ -24,6 +36,10 @@ export type JobScheduleConfig = {
 const CONFIG_KEY = 'runtime';
 const DEFAULT_CONFIG: AppConfig = {
   availabilityProvider: 'mock',
+  trademarkProvider: 'mock',
+  comparableSalesProvider: 'mock',
+  historyProvider: 'mock',
+  providerEndpoints: { registrar: '', trademark: '', comparableSales: '', history: '' },
   authDiagnosticsEnabled: false,
   workerJobLimit: 5,
   workerLeaseMs: 300000,
@@ -45,6 +61,16 @@ function readProvider(value: unknown): AvailabilityProviderMode {
   return DEFAULT_CONFIG.availabilityProvider;
 }
 
+function readEndpoint(value: unknown): string {
+  if (typeof value !== 'string' || !value.trim()) return '';
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : '';
+  } catch {
+    return '';
+  }
+}
+
 function readPositiveInteger(value: unknown, fallback: number, minimum: number, maximum: number): number {
   const numeric = Number(value);
   if (!Number.isFinite(numeric) || numeric <= 0) return fallback;
@@ -62,8 +88,18 @@ function readJobSchedule(value: unknown, fallback: JobScheduleConfig): JobSchedu
 export function parseAppConfig(value: unknown): AppConfig {
   const object = readObject(value);
   const schedules = readObject(object.jobSchedules);
+  const endpoints = readObject(object.providerEndpoints);
   return {
     availabilityProvider: readProvider(object.availabilityProvider),
+    trademarkProvider: readProvider(object.trademarkProvider),
+    comparableSalesProvider: readProvider(object.comparableSalesProvider),
+    historyProvider: readProvider(object.historyProvider),
+    providerEndpoints: {
+      registrar: readEndpoint(endpoints.registrar),
+      trademark: readEndpoint(endpoints.trademark),
+      comparableSales: readEndpoint(endpoints.comparableSales),
+      history: readEndpoint(endpoints.history),
+    },
     authDiagnosticsEnabled: object.authDiagnosticsEnabled === true,
     workerJobLimit: readPositiveInteger(object.workerJobLimit, DEFAULT_CONFIG.workerJobLimit, 1, 50),
     workerLeaseMs: readPositiveInteger(object.workerLeaseMs, DEFAULT_CONFIG.workerLeaseMs, 10000, 3600000),
@@ -102,7 +138,17 @@ export async function updateAppConfig(patch: Partial<AppConfig>): Promise<AppCon
 
 export async function getAvailabilityStatusFromConfig() {
   const config = await getAppConfig();
-  return getAvailabilityProviderStatus(config.availabilityProvider);
+  return getAvailabilityProviderStatus(config.availabilityProvider, config.providerEndpoints.registrar);
+}
+
+export async function getProviderStatusesFromConfig() {
+  const config = await getAppConfig();
+  return [
+    { key: 'registrar', ...getAvailabilityProviderStatus(config.availabilityProvider, config.providerEndpoints.registrar) },
+    { key: 'trademark', ...getTrademarkProviderStatus(config.trademarkProvider, config.providerEndpoints.trademark) },
+    { key: 'comparableSales', ...getComparableSalesProviderStatus(config.comparableSalesProvider, config.providerEndpoints.comparableSales) },
+    { key: 'history', ...getHistoryProviderStatus(config.historyProvider, config.providerEndpoints.history) },
+  ];
 }
 
 export async function isAuthDiagnosticsEnabled(): Promise<boolean> {

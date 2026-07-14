@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { recordAuditEvent } from '@/lib/server/audit';
+import { runDomainDueDiligence } from '@/lib/server/due-diligence';
 import { assertWorkspaceWriter, requireWorkspaceContext } from '@/lib/server/workspace-context';
 
 const DEFAULT_WATCHLIST_NAME = 'Opportunity shortlist';
@@ -14,6 +16,23 @@ function normalizeDomain(value: FormDataEntryValue | null): string {
     .replace(/^https?:\/\//, '')
     .replace(/^www\./, '')
     .split('/')[0] ?? '';
+}
+
+export async function runOpportunityDueDiligence(formData: FormData): Promise<void> {
+  const context = await requireWorkspaceContext();
+  assertWorkspaceWriter(context);
+  const domainName = normalizeDomain(formData.get('domain'));
+  if (!domainName) throw new Error('Domain is required.');
+
+  const result = await runDomainDueDiligence(context, domainName);
+  await recordAuditEvent(context, {
+    action: 'domain.due_diligence_completed',
+    targetType: 'Domain',
+    targetId: domainName,
+    metadata: result,
+  });
+  revalidatePath(`/opportunities/${encodeURIComponent(domainName)}`);
+  revalidatePath('/expired-domains');
 }
 
 export async function addOpportunityToWatchlist(formData: FormData): Promise<void> {

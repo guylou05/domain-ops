@@ -33,6 +33,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 - [x] Initial Prisma migration and database deployment readiness checks.
 - [x] GitHub Actions CI with Playwright browser install and seeded workflow E2E against migrated PostgreSQL.
 - [x] Redis-backed recurring scheduling with UI-managed task cadence and distributed worker execution.
+- [x] Live-ready registrar, trademark, comparable-sales, and domain-history adapters with due-diligence workflows.
 - [x] Seed script with demo users, workspace, opportunities, watchlists, portfolio, reports, notifications, integrations, and admin data.
 - [x] Docker Compose for PostgreSQL, Redis, and the web app.
 - [x] Unit tests for generation, scoring, and domain import parsing.
@@ -77,9 +78,9 @@ This phase added GitHub Actions checks for linting, typechecking, unit tests, pr
 
 This phase added a persistent scheduler process that uses a Redis lock to coordinate recurring job creation across replicas and the existing PostgreSQL leases to process queued work. Runtime Settings controls scheduler enablement, polling frequency, and cadence for opportunity digests, buyer research refreshes, and portfolio snapshots.
 
-## Remaining Hardening
+## Research Provider Phase
 
-- [ ] Implement live registrar, trademark, comparable-sales, and history adapters behind the provider interfaces.
+This phase added normalized provider interfaces for registrar availability, trademark screening, comparable sales, and domain history. Live HTTP adapters include serialized rate limiting, request timeouts, response caching, stale fallback, structured errors, and readiness reporting. Opportunity details can run due diligence and persist all three research result types, while Runtime Settings controls provider modes and endpoint URLs.
 
 ## Local Setup
 
@@ -140,17 +141,28 @@ npm install
 - `npm run doctor:db` - validate schema and checked-in migration readiness.
 - `npm run doctor:auth` - verify seeded demo users and demo password hashes.
 
-The Settings page stores runtime-tunable app configuration in the database, including availability provider mode, worker limits, lease duration, recurring task cadence, scheduler polling, and auth diagnostic visibility. Bootstrapping secrets and infrastructure connection values such as `DATABASE_URL`, `REDIS_URL`, `NEXTAUTH_URL`, and `NEXTAUTH_SECRET` still belong in the deployment environment.
+The Settings page stores runtime-tunable app configuration in the database, including research provider modes and endpoint URLs, worker limits, lease duration, recurring task cadence, scheduler polling, and auth diagnostic visibility. Bootstrapping secrets and infrastructure connection values such as `DATABASE_URL`, `REDIS_URL`, `NEXTAUTH_URL`, and `NEXTAUTH_SECRET` still belong in the deployment environment.
 
 ## Provider Integration Guide
 
-Create provider adapters that return normalized records equivalent to `AvailabilityResult` from `src/lib/providers/availability.ts`. Live providers must include rate limiting, caching, stale-data labeling, structured errors, feature flags, and clear failure states. Provider mode is configured from Settings. Live mode intentionally fails closed until credentials and operational safeguards are configured.
+Provider mode and endpoint URLs are configured from Settings. Live requests use a bearer token from the corresponding Railway secret: `REGISTRAR_API_KEY`, `TRADEMARK_API_KEY`, `COMPARABLE_SALES_API_KEY`, or `DOMAIN_HISTORY_API_KEY`. Live mode fails closed when either the endpoint or key is absent; readiness is visible on Integrations.
+
+Each endpoint receives `GET <configured-url>?domain=<domain>` and must return JSON:
+
+- Registrar: `available`, `registrationPrice`, `renewalPrice`, optional `premium`, and optional `registrar`.
+- Trademark: `riskLevel`, `matches`, and optional `disclaimer`.
+- Comparable sales: `sales[]` containing `domain`, `price`, `saleDate`, and optional `tld`, `marketplace`, and `industry`.
+- Domain history: `riskLevel`, `flags[]`, and `evidence[]`.
+
+Valid risk levels are `LOW`, `MODERATE`, `HIGH`, and `PROHIBITED`. Deterministic and mock modes remain available for local, demo, and CI workflows.
 
 ## Deployment Notes
 
 Deploy the Next.js app to Railway, Render, Fly.io, AWS, or a VPS with managed PostgreSQL and Redis. Set `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `REDIS_URL`, and `ENCRYPTION_KEY`. Run `npm run doctor:db`, then `npm run db:deploy`, before routing production traffic. After the app is online, use Settings for runtime provider and worker configuration.
 
 For Google OAuth, also set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. The callback URL should be `${NEXTAUTH_URL}/api/auth/callback/google`.
+
+For live research providers, add only the selected provider API keys to the web service. Endpoint URLs and provider modes are managed from Settings.
 
 ## Railway GitHub Deployment
 

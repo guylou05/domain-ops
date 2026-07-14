@@ -20,6 +20,7 @@ function formatLabel(value: string): string {
 
 export default async function SettingsPage() {
   const settings = await getSettingsView();
+  const canManageRuntime = settings.currentUser.role === 'OWNER' || settings.currentUser.role === 'ADMIN';
 
   return (
     <div>
@@ -73,18 +74,33 @@ export default async function SettingsPage() {
       <section className="card mt-6">
         <h2 className="text-xl font-semibold">Runtime settings</h2>
         <form action={updateRuntimeSettings} className="mt-4 grid gap-4 lg:grid-cols-2">
-          <label className="grid gap-2 text-sm">
-            <span className="text-slate-300">Availability provider</span>
-            <select
-              className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2"
-              defaultValue={settings.appConfig.availabilityProvider}
-              name="availabilityProvider"
-            >
-              <option value="mock">Mock</option>
-              <option value="deterministic">Deterministic</option>
-              <option value="live">Live</option>
-            </select>
-          </label>
+          <fieldset className="contents" disabled={!canManageRuntime}>
+          <fieldset className="grid gap-4 border-b border-white/10 pb-5 lg:col-span-2">
+            <legend className="pr-3 text-sm font-semibold text-slate-200">Research providers</legend>
+            <div className="grid gap-4 md:grid-cols-2">
+              {[
+                { label: 'Registrar availability', modeName: 'availabilityProvider', endpointName: 'registrarEndpoint', mode: settings.appConfig.availabilityProvider, endpoint: settings.appConfig.providerEndpoints.registrar },
+                { label: 'Trademark screening', modeName: 'trademarkProvider', endpointName: 'trademarkEndpoint', mode: settings.appConfig.trademarkProvider, endpoint: settings.appConfig.providerEndpoints.trademark },
+                { label: 'Comparable sales', modeName: 'comparableSalesProvider', endpointName: 'comparableSalesEndpoint', mode: settings.appConfig.comparableSalesProvider, endpoint: settings.appConfig.providerEndpoints.comparableSales },
+                { label: 'Domain history', modeName: 'historyProvider', endpointName: 'historyEndpoint', mode: settings.appConfig.historyProvider, endpoint: settings.appConfig.providerEndpoints.history },
+              ].map((provider) => (
+                <div className="grid gap-3 border-l-2 border-white/10 pl-3" key={provider.modeName}>
+                  <label className="grid gap-2 text-sm">
+                    <span className="text-slate-300">{provider.label}</span>
+                    <select className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" defaultValue={provider.mode} name={provider.modeName}>
+                      <option value="mock">Mock</option>
+                      <option value="deterministic">Deterministic</option>
+                      <option value="live">Live</option>
+                    </select>
+                  </label>
+                  <label className="grid gap-2 text-xs text-slate-400">
+                    Live endpoint URL
+                    <input className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-white" defaultValue={provider.endpoint} name={provider.endpointName} placeholder="https://provider.example/api/check" type="url" />
+                  </label>
+                </div>
+              ))}
+            </div>
+          </fieldset>
           <label className="grid gap-2 text-sm">
             <span className="text-slate-300">Worker job limit</span>
             <input
@@ -169,6 +185,7 @@ export default async function SettingsPage() {
           <div className="lg:col-span-2">
             <button className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">Save runtime settings</button>
           </div>
+          </fieldset>
         </form>
       </section>
 

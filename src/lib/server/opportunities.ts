@@ -41,7 +41,34 @@ export type OpportunityDetail = OpportunityListItem & {
     confidence: string;
     explanation: string;
   } | null;
+  trademark: {
+    riskLevel: string;
+    matches: string[];
+    disclaimer: string;
+    checkedAt: Date;
+  } | null;
+  history: {
+    riskLevel: string;
+    flags: string[];
+    evidence: string[];
+    checkedAt: Date;
+  } | null;
+  comparableSales: Array<{
+    domain: string;
+    price: number;
+    saleDate: Date;
+    marketplace: string;
+  }>;
 };
+
+function toStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => {
+    if (typeof item === 'string') return item;
+    if (item && typeof item === 'object' && typeof (item as { mark?: unknown }).mark === 'string') return (item as { mark: string }).mark;
+    return '';
+  }).filter(Boolean);
+}
 
 function decimalToNumber(value: { toNumber(): number } | number): number {
   return typeof value === 'number' ? value : value.toNumber();
@@ -141,6 +168,8 @@ export async function getOpportunityDetail(domainName: string): Promise<Opportun
             orderBy: { createdAt: 'desc' },
             take: 1,
           },
+          trademarkChecks: { orderBy: { createdAt: 'desc' }, take: 1 },
+          historyChecks: { orderBy: { checkedAt: 'desc' }, take: 1 },
         },
       },
     },
@@ -151,6 +180,13 @@ export async function getOpportunityDetail(domainName: string): Promise<Opportun
   const latestCheck = opportunity.domain.checks[0];
   const latestScore = opportunity.domain.scores[0];
   const latestValuation = opportunity.domain.valuations[0];
+  const latestTrademark = opportunity.domain.trademarkChecks[0];
+  const latestHistory = opportunity.domain.historyChecks[0];
+  const comparableSales = await prisma.comparableSale.findMany({
+    where: { subjectDomain: normalizedName },
+    orderBy: { saleDate: 'desc' },
+    take: 5,
+  });
 
   return {
     domain: opportunity.domain.name,
@@ -184,5 +220,23 @@ export async function getOpportunityDetail(domainName: string): Promise<Opportun
           explanation: latestValuation.explanation,
         }
       : null,
+    trademark: latestTrademark ? {
+      riskLevel: latestTrademark.riskLevel,
+      matches: toStringList(latestTrademark.matches),
+      disclaimer: latestTrademark.disclaimer,
+      checkedAt: latestTrademark.createdAt,
+    } : null,
+    history: latestHistory ? {
+      riskLevel: latestHistory.riskLevel,
+      flags: toStringList(latestHistory.flags),
+      evidence: toStringList(latestHistory.evidence),
+      checkedAt: latestHistory.checkedAt,
+    } : null,
+    comparableSales: comparableSales.map((sale) => ({
+      domain: sale.domain,
+      price: decimalToNumber(sale.price),
+      saleDate: sale.saleDate,
+      marketplace: sale.marketplace,
+    })),
   };
 }

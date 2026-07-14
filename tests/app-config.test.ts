@@ -5,6 +5,10 @@ describe('app config parsing', () => {
   it('uses safe defaults for missing runtime settings', () => {
     expect(parseAppConfig(undefined)).toEqual({
       availabilityProvider: 'mock',
+      trademarkProvider: 'mock',
+      comparableSalesProvider: 'mock',
+      historyProvider: 'mock',
+      providerEndpoints: { registrar: '', trademark: '', comparableSales: '', history: '' },
       authDiagnosticsEnabled: false,
       workerJobLimit: 5,
       workerLeaseMs: 300000,
@@ -22,6 +26,14 @@ describe('app config parsing', () => {
     expect(
       parseAppConfig({
         availabilityProvider: 'live',
+        trademarkProvider: 'deterministic',
+        comparableSalesProvider: 'live',
+        historyProvider: 'unsupported',
+        providerEndpoints: {
+          registrar: 'https://providers.example/registrar',
+          trademark: 'not-a-url',
+          comparableSales: 'https://providers.example/sales',
+        },
         authDiagnosticsEnabled: true,
         workerJobLimit: 200,
         workerLeaseMs: 1000,
@@ -33,6 +45,15 @@ describe('app config parsing', () => {
       }),
     ).toEqual({
       availabilityProvider: 'live',
+      trademarkProvider: 'deterministic',
+      comparableSalesProvider: 'live',
+      historyProvider: 'mock',
+      providerEndpoints: {
+        registrar: 'https://providers.example/registrar',
+        trademark: '',
+        comparableSales: 'https://providers.example/sales',
+        history: '',
+      },
       authDiagnosticsEnabled: true,
       workerJobLimit: 50,
       workerLeaseMs: 10000,

@@ -245,6 +245,7 @@ model Valuation {
 
 model ComparableSale {
   id          String   @id @default(cuid())
+  subjectDomain String
   domain      String
   tld         String
   price       Decimal
@@ -253,7 +254,7 @@ model ComparableSale {
   industry    String?
   metadata    Json     @default("{}")
 
-  @@unique([domain, price, saleDate])
+  @@unique([subjectDomain, domain, price, saleDate])
 }
 
 model TrademarkCheck {

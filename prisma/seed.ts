@@ -40,6 +40,10 @@ async function main() {
       key: 'runtime',
       value: {
         availabilityProvider: 'mock',
+        trademarkProvider: 'mock',
+        comparableSalesProvider: 'mock',
+        historyProvider: 'mock',
+        providerEndpoints: { registrar: '', trademark: '', comparableSales: '', history: '' },
         authDiagnosticsEnabled: false,
         workerJobLimit: 5,
         workerLeaseMs: 300000,

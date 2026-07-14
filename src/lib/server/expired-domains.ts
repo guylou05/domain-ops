@@ -33,7 +33,12 @@ export async function getExpiredDomainHistory(): Promise<ExpiredDomainHistoryVie
     },
   });
 
-  return checks.map((check) => ({
+  const latestByDomain = new Map<string, (typeof checks)[number]>();
+  for (const check of checks) {
+    if (!latestByDomain.has(check.domainId)) latestByDomain.set(check.domainId, check);
+  }
+
+  return [...latestByDomain.values()].map((check) => ({
     id: check.id,
     domain: check.domain.name,
     score: check.domain.opportunity?.score ?? null,

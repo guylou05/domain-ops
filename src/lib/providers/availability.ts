@@ -1,4 +1,7 @@
-export type AvailabilityProviderMode = 'deterministic' | 'mock' | 'live';
+import { fetchLiveProviderJson, normalizeProviderMode, ProviderConfigurationError, type ProviderMode } from './core';
+
+export type AvailabilityProviderMode = ProviderMode;
+export { ProviderConfigurationError } from './core';
 
 export type AvailabilityResult = {
   domain: string;
@@ -16,21 +19,6 @@ export type AvailabilityProvider = {
   label: string;
   check(domain: string): Promise<AvailabilityResult>;
 };
-
-export class ProviderConfigurationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'ProviderConfigurationError';
-  }
-}
-
-function normalizeProviderMode(value: string | undefined): AvailabilityProviderMode {
-  const normalized = (value ?? 'deterministic').trim().toLowerCase();
-  if (normalized === 'mock') return 'mock';
-  if (normalized === 'deterministic') return 'deterministic';
-  if (normalized === 'live') return 'live';
-  throw new ProviderConfigurationError(`Unsupported DOMAIN_PROVIDER "${value}". Use deterministic, mock, or live.`);
-}
 
 export async function deterministicAvailability(domain: string): Promise<AvailabilityResult> {
   const hash = [...domain].reduce((sum, char) => sum + char.charCodeAt(0), 0);
@@ -55,33 +43,51 @@ function deterministicProvider(mode: Extract<AvailabilityProviderMode, 'determin
   };
 }
 
-function liveProvider(): AvailabilityProvider {
+function liveProvider(endpoint?: string): AvailabilityProvider {
   return {
     mode: 'live',
     label: 'Live registrar adapter',
-    async check() {
-      throw new ProviderConfigurationError(
-        'Live registrar provider is not configured. Enable credentials, rate limits, caching, and stale-data handling before DOMAIN_PROVIDER=live.',
-      );
+    async check(domain) {
+      const response = await fetchLiveProviderJson({
+        provider: 'Registrar',
+        endpoint: endpoint || process.env.REGISTRAR_API_URL,
+        apiKey: process.env.REGISTRAR_API_KEY,
+        domain,
+        parse(value) {
+          const record = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+          if (typeof record.available !== 'boolean') throw new ProviderConfigurationError('Registrar response must include boolean available.');
+          return {
+            available: record.available,
+            registrationPrice: Number(record.registrationPrice),
+            renewalPrice: Number(record.renewalPrice),
+            premium: record.premium === true,
+            registrar: typeof record.registrar === 'string' ? record.registrar : 'LiveRegistrar',
+          };
+        },
+      });
+      if (!Number.isFinite(response.data.registrationPrice) || !Number.isFinite(response.data.renewalPrice)) {
+        throw new ProviderConfigurationError('Registrar response must include numeric registrationPrice and renewalPrice.');
+      }
+      return { domain, ...response.data, checkedAt: response.checkedAt, stale: response.stale };
     },
   };
 }
 
-export function getAvailabilityProvider(mode = process.env.DOMAIN_PROVIDER): AvailabilityProvider {
+export function getAvailabilityProvider(mode = process.env.DOMAIN_PROVIDER, endpoint?: string): AvailabilityProvider {
   const providerMode = normalizeProviderMode(mode);
-  if (providerMode === 'live') return liveProvider();
+  if (providerMode === 'live') return liveProvider(endpoint);
   return deterministicProvider(providerMode);
 }
 
-export function getAvailabilityProviderStatus(mode = process.env.DOMAIN_PROVIDER): {
+export function getAvailabilityProviderStatus(mode = process.env.DOMAIN_PROVIDER, endpoint?: string): {
   mode: AvailabilityProviderMode;
   label: string;
   liveReady: boolean;
 } {
-  const provider = getAvailabilityProvider(mode);
+  const provider = getAvailabilityProvider(mode, endpoint);
   return {
     mode: provider.mode,
     label: provider.label,
-    liveReady: provider.mode !== 'live' ? false : Boolean(process.env.REGISTRAR_API_KEY),
+    liveReady: provider.mode !== 'live' ? true : Boolean((endpoint || process.env.REGISTRAR_API_URL) && process.env.REGISTRAR_API_KEY),
   };
 }

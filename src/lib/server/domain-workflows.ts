@@ -129,7 +129,7 @@ export async function generateAnalyzeAndPersist(context: WorkspaceContext, input
   const parsed = generationSchema.parse(input);
   const config = await getAppConfig();
   const domains = generateDomainIdeas(parsed);
-  const analyses = await analyzeDomainsWithProviderMode(domains, parsed.industry, config.availabilityProvider);
+  const analyses = await analyzeDomainsWithProviderMode(domains, parsed.industry, config.availabilityProvider, config.providerEndpoints.registrar);
   return persistAnalyzedOpportunities(context, analyses, 'GENERATOR');
 }
 
@@ -137,6 +137,6 @@ export async function importAnalyzeAndPersist(context: WorkspaceContext, rawDoma
   const domains = parseDomainLines(rawDomains);
   if (domains.length === 0) throw new Error('No valid domains were provided.');
   const config = await getAppConfig();
-  const analyses = await analyzeDomainsWithProviderMode(domains, industry || 'general', config.availabilityProvider);
+  const analyses = await analyzeDomainsWithProviderMode(domains, industry || 'general', config.availabilityProvider, config.providerEndpoints.registrar);
   return persistAnalyzedOpportunities(context, analyses, 'MANUAL_OR_CSV_IMPORT');
 }

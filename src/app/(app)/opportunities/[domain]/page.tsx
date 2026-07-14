@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { addOpportunityToWatchlist } from '../actions';
+import { addOpportunityToWatchlist, runOpportunityDueDiligence } from '../actions';
 import { getOpportunityDetail } from '@/lib/server/opportunities';
 
 export const dynamic = 'force-dynamic';
@@ -33,6 +33,10 @@ export default async function Detail({ params }: { params: { domain: string } })
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <form action={runOpportunityDueDiligence}>
+            <input name="domain" type="hidden" value={opportunity.domain} />
+            <button className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-slate-100 hover:bg-white/10">Run due diligence</button>
+          </form>
           <form action={addOpportunityToWatchlist}>
             <input name="domain" type="hidden" value={opportunity.domain} />
             <button className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">Save to watchlist</button>
@@ -55,7 +59,7 @@ export default async function Detail({ params }: { params: { domain: string } })
           </p>
         </div>
         <div className="card">
-          <p className="text-slate-400">Trademark risk</p>
+          <p className="text-slate-400">Overall risk</p>
           <p className="mt-2 text-2xl font-bold">{opportunity.riskLevel}</p>
         </div>
       </div>
@@ -84,6 +88,43 @@ export default async function Detail({ params }: { params: { domain: string } })
             </div>
           ))
         )}
+      </section>
+
+      <section className="mt-6 grid gap-4 lg:grid-cols-3">
+        <div className="card">
+          <h2 className="font-semibold">Trademark screening</h2>
+          {opportunity.trademark ? (
+            <div className="mt-3 text-sm">
+              <p className={opportunity.trademark.riskLevel === 'LOW' ? 'font-semibold text-emerald-300' : 'font-semibold text-amber-200'}>{opportunity.trademark.riskLevel} risk</p>
+              <p className="mt-2 text-slate-300">{opportunity.trademark.matches.length ? opportunity.trademark.matches.join(', ') : 'No matches returned.'}</p>
+              <p className="mt-2 text-xs text-slate-500">{opportunity.trademark.disclaimer}</p>
+            </div>
+          ) : <p className="mt-3 text-sm text-slate-400">Not screened yet.</p>}
+        </div>
+        <div className="card">
+          <h2 className="font-semibold">Domain history</h2>
+          {opportunity.history ? (
+            <div className="mt-3 text-sm">
+              <p className={opportunity.history.riskLevel === 'LOW' ? 'font-semibold text-emerald-300' : 'font-semibold text-amber-200'}>{opportunity.history.riskLevel} risk</p>
+              <ul className="mt-2 list-disc pl-5 text-slate-300">
+                {opportunity.history.flags.map((flag) => <li key={flag}>{flag}</li>)}
+              </ul>
+            </div>
+          ) : <p className="mt-3 text-sm text-slate-400">Not checked yet.</p>}
+        </div>
+        <div className="card">
+          <h2 className="font-semibold">Comparable sales</h2>
+          {opportunity.comparableSales.length ? (
+            <dl className="mt-3 grid gap-2 text-sm">
+              {opportunity.comparableSales.map((sale) => (
+                <div className="flex items-center justify-between gap-3" key={`${sale.domain}-${sale.saleDate.toISOString()}`}>
+                  <dt className="min-w-0 truncate text-slate-300">{sale.domain}</dt>
+                  <dd className="shrink-0 font-medium">{formatCurrency(sale.price)}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : <p className="mt-3 text-sm text-slate-400">No comparable sales saved.</p>}
+        </div>
       </section>
 
       <section className="mt-6 grid gap-4 md:grid-cols-2">
