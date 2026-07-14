@@ -28,6 +28,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 - [x] Settings, integrations, feature flags, and audit-backed admin controls.
 - [x] Server-rendered search, filter, and sort controls for opportunities, portfolio, and marketplace listings.
 - [x] Background job queueing and worker execution for digest, buyer research, and portfolio snapshot tasks.
+- [x] Availability provider adapter boundary with deterministic local mode and guarded live mode.
 - [x] Seed script with demo users, workspace, opportunities, watchlists, portfolio, reports, notifications, integrations, and admin data.
 - [x] Docker Compose for PostgreSQL, Redis, and the web app.
 - [x] Unit tests for generation, scoring, and domain import parsing.
@@ -44,14 +45,17 @@ This phase added shareable query-param controls for high-volume operating tables
 
 This phase connected `BackgroundJob` records to executable worker task handlers. Admin users can queue supported workspace jobs, and `npm run worker` processes queued digest, buyer research refresh, and portfolio snapshot jobs.
 
+## Provider Adapter Phase
+
+This phase moved domain availability behind an explicit provider interface. Local and CI workflows use deterministic adapters, while `DOMAIN_PROVIDER=live` fails closed until credentials, rate limits, caching, and stale-data handling are configured.
+
 ## Remaining Hardening
 
 - [ ] Run Prisma migrations against the target PostgreSQL environment.
 - [ ] Add OAuth providers if the product needs non-credential sign-in.
 - [ ] Add Redis scheduling/locking around the executable `BackgroundJob` worker for multi-process deployments.
 - [ ] Add Playwright coverage for login, generator persistence, watchlist acquisition, and admin controls.
-- [ ] Configure live registrar, trademark, comparable-sales, and history providers behind feature flags.
-- [ ] Replace deterministic provider outputs with live adapters only after rate limits, caching, stale labels, and secrets are configured.
+- [ ] Implement live registrar, trademark, comparable-sales, and history adapters behind the provider interfaces.
 
 ## Local Setup
 
@@ -105,7 +109,7 @@ npm install
 
 ## Provider Integration Guide
 
-Create provider adapters that return normalized records equivalent to `AvailabilityResult` from `src/lib/domain-engine.ts`. Live providers must include rate limiting, caching, stale-data labeling, structured errors, feature flags, and clear failure states. Development uses deterministic provider outputs so local workflows remain repeatable.
+Create provider adapters that return normalized records equivalent to `AvailabilityResult` from `src/lib/providers/availability.ts`. Live providers must include rate limiting, caching, stale-data labeling, structured errors, feature flags, and clear failure states. Development uses `DOMAIN_PROVIDER=deterministic` by default so local workflows remain repeatable. `DOMAIN_PROVIDER=live` intentionally fails closed until credentials and operational safeguards are configured.
 
 ## Deployment Notes
 

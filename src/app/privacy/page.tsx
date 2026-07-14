@@ -13,7 +13,7 @@ const sections = [
   },
   {
     title: 'Provider Data',
-    body: 'Development environments use mock providers. Live registrar, marketplace, AI, and buyer research providers should be enabled only after secrets, rate limits, retention rules, and user notices are configured.',
+    body: 'Development environments use deterministic provider adapters. Live registrar, marketplace, AI, and buyer research providers should be enabled only after secrets, rate limits, retention rules, and user notices are configured.',
   },
 ];
 

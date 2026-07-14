@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { toggleIntegrationStatus } from './actions';
 import { getIntegrations } from '@/lib/server/integrations';
+import { getAvailabilityProviderStatus } from '@/lib/providers/availability';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +12,7 @@ function formatDate(value: Date | null): string {
 
 export default async function IntegrationsPage() {
   const integrations = await getIntegrations();
+  const providerStatus = getAvailabilityProviderStatus();
   const configuredCount = integrations.filter((integration) => integration.configured).length;
 
   return (
@@ -26,6 +28,23 @@ export default async function IntegrationsPage() {
           {configuredCount}/{integrations.length} configured
         </div>
       </div>
+
+      <section className="card mt-6">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+          <div>
+            <h2 className="text-xl font-semibold">Availability runtime</h2>
+            <p className="mt-2 text-sm text-slate-400">{providerStatus.label}</p>
+          </div>
+          <div className="rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300">
+            DOMAIN_PROVIDER={providerStatus.mode}
+          </div>
+        </div>
+        {providerStatus.mode === 'live' && !providerStatus.liveReady ? (
+          <p className="mt-4 rounded-lg border border-amber-400/30 bg-amber-400/5 p-3 text-sm text-amber-100">
+            Live provider mode is selected, but registrar credentials are not ready.
+          </p>
+        ) : null}
+      </section>
 
       {integrations.length === 0 ? (
         <div className="card mt-6 py-10 text-center">

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { deterministicAvailability, getAvailabilityProvider, type AvailabilityResult } from './providers/availability';
 
 export const generationSchema = z.object({
   concept: z.string().min(2),
@@ -10,7 +11,6 @@ export const generationSchema = z.object({
   count: z.number().int().min(1).max(50).default(20),
 });
 export type GenerationInput = z.infer<typeof generationSchema>;
-export type AvailabilityResult = { domain: string; available: boolean; registrationPrice: number; renewalPrice: number; premium: boolean; registrar: string; checkedAt: string; stale: boolean };
 export type ScoreFactor = { name: string; value: number; maxValue: number; explanation: string };
 export type DomainAnalysis = AvailabilityResult & { score: number; riskLevel: 'LOW'|'MODERATE'|'HIGH'|'PROHIBITED'; buyerCount: number; valuation: { wholesale: number; retailMin: number; retailMax: number; buyNow: number; maxAcquisition: number; confidence: string }; factors: ScoreFactor[]; strengths: string[]; weaknesses: string[] };
 
@@ -27,9 +27,7 @@ export function generateDomainIdeas(input: GenerationInput): string[] {
 }
 
 export async function mockAvailability(domain: string): Promise<AvailabilityResult> {
-  const hash = [...domain].reduce((sum, char) => sum + char.charCodeAt(0), 0);
-  const premium = hash % 17 === 0;
-  return { domain, available: hash % 5 !== 0, registrationPrice: premium ? 399 : 12 + (hash % 18), renewalPrice: premium ? 149 : 14 + (hash % 12), premium, registrar: 'MockRegistrar', checkedAt: new Date().toISOString(), stale: false };
+  return deterministicAvailability(domain);
 }
 
 export function scoreDomain(result: AvailabilityResult, industry = 'general'): DomainAnalysis {
@@ -51,7 +49,10 @@ export function scoreDomain(result: AvailabilityResult, industry = 'general'): D
   ];
   const score = Math.max(0, Math.min(100, factors.reduce((sum, f) => sum + f.value, 24)));
   const buyerCount = Math.max(3, Math.floor(score / 7));
-  return { ...result, score, riskLevel: score > 75 ? 'LOW' : score > 55 ? 'MODERATE' : 'HIGH', buyerCount, valuation: { wholesale: result.registrationPrice * 2, retailMin: score * 35, retailMax: score * 95, buyNow: score * 120, maxAcquisition: Math.round(score * 1.8), confidence: score > 70 ? 'Medium' : 'Low' }, factors, strengths: ['Explainable score', 'Mock availability checked', 'Manual approval required'], weaknesses: result.premium ? ['Premium acquisition cost'] : ['Provider data is mock in development'] };
+  return { ...result, score, riskLevel: score > 75 ? 'LOW' : score > 55 ? 'MODERATE' : 'HIGH', buyerCount, valuation: { wholesale: result.registrationPrice * 2, retailMin: score * 35, retailMax: score * 95, buyNow: score * 120, maxAcquisition: Math.round(score * 1.8), confidence: score > 70 ? 'Medium' : 'Low' }, factors, strengths: ['Explainable score', `${result.registrar} checked`, 'Manual approval required'], weaknesses: result.premium ? ['Premium acquisition cost'] : ['Development provider data should be verified before acquisition'] };
 }
 
-export async function analyzeDomains(domains: string[], industry: string): Promise<DomainAnalysis[]> { return Promise.all(domains.map(async (domain) => scoreDomain(await mockAvailability(domain), industry))); }
+export async function analyzeDomains(domains: string[], industry: string): Promise<DomainAnalysis[]> {
+  const provider = getAvailabilityProvider();
+  return Promise.all(domains.map(async (domain) => scoreDomain(await provider.check(domain), industry)));
+}

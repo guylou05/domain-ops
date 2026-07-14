@@ -6,7 +6,7 @@ DomainScout AI uses a Next.js App Router web app, Prisma/PostgreSQL persistence,
 
 - `src/app`: public, auth, protected workspace, and admin routes.
 - `src/components`: reusable application shell and shared UI surfaces.
-- `src/lib`: domain generation, deterministic provider logic, scoring, valuation, Prisma access, and server-side view models.
+- `src/lib`: domain generation, provider adapters, scoring, valuation, Prisma access, and server-side view models.
 - `src/lib/server`: workspace context, audit helpers, page data loaders, and workflow persistence utilities.
 - `src/worker`: registered background task entry point.
 - `prisma`: schema and seed data.
@@ -26,4 +26,4 @@ DomainScout AI uses a Next.js App Router web app, Prisma/PostgreSQL persistence,
 
 ## Provider Strategy
 
-Local development uses deterministic provider outputs for repeatable generation, availability, history, buyer research, and listing workflows. Live providers should sit behind feature flags and must provide rate limiting, caching, stale-data indicators, structured errors, and credential isolation.
+Local development uses deterministic provider outputs for repeatable generation, availability, history, buyer research, and listing workflows. Availability checks flow through `src/lib/providers/availability.ts`, which supports deterministic/mock modes and fails closed for live mode until credentials and safeguards are configured. Live providers should sit behind feature flags and must provide rate limiting, caching, stale-data indicators, structured errors, and credential isolation.
