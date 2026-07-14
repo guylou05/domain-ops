@@ -46,8 +46,8 @@ export default async function PricingPage() {
               ))}
             </ul>
 
-            <Link className="mt-6 inline-block rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white" href="/register">
-              Create workspace
+            <Link className="mt-6 inline-block rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white" href={`/register?plan=${encodeURIComponent(plan.name)}`}>
+              Start 14-day trial
             </Link>
           </article>
         ))}

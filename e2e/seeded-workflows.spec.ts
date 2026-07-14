@@ -103,4 +103,19 @@ test.describe('seeded workspace workflows', () => {
     await page.goto('/admin');
     await expect(page.getByText('Role: VIEWER')).toBeVisible();
   });
+
+  test('registration provisions a trial workspace and signs in', async ({ page }) => {
+    const email = `playwright-signup-${Date.now()}@domainscout.demo`;
+    await page.goto('/register?plan=Professional');
+    await page.getByPlaceholder('Name').fill('Playwright Founder');
+    await page.getByPlaceholder('email@example.com').fill(email);
+    await page.getByPlaceholder('Password').fill('playwright-password');
+    await page.getByRole('button', { name: 'Start trial' }).click();
+
+    await expect(page).toHaveURL(/\/overview/);
+    await page.goto('/settings');
+    await expect(page.getByRole('heading', { name: 'Professional' })).toBeVisible();
+    await expect(page.getByText(/Trialing/)).toBeVisible();
+    await expect(page.getByText('0 / 5000')).toBeVisible();
+  });
 });

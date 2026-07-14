@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { signIn } from 'next-auth/react';
 import { initialAuthActionState } from './auth-state';
+import { credentialSignIn } from '@/lib/client/credential-sign-in';
 
 function ActionMessage({ ok, message }: { ok: boolean; message: string }) {
   if (!message) return null;
@@ -18,43 +19,12 @@ export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
     setPending(true);
     const formData = new FormData(event.currentTarget);
     try {
-      const csrfResponse = await fetch('/api/auth/csrf', {
-        credentials: 'same-origin',
-        headers: { Accept: 'application/json' },
-      });
-      const csrf = (await csrfResponse.json()) as { csrfToken?: string };
-      if (!csrf.csrfToken) {
-        setState({ ok: false, message: 'Sign-in failed: missing CSRF token.' });
-        return;
-      }
-
-      const callbackUrl = `${window.location.origin}/overview`;
-      const response = await fetch('/api/auth/callback/credentials', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          csrfToken: csrf.csrfToken,
-          email: String(formData.get('email') ?? ''),
-          password: String(formData.get('password') ?? ''),
-          callbackUrl,
-          json: 'true',
-        }),
-      });
-      const result = (await response.json()) as { url?: string; error?: string };
-
-      if (response.ok && result.url && !result.error) {
+      const result = await credentialSignIn(String(formData.get('email') ?? ''), String(formData.get('password') ?? ''));
+      if (result.ok) {
         window.location.href = result.url;
         return;
       }
-
-      setState({
-        ok: false,
-        message: result.error ? `Sign-in failed: ${result.error}` : `Invalid email or password. Status: ${response.status}.`,
-      });
+      setState({ ok: false, message: result.message });
     } catch {
       setState({ ok: false, message: 'Sign-in failed. Check the deployment logs for the auth error.' });
     } finally {

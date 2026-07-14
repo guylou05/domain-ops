@@ -5,7 +5,7 @@ test('pricing page renders public plan content', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: 'Domain research workflows for focused investors.' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Professional' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Create workspace' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Start 14-day trial' })).toBeVisible();
 });
 
 test('login page exposes credential sign-in and hides Google when not configured', async ({ page }) => {

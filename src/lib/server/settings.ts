@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { getAppConfig, type AppConfig } from './app-config';
 import { getMonthlyEntitlementUsage } from './entitlements';
+import { subscriptionDisplayStatus } from '@/lib/onboarding-policy';
 import { requireWorkspaceContext } from './workspace-context';
 
 export type SettingsView = {
@@ -112,7 +113,7 @@ export async function getSettingsView(): Promise<SettingsView> {
       joinedAt: member.createdAt,
     })),
     subscriptions: subscriptions.map((subscription) => ({
-      status: subscription.status,
+      status: subscriptionDisplayStatus(subscription.status, subscription.trialEndsAt),
       trialEndsAt: subscription.trialEndsAt,
       plan: {
         name: subscription.plan.name,

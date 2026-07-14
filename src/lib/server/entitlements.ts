@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { assertEntitlementAvailable, EntitlementError, monthlyUsageWindow } from '@/lib/entitlement-policy';
+import { subscriptionAllowsUsage } from '@/lib/onboarding-policy';
 
 export { EntitlementError } from '@/lib/entitlement-policy';
 
@@ -22,7 +23,7 @@ async function createUsageReservation(workspaceId: string, key: EntitlementKey, 
             plan: { select: { entitlements: { where: { key }, select: { enabled: true, limit: true } } } },
           },
         });
-        if (!subscription || (subscription.status === 'TRIALING' && subscription.trialEndsAt && subscription.trialEndsAt < new Date())) {
+        if (!subscription || !subscriptionAllowsUsage(subscription.status, subscription.trialEndsAt)) {
           throw new EntitlementError('SUBSCRIPTION_REQUIRED', 'An active subscription is required for this operation.');
         }
 

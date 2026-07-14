@@ -227,7 +227,7 @@ export default async function SettingsPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <h3 className="font-semibold">{subscription.plan.name}</h3>
-                      <p className="mt-1 text-sm text-slate-400">{formatCurrency(subscription.plan.priceCents)}/mo · {subscription.status}</p>
+                      <p className="mt-1 text-sm text-slate-400">{formatCurrency(subscription.plan.priceCents)}/mo · {formatLabel(subscription.status)}</p>
                     </div>
                     <p className="text-sm text-slate-500">
                       {subscription.trialEndsAt ? `Trial ends ${formatDate(subscription.trialEndsAt)}` : `Usage resets ${formatDate(settings.monthlyUsage.periodEnd)}`}

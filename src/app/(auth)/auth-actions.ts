@@ -2,15 +2,11 @@
 
 import { hash, compare } from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import { OnboardingError, provisionTrialWorkspace } from '@/lib/server/onboarding';
 import type { AuthActionState } from './auth-state';
 
 function readString(formData: FormData, key: string): string {
   return String(formData.get(key) ?? '').trim();
-}
-
-function workspaceSlugFromEmail(email: string): string {
-  const label = email.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'workspace';
-  return `${label}-workspace`;
 }
 
 export async function verifyCredentials(_previousState: AuthActionState, formData: FormData): Promise<AuthActionState> {
@@ -28,44 +24,29 @@ export async function verifyCredentials(_previousState: AuthActionState, formDat
     return { ok: false, message: 'Invalid email or password.' };
   }
 
-  return { ok: true, message: 'Credentials verified. Session enforcement is the next auth slice.' };
+  return { ok: true, message: 'Credentials verified.' };
 }
 
 export async function registerWorkspaceUser(_previousState: AuthActionState, formData: FormData): Promise<AuthActionState> {
   const name = readString(formData, 'name');
   const email = readString(formData, 'email').toLowerCase();
   const password = readString(formData, 'password');
+  const planName = readString(formData, 'planName') || 'Professional';
 
   if (!email || !password) return { ok: false, message: 'Email and password are required.' };
+  if (!/^\S+@\S+\.\S+$/.test(email)) return { ok: false, message: 'Enter a valid email address.' };
   if (password.length < 8) return { ok: false, message: 'Password must be at least 8 characters.' };
 
-  const existingUser = await prisma.user.findUnique({ where: { email }, select: { id: true } });
-  if (existingUser) return { ok: false, message: 'An account already exists for that email.' };
-
   const passwordHash = await hash(password, 10);
-  const workspaceSlug = workspaceSlugFromEmail(email);
 
-  await prisma.user.create({
-    data: {
-      email,
-      name: name || null,
-      passwordHash,
-      role: 'OWNER',
-      memberships: {
-        create: {
-          role: 'OWNER',
-          workspace: {
-            create: {
-              name: name ? `${name}'s Workspace` : 'New Workspace',
-              slug: workspaceSlug,
-            },
-          },
-        },
-      },
-    },
-  });
+  try {
+    await provisionTrialWorkspace({ email, name: name || null, passwordHash, planName });
+  } catch (error) {
+    if (error instanceof OnboardingError) return { ok: false, message: error.message };
+    return { ok: false, message: 'The account could not be created. Please try again.' };
+  }
 
-  return { ok: true, message: 'Account and workspace created. Sign in to continue.' };
+  return { ok: true, message: 'Workspace and 14-day trial created. Signing you in...' };
 }
 
 export async function requestPasswordReset(_previousState: AuthActionState, formData: FormData): Promise<AuthActionState> {
