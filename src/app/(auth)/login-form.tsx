@@ -17,20 +17,25 @@ export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
     event.preventDefault();
     setPending(true);
     const formData = new FormData(event.currentTarget);
-    const result = await signIn('credentials', {
-      email: String(formData.get('email') ?? ''),
-      password: String(formData.get('password') ?? ''),
-      callbackUrl: '/overview',
-      redirect: false,
-    });
+    try {
+      const result = await signIn('credentials', {
+        email: String(formData.get('email') ?? ''),
+        password: String(formData.get('password') ?? ''),
+        callbackUrl: '/overview',
+        redirect: false,
+      });
 
-    if (result?.ok && result.url) {
-      window.location.assign(result.url);
-      return;
+      if (result?.ok && result.url) {
+        window.location.assign(result.url);
+        return;
+      }
+
+      setState({ ok: false, message: result?.error ? `Sign-in failed: ${result.error}` : 'Invalid email or password.' });
+    } catch {
+      setState({ ok: false, message: 'Sign-in failed. Check the deployment logs for the auth error.' });
+    } finally {
+      setPending(false);
     }
-
-    setState({ ok: false, message: 'Invalid email or password.' });
-    setPending(false);
   }
 
   async function handleGoogleSignIn() {
