@@ -139,9 +139,34 @@ Deploy the Next.js app to Railway, Render, Fly.io, AWS, or a VPS with managed Po
 
 For Google OAuth, also set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. The callback URL should be `${NEXTAUTH_URL}/api/auth/callback/google`.
 
+## Railway GitHub Deployment
+
+This repository includes `railway.json` and a production Dockerfile so Railway can deploy directly from GitHub. Railway will build the app, run `npx prisma migrate deploy` as a pre-deploy command, start the standalone Next.js server, and verify `/api/health` before marking the deploy healthy.
+
+1. In Railway, create a project from the GitHub repository.
+2. Add a PostgreSQL database service.
+3. In the web service variables, add `DATABASE_URL` as a reference to the PostgreSQL service.
+4. Add required app variables:
+   - `NEXTAUTH_SECRET` - strong random secret.
+   - `NEXTAUTH_URL` - the generated Railway URL first, then your custom domain later.
+   - `ENCRYPTION_KEY` - strong application secret.
+   - `DOMAIN_PROVIDER=mock` for deterministic deploy previews.
+   - `WORKER_ID=railway-web`, `WORKER_JOB_LIMIT=5`, and `WORKER_LEASE_MS=300000`.
+5. Optional variables:
+   - `REDIS_URL` if you add a Redis service.
+   - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` for Google OAuth.
+6. Deploy from Railway. Watch the deployment logs for the Docker build, Prisma migration pre-deploy step, app boot, and `/api/health` check.
+
+To seed demo data after the first successful deploy, open a Railway shell for the web service and run:
+
+```bash
+npm run db:seed
+```
+
 ## Troubleshooting
 
 - If Prisma fails, confirm PostgreSQL is running and `DATABASE_URL` points to the expected database.
+- If Railway reports a failed health check, open the deploy logs and confirm the service started on `$PORT` and `/api/health` returns JSON.
 - If login fails locally, run `npm run db:seed` and use one of the demo users above.
 - If the Docker web service cannot find dependencies, rebuild with `docker compose build --no-cache web`.
 - If provider results look deterministic, confirm the workspace is still using development provider mode.
