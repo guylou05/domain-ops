@@ -10,23 +10,26 @@ export type WorkspaceContext = {
 
 export async function requireWorkspaceContext(): Promise<WorkspaceContext> {
   const session = await getServerSession(authOptions);
+  const userId = session?.user?.id;
   const userEmail = session?.user?.email ?? process.env.DEMO_USER_EMAIL ?? 'investor@domainscout.demo';
-  const workspaceSlug = process.env.DEMO_WORKSPACE_SLUG ?? 'demo-domain-portfolio';
+  const preferredWorkspaceSlug = process.env.DEMO_WORKSPACE_SLUG;
 
-  const membership = await prisma.workspaceMember.findFirst({
-    where: {
-      workspace: { slug: workspaceSlug },
-      user: { email: userEmail },
-    },
+  const memberships = await prisma.workspaceMember.findMany({
+    where: userId ? { userId } : { user: { email: userEmail } },
     select: {
       role: true,
       userId: true,
       workspaceId: true,
+      workspace: { select: { slug: true } },
     },
+    orderBy: { createdAt: 'asc' },
   });
 
+  const membership =
+    memberships.find((item) => preferredWorkspaceSlug && item.workspace.slug === preferredWorkspaceSlug) ?? memberships[0];
+
   if (!membership) {
-    throw new Error(`No workspace membership found for ${userEmail} in ${workspaceSlug}. Run npm run db:seed or configure authentication.`);
+    throw new Error(`No workspace membership found for ${userEmail}. Accept an invitation or create a workspace.`);
   }
 
   return {

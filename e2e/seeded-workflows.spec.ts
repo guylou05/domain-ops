@@ -74,4 +74,33 @@ test.describe('seeded workspace workflows', () => {
     await input.locator('xpath=ancestor::form').getByRole('button', { name: 'Save' }).click();
     await expect(page.getByText(/Stored .+/).first()).toBeVisible();
   });
+
+  test('owner can invite a teammate who joins the workspace', async ({ page }) => {
+    await login(page);
+    await page.goto('/admin');
+
+    const email = `playwright-team-${Date.now()}@domainscout.demo`;
+    await page.getByPlaceholder('teammate@example.com').fill(email);
+    await page.locator('form').filter({ has: page.getByPlaceholder('teammate@example.com') }).locator('select[name="role"]').selectOption('VIEWER');
+    await page.getByRole('button', { name: 'Invite' }).click();
+
+    const invitationPath = await page.getByText(/^\/invite\//).textContent();
+    expect(invitationPath).toBeTruthy();
+    await page.goto(invitationPath!);
+    await expect(page.getByRole('heading', { name: /Join Demo Domain Portfolio/ })).toBeVisible();
+    await page.getByPlaceholder('Your name').fill('Playwright Teammate');
+    await page.locator('input[name="password"]').fill('playwright-password');
+    await page.getByRole('button', { name: 'Join workspace' }).click();
+    await expect(page.getByText('Workspace access is ready. Sign in with this email and password.')).toBeVisible();
+
+    await page.goto('/overview');
+    await page.getByRole('button', { name: 'Log out' }).click();
+    await expect(page).toHaveURL(/\/login/);
+    await page.getByPlaceholder('email@example.com').fill(email);
+    await page.getByPlaceholder('Password').fill('playwright-password');
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    await expect(page).toHaveURL(/\/overview/);
+    await page.goto('/admin');
+    await expect(page.getByText('Role: VIEWER')).toBeVisible();
+  });
 });

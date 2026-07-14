@@ -37,17 +37,18 @@ enum JobStatus {
 }
 
 model User {
-  id             String            @id @default(cuid())
-  email          String            @unique
-  name           String?
-  passwordHash   String?
-  role           Role              @default(MEMBER)
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
-  memberships    WorkspaceMember[]
-  accounts       Account[]
-  sessions       Session[]
-  createdDomains Domain[]
+  id              String                @id @default(cuid())
+  email           String                @unique
+  name            String?
+  passwordHash    String?
+  role            Role                  @default(MEMBER)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  memberships     WorkspaceMember[]
+  accounts        Account[]
+  sessions        Session[]
+  createdDomains  Domain[]
+  sentInvitations WorkspaceInvitation[] @relation("InvitationSender")
 }
 
 model Account {
@@ -85,18 +86,19 @@ model VerificationToken {
 }
 
 model Workspace {
-  id         String            @id @default(cuid())
-  name       String
-  slug       String            @unique
-  status     Status            @default(ACTIVE)
-  metadata   Json              @default("{}")
-  createdAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
-  members    WorkspaceMember[]
-  domains    Domain[]
-  watchlists Watchlist[]
-  portfolio  PortfolioItem[]
-  jobs       BackgroundJob[]
+  id          String                @id @default(cuid())
+  name        String
+  slug        String                @unique
+  status      Status                @default(ACTIVE)
+  metadata    Json                  @default("{}")
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  members     WorkspaceMember[]
+  domains     Domain[]
+  watchlists  Watchlist[]
+  portfolio   PortfolioItem[]
+  jobs        BackgroundJob[]
+  invitations WorkspaceInvitation[]
 }
 
 model WorkspaceMember {
@@ -109,6 +111,23 @@ model WorkspaceMember {
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([workspaceId, userId])
+}
+
+model WorkspaceInvitation {
+  id          String    @id @default(cuid())
+  workspaceId String
+  invitedById String
+  email       String
+  role        Role      @default(MEMBER)
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy   User      @relation("InvitationSender", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, email, acceptedAt, revokedAt])
 }
 
 model Plan {

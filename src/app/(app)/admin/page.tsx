@@ -1,6 +1,15 @@
-import { queueBackgroundJob, toggleFeatureFlag } from './actions';
+import { Trash2, UserPlus, X } from 'lucide-react';
+import {
+  createWorkspaceInvitation,
+  queueBackgroundJob,
+  removeWorkspaceMember,
+  revokeWorkspaceInvitation,
+  toggleFeatureFlag,
+  updateWorkspaceMemberRole,
+} from './actions';
 import { getAdminDashboard } from '@/lib/server/admin';
 import { getRegisteredWorkerTasks } from '@/worker/task-registry';
+import { InvitationLink } from '@/components/invitation-link';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +29,8 @@ function formatLabel(value: string): string {
     .join(' ');
 }
 
-export default async function AdminPage() {
+export default async function AdminPage({ searchParams }: { searchParams?: Promise<{ invite?: string }> }) {
+  const feedback = await searchParams;
   const dashboard = await getAdminDashboard();
   const workerTasks = getRegisteredWorkerTasks();
   const metrics = [
@@ -59,6 +69,129 @@ export default async function AdminPage() {
           </div>
         ))}
       </div>
+
+      <section className="card mt-6">
+        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
+          <div>
+            <h2 className="text-xl font-semibold">Team access</h2>
+            <p className="mt-1 text-sm text-slate-400">Invite teammates and control their workspace permissions.</p>
+          </div>
+          {dashboard.canAdminister ? (
+            <form action={createWorkspaceInvitation} className="grid gap-2 sm:grid-cols-[minmax(220px,1fr)_140px_auto]">
+              <input
+                className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm"
+                name="email"
+                placeholder="teammate@example.com"
+                required
+                type="email"
+              />
+              <select className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm" name="role" defaultValue="MEMBER">
+                {dashboard.role === 'OWNER' ? <option value="ADMIN">Admin</option> : null}
+                <option value="MEMBER">Member</option>
+                <option value="VIEWER">Viewer</option>
+              </select>
+              <button className="flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">
+                <UserPlus size={16} /> Invite
+              </button>
+            </form>
+          ) : null}
+        </div>
+
+        {feedback?.invite ? (
+          <div className="mt-4">
+            <p className="mb-2 text-sm text-emerald-200">Invitation created. Share this one-time link:</p>
+            <InvitationLink token={feedback.invite} />
+          </div>
+        ) : null}
+
+        <div className="mt-5 overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="text-slate-400">
+                <th className="pb-3">Member</th>
+                <th className="pb-3">Joined</th>
+                <th className="pb-3">Role</th>
+                <th className="pb-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dashboard.members.map((member) => {
+                const isSelf = member.userId === dashboard.currentUserId;
+                const isOwner = member.role === 'OWNER';
+                const canManage = dashboard.canAdminister && !isSelf && !isOwner && (dashboard.role === 'OWNER' || member.role !== 'ADMIN');
+                return (
+                  <tr className="border-t border-white/10" key={member.id}>
+                    <td className="py-3 pr-4">
+                      <p className="font-medium">{member.name ?? member.email}</p>
+                      {member.name ? <p className="text-xs text-slate-500">{member.email}</p> : null}
+                    </td>
+                    <td className="pr-4 text-slate-400">{formatDate(member.createdAt)}</td>
+                    <td className="pr-4">
+                      {canManage ? (
+                        <form action={updateWorkspaceMemberRole} className="flex items-center gap-2">
+                          <input name="membershipId" type="hidden" value={member.id} />
+                          <select className="rounded-lg border border-white/10 bg-slate-950 px-2 py-1.5 text-sm" defaultValue={member.role} name="role">
+                            {dashboard.role === 'OWNER' ? <option value="ADMIN">Admin</option> : null}
+                            <option value="MEMBER">Member</option>
+                            <option value="VIEWER">Viewer</option>
+                          </select>
+                          <button className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold hover:bg-white/10">Save</button>
+                        </form>
+                      ) : (
+                        <span>{formatLabel(member.role)}</span>
+                      )}
+                    </td>
+                    <td className="text-right">
+                      {canManage ? (
+                        <form action={removeWorkspaceMember}>
+                          <input name="membershipId" type="hidden" value={member.id} />
+                          <button
+                            aria-label={`Remove ${member.email}`}
+                            className="ml-auto grid size-8 place-items-center rounded-lg text-slate-400 hover:bg-rose-400/10 hover:text-rose-200"
+                            title="Remove member"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </form>
+                      ) : null}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {dashboard.invitations.length > 0 ? (
+          <div className="mt-5 border-t border-white/10 pt-5">
+            <h3 className="font-semibold">Pending invitations</h3>
+            <div className="mt-3 grid gap-2">
+              {dashboard.invitations.map((invitation) => (
+                <div className="flex items-center justify-between gap-4 rounded-lg bg-white/5 px-3 py-2" key={invitation.id}>
+                  <div>
+                    <p className="text-sm font-medium">{invitation.email}</p>
+                    <p className="text-xs text-slate-500">
+                      {formatLabel(invitation.role)} · expires {formatDate(invitation.expiresAt)}
+                    </p>
+                  </div>
+                  {dashboard.canAdminister ? (
+                    <form action={revokeWorkspaceInvitation}>
+                      <input name="id" type="hidden" value={invitation.id} />
+                      <button
+                        aria-label={`Revoke invitation for ${invitation.email}`}
+                        className="grid size-8 place-items-center rounded-lg text-slate-400 hover:bg-white/10 hover:text-slate-100"
+                        title="Revoke invitation"
+                      >
+                        <X size={16} />
+                      </button>
+                    </form>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </section>
 
       <section className="mt-6 grid gap-4 xl:grid-cols-2">
         <div className="card">

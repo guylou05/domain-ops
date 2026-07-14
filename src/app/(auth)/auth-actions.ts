@@ -65,7 +65,7 @@ export async function registerWorkspaceUser(_previousState: AuthActionState, for
     },
   });
 
-  return { ok: true, message: `Account created. Use DEMO_USER_EMAIL=${email} and DEMO_WORKSPACE_SLUG=${workspaceSlug} until sessions are enabled.` };
+  return { ok: true, message: 'Account and workspace created. Sign in to continue.' };
 }
 
 export async function requestPasswordReset(_previousState: AuthActionState, formData: FormData): Promise<AuthActionState> {

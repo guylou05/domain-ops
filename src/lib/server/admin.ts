@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { requireWorkspaceContext } from './workspace-context';
 
 export type AdminDashboard = {
+  currentUserId: string;
   role: string;
   canAdminister: boolean;
   jobs: Array<{
@@ -27,6 +28,21 @@ export type AdminDashboard = {
     enabled: boolean;
     description: string | null;
   }>;
+  members: Array<{
+    id: string;
+    userId: string;
+    name: string | null;
+    email: string;
+    role: string;
+    createdAt: Date;
+  }>;
+  invitations: Array<{
+    id: string;
+    email: string;
+    role: string;
+    expiresAt: Date;
+    createdAt: Date;
+  }>;
   counts: {
     users: number;
     activeDomains: number;
@@ -39,7 +55,7 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
   const context = await requireWorkspaceContext();
   const canAdminister = context.role === 'OWNER' || context.role === 'ADMIN';
 
-  const [users, activeDomains, activeOpportunities, activeJobs, jobs, auditLogs, featureFlags] = await Promise.all([
+  const [users, activeDomains, activeOpportunities, activeJobs, jobs, auditLogs, featureFlags, members, invitations] = await Promise.all([
     prisma.workspaceMember.count({ where: { workspaceId: context.workspaceId } }),
     prisma.domain.count({ where: { workspaceId: context.workspaceId, status: 'ACTIVE' } }),
     prisma.domainOpportunity.count({ where: { workspaceId: context.workspaceId, status: 'ACTIVE' } }),
@@ -80,14 +96,45 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
         description: true,
       },
     }),
+    prisma.workspaceMember.findMany({
+      where: { workspaceId: context.workspaceId },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        userId: true,
+        role: true,
+        createdAt: true,
+        user: { select: { name: true, email: true } },
+      },
+    }),
+    prisma.workspaceInvitation.findMany({
+      where: {
+        workspaceId: context.workspaceId,
+        acceptedAt: null,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, email: true, role: true, expiresAt: true, createdAt: true },
+    }),
   ]);
 
   return {
+    currentUserId: context.userId,
     role: context.role,
     canAdminister,
     jobs,
     auditLogs,
     featureFlags,
+    members: members.map((member) => ({
+      id: member.id,
+      userId: member.userId,
+      name: member.user.name,
+      email: member.user.email,
+      role: member.role,
+      createdAt: member.createdAt,
+    })),
+    invitations,
     counts: {
       users,
       activeDomains,
