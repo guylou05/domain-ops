@@ -42,7 +42,7 @@ export default async function NotificationsPage() {
         <div className="card mt-6 py-10 text-center">
           <h2 className="text-lg font-semibold">No notifications yet</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">
-            Seed the demo database or run future jobs to populate workspace alerts.
+            Seed the demo database or run workspace jobs to populate alerts.
           </p>
           <Link className="mt-5 inline-block rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white" href="/overview">
             Open dashboard

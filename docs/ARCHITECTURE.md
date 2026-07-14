@@ -1,11 +1,27 @@
 # DomainScout AI Architecture
 
-Phase 1 uses Next.js App Router for the web app, Prisma/PostgreSQL for normalized multi-tenant data, Redis-ready background job records, and a FastAPI analysis-service scaffold. Provider-dependent features use adapters and mock implementations first so registrar, trademark, comparable-sales, and history integrations can be added without changing UI components.
+DomainScout AI uses a Next.js App Router web app, Prisma/PostgreSQL persistence, Auth.js sessions, workspace-scoped RBAC, server actions for workflow mutations, Redis-ready background job records, and a FastAPI companion service for future external analysis workflows.
 
-## Folder structure
-- `src/app`: public, app, and admin routes.
-- `src/components`: reusable SaaS shell and UI primitives.
-- `src/lib`: domain generation, availability, scoring, valuation, and demo data services.
+## Folder Structure
+
+- `src/app`: public, auth, protected workspace, and admin routes.
+- `src/components`: reusable application shell and shared UI surfaces.
+- `src/lib`: domain generation, deterministic provider logic, scoring, valuation, Prisma access, and server-side view models.
+- `src/lib/server`: workspace context, audit helpers, page data loaders, and workflow persistence utilities.
+- `src/worker`: registered background task entry point.
 - `prisma`: schema and seed data.
-- `services/api`: Python FastAPI scoring/analysis service.
-- `docs`: architecture and integration documentation.
+- `services/api`: Python FastAPI analysis service.
+- `tests`: unit coverage for deterministic domain logic and workflow parsing.
+- `docs`: architecture and integration notes.
+
+## Request Flow
+
+1. Middleware protects workspace routes and sends unauthenticated users to `/login`.
+2. Server components load page-specific view models through `src/lib/server/*`.
+3. Server actions resolve `requireWorkspaceContext`, enforce writer/admin guards where needed, mutate workspace records, record audit events for operational changes, and revalidate affected routes.
+4. Prisma persists normalized domain research, portfolio, buyer, outreach, report, notification, integration, and admin records.
+5. The worker entry point advertises registered task types; queue execution can be attached to `BackgroundJob` records without changing the UI contracts.
+
+## Provider Strategy
+
+Local development uses deterministic provider outputs for repeatable generation, availability, history, buyer research, and listing workflows. Live providers should sit behind feature flags and must provide rate limiting, caching, stale-data indicators, structured errors, and credential isolation.

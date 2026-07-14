@@ -3,6 +3,7 @@
 import { Status } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
+import { recordAuditEvent } from '@/lib/server/audit';
 import { assertWorkspaceWriter, requireWorkspaceContext } from '@/lib/server/workspace-context';
 
 function readIntegrationId(formData: FormData): string {
@@ -36,15 +37,11 @@ export async function toggleIntegrationStatus(formData: FormData): Promise<void>
     data: { status },
   });
 
-  await prisma.auditLog.create({
-    data: {
-      workspaceId: context.workspaceId,
-      actorId: context.userId,
-      action: 'integration.status_toggled',
-      targetType: 'Integration',
-      targetId: integration.id,
-      metadata: { provider: integration.provider, status },
-    },
+  await recordAuditEvent(context, {
+    action: 'integration.status_toggled',
+    targetType: 'Integration',
+    targetId: integration.id,
+    metadata: { provider: integration.provider, status },
   });
 
   revalidatePath('/integrations');

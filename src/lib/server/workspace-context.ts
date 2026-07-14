@@ -41,3 +41,9 @@ export function assertWorkspaceWriter(context: WorkspaceContext): void {
     throw new Error('Viewer role cannot modify workspace records.');
   }
 }
+
+export function assertWorkspaceAdmin(context: WorkspaceContext): void {
+  if (context.role !== 'OWNER' && context.role !== 'ADMIN') {
+    throw new Error('Admin actions require OWNER or ADMIN access.');
+  }
+}

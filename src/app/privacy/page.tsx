@@ -9,7 +9,7 @@ const sections = [
   },
   {
     title: 'Security Controls',
-    body: 'The application is designed around workspace-scoped access, role checks, hashed passwords, session controls, audit logs, and placeholder encrypted credential records for provider integrations.',
+    body: 'The application is designed around workspace-scoped access, role checks, hashed passwords, session controls, audit logs, and encrypted credential records for provider integrations.',
   },
   {
     title: 'Provider Data',

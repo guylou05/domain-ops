@@ -2,18 +2,12 @@
 
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
-import { requireWorkspaceContext } from '@/lib/server/workspace-context';
-
-async function requireWorkspaceAdmin() {
-  const context = await requireWorkspaceContext();
-  if (context.role !== 'OWNER' && context.role !== 'ADMIN') {
-    throw new Error('Admin actions require OWNER or ADMIN access.');
-  }
-  return context;
-}
+import { recordAuditEvent } from '@/lib/server/audit';
+import { assertWorkspaceAdmin, requireWorkspaceContext } from '@/lib/server/workspace-context';
 
 export async function toggleFeatureFlag(formData: FormData): Promise<void> {
-  const context = await requireWorkspaceAdmin();
+  const context = await requireWorkspaceContext();
+  assertWorkspaceAdmin(context);
   const key = String(formData.get('key') ?? '').trim();
   if (!key) throw new Error('Feature flag key is required.');
 
@@ -30,15 +24,11 @@ export async function toggleFeatureFlag(formData: FormData): Promise<void> {
     data: { enabled },
   });
 
-  await prisma.auditLog.create({
-    data: {
-      workspaceId: context.workspaceId,
-      actorId: context.userId,
-      action: 'feature_flag.toggled',
-      targetType: 'FeatureFlag',
-      targetId: flag.key,
-      metadata: { enabled },
-    },
+  await recordAuditEvent(context, {
+    action: 'feature_flag.toggled',
+    targetType: 'FeatureFlag',
+    targetId: flag.key,
+    metadata: { enabled },
   });
 
   revalidatePath('/admin');

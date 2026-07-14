@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
+import { recordAuditEvent } from '@/lib/server/audit';
 import { assertWorkspaceWriter, requireWorkspaceContext } from '@/lib/server/workspace-context';
 
 export async function updateWorkspaceName(formData: FormData): Promise<void> {
@@ -16,15 +17,11 @@ export async function updateWorkspaceName(formData: FormData): Promise<void> {
     data: { name },
   });
 
-  await prisma.auditLog.create({
-    data: {
-      workspaceId: context.workspaceId,
-      actorId: context.userId,
-      action: 'workspace.name_updated',
-      targetType: 'Workspace',
-      targetId: context.workspaceId,
-      metadata: { name },
-    },
+  await recordAuditEvent(context, {
+    action: 'workspace.name_updated',
+    targetType: 'Workspace',
+    targetId: context.workspaceId,
+    metadata: { name },
   });
 
   revalidatePath('/settings');

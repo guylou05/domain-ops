@@ -41,7 +41,7 @@ export default async function ReportsPage() {
         <div className="card mt-6 py-10 text-center">
           <h2 className="text-lg font-semibold">No saved reports yet</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">
-            Seed the demo database or generate report records from future analysis jobs.
+            Seed the demo database or generate a portfolio snapshot from current workspace data.
           </p>
         </div>
       ) : (

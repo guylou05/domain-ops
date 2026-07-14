@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { parseDomainLines } from '@/lib/domain-parsing';
 import { analyzeDomains, generateDomainIdeas, generationSchema, type DomainAnalysis, type GenerationInput } from '@/lib/domain-engine';
 import { assertWorkspaceWriter, type WorkspaceContext } from './workspace-context';
 
@@ -16,12 +17,8 @@ function getTld(domain: string): string {
   return index >= 0 ? domain.slice(index) : '';
 }
 
-function normalizeDomain(domain: string): string {
+function normalizePersistedDomain(domain: string): string {
   return domain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0] ?? '';
-}
-
-export function parseDomainLines(input: string): string[] {
-  return [...new Set(input.split(/[\n,;\t ]+/).map(normalizeDomain).filter((domain) => /^[a-z0-9][a-z0-9-]*(\.[a-z]{2,})+$/.test(domain)))];
 }
 
 export async function persistAnalyzedOpportunities(context: WorkspaceContext, analyses: DomainAnalysis[], source: string): Promise<PersistedOpportunity[]> {
@@ -29,7 +26,7 @@ export async function persistAnalyzedOpportunities(context: WorkspaceContext, an
 
   const results: PersistedOpportunity[] = [];
   for (const analysis of analyses) {
-    const domainName = normalizeDomain(analysis.domain);
+    const domainName = normalizePersistedDomain(analysis.domain);
     const domain = await prisma.domain.upsert({
       where: { workspaceId_name: { workspaceId: context.workspaceId, name: domainName } },
       update: {

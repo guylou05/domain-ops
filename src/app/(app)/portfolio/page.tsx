@@ -53,7 +53,7 @@ export default async function PortfolioPage() {
           <div className="py-10 text-center">
             <h2 className="text-lg font-semibold">No portfolio holdings yet</h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">
-              Seed the demo database or add acquired domains once acquisition workflows are wired.
+              Seed the demo database or acquire watchlisted domains into the portfolio.
             </p>
           </div>
         ) : (
