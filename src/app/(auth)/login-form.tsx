@@ -9,7 +9,7 @@ function ActionMessage({ ok, message }: { ok: boolean; message: string }) {
   return <p className={`mt-4 rounded-lg px-3 py-2 text-sm ${ok ? 'bg-emerald-400/10 text-emerald-200' : 'bg-rose-400/10 text-rose-200'}`}>{message}</p>;
 }
 
-export function LoginForm() {
+export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
   const [state, setState] = useState(initialAuthActionState);
   const [pending, setPending] = useState(false);
 
@@ -33,6 +33,12 @@ export function LoginForm() {
     setPending(false);
   }
 
+  async function handleGoogleSignIn() {
+    setPending(true);
+    await signIn('google', { callbackUrl: '/overview' });
+    setPending(false);
+  }
+
   return (
     <form className="card grid gap-4" onSubmit={handleSubmit}>
       <div>
@@ -44,6 +50,16 @@ export function LoginForm() {
       <button className="rounded-xl bg-brand px-4 py-2 font-semibold disabled:opacity-60" disabled={pending}>
         {pending ? 'Signing in...' : 'Sign in'}
       </button>
+      {googleEnabled ? (
+        <button
+          className="rounded-xl border border-white/10 px-4 py-2 font-semibold text-slate-100 hover:bg-white/10 disabled:opacity-60"
+          disabled={pending}
+          onClick={handleGoogleSignIn}
+          type="button"
+        >
+          Continue with Google
+        </button>
+      ) : null}
       <ActionMessage ok={state.ok} message={state.message} />
     </form>
   );

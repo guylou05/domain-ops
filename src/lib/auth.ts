@@ -1,14 +1,14 @@
 import { compare } from 'bcryptjs';
 import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import GoogleProvider from 'next-auth/providers/google';
+import { isGoogleOAuthConfigured } from '@/lib/auth-providers';
 import { prisma } from '@/lib/prisma';
 
-export const authOptions: NextAuthOptions = {
-  session: { strategy: 'jwt' },
-  pages: {
-    signIn: '/login',
-  },
-  providers: [
+type AuthProviders = NextAuthOptions['providers'];
+
+function authProviders(): AuthProviders {
+  const providers: AuthProviders = [
     CredentialsProvider({
       name: 'Email and password',
       credentials: {
@@ -35,19 +35,38 @@ export const authOptions: NextAuthOptions = {
         };
       },
     }),
-  ],
+  ];
+
+  if (isGoogleOAuthConfigured()) {
+    providers.push(
+      GoogleProvider({
+        clientId: process.env.GOOGLE_CLIENT_ID!,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      }),
+    );
+  }
+
+  return providers;
+}
+
+export const authOptions: NextAuthOptions = {
+  session: { strategy: 'jwt' },
+  pages: {
+    signIn: '/login',
+  },
+  providers: authProviders(),
   callbacks: {
     jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
-        token.role = user.role;
+        token.id = user.id ?? token.sub;
+        token.role = user.role ?? token.role ?? 'MEMBER';
       }
       return token;
     },
     session({ session, token }) {
       if (session.user) {
-        session.user.id = String(token.id);
-        session.user.role = String(token.role);
+        session.user.id = String(token.id ?? token.sub ?? '');
+        session.user.role = String(token.role ?? 'MEMBER');
       }
       return session;
     },

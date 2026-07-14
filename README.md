@@ -16,7 +16,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 
 - [x] PostgreSQL-first Prisma schema with SaaS-ready entities.
 - [x] Public landing, pricing, privacy, and terms pages.
-- [x] Auth.js credential login and registration/password-reset entry flows.
+- [x] Auth.js credential login, optional Google OAuth readiness, and registration/password-reset entry flows.
 - [x] Protected dashboard routes and session-aware workspace context.
 - [x] Domain generator with generated and manual/CSV persistence.
 - [x] Opportunity list, detail view, scoring, valuation, and watchlist save actions.
@@ -49,10 +49,13 @@ This phase connected `BackgroundJob` records to executable worker task handlers.
 
 This phase moved domain availability behind an explicit provider interface. Local and CI workflows use deterministic adapters, while `DOMAIN_PROVIDER=live` fails closed until credentials, rate limits, caching, and stale-data handling are configured.
 
+## Auth Provider Phase
+
+This phase added optional Google OAuth readiness beside credential login. Google sign-in is shown only when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are configured, so local credential flows remain stable by default.
+
 ## Remaining Hardening
 
 - [ ] Run Prisma migrations against the target PostgreSQL environment.
-- [ ] Add OAuth providers if the product needs non-credential sign-in.
 - [ ] Add Redis scheduling/locking around the executable `BackgroundJob` worker for multi-process deployments.
 - [ ] Add Playwright coverage for login, generator persistence, watchlist acquisition, and admin controls.
 - [ ] Implement live registrar, trademark, comparable-sales, and history adapters behind the provider interfaces.
@@ -114,6 +117,8 @@ Create provider adapters that return normalized records equivalent to `Availabil
 ## Deployment Notes
 
 Deploy the Next.js app to Railway, Render, Fly.io, AWS, or a VPS with managed PostgreSQL and Redis. Set `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `REDIS_URL`, and `ENCRYPTION_KEY`. Run Prisma migrations before routing production traffic.
+
+For Google OAuth, also set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. The callback URL should be `${NEXTAUTH_URL}/api/auth/callback/google`.
 
 ## Troubleshooting
 
