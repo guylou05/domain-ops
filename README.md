@@ -63,9 +63,13 @@ This phase added Playwright configuration, public/auth smoke coverage, and opt-i
 
 This phase added the initial Prisma migration, production deploy/status scripts, and `npm run doctor:db` for schema and migration readiness checks. Use `npm run db:deploy` for production-style migration application.
 
+## Worker Leasing Phase
+
+This phase added database-backed leases to `BackgroundJob` processing. Worker processes now atomically claim queued jobs before execution, skip jobs already leased by another process, and clear lease metadata after completion or failure.
+
 ## Remaining Hardening
 
-- [ ] Add Redis scheduling/locking around the executable `BackgroundJob` worker for multi-process deployments.
+- [ ] Add Redis-backed recurring scheduling around the executable `BackgroundJob` worker for production intervals.
 - [ ] Install Playwright browsers in CI and run seeded workflow E2E against a migrated database.
 - [ ] Implement live registrar, trademark, comparable-sales, and history adapters behind the provider interfaces.
 

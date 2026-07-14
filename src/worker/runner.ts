@@ -5,6 +5,7 @@ import {
   createPortfolioSnapshotForWorkspace,
   generateBuyerTargetsForWorkspace,
 } from '@/lib/server/workflow-generators';
+import { nextLeaseExpiry, readLeaseMs, readWorkerId } from './lease';
 import { isWorkerTaskType, type WorkerTaskType } from './task-registry';
 
 export type JobRunResult = {
@@ -12,6 +13,14 @@ export type JobRunResult = {
   type: string;
   status: 'COMPLETED' | 'FAILED' | 'SKIPPED';
   message: string;
+};
+
+type RunnableJob = Pick<BackgroundJob, 'id' | 'workspaceId' | 'type'>;
+
+const clearLease = {
+  lockedAt: null,
+  lockedBy: null,
+  lockExpiresAt: null,
 };
 
 async function executeTask(type: WorkerTaskType, workspaceId: string): Promise<string> {
@@ -31,7 +40,7 @@ async function executeTask(type: WorkerTaskType, workspaceId: string): Promise<s
   }
 }
 
-export async function runBackgroundJob(job: Pick<BackgroundJob, 'id' | 'workspaceId' | 'type'>): Promise<JobRunResult> {
+export async function runBackgroundJob(job: RunnableJob, workerId = readWorkerId()): Promise<JobRunResult> {
   if (!isWorkerTaskType(job.type)) {
     await prisma.backgroundJob.update({
       where: { id: job.id },
@@ -39,6 +48,7 @@ export async function runBackgroundJob(job: Pick<BackgroundJob, 'id' | 'workspac
         status: JobStatus.FAILED,
         error: `Unsupported worker task: ${job.type}`,
         progress: 100,
+        ...clearLease,
       },
     });
     return { id: job.id, type: job.type, status: 'FAILED', message: `Unsupported worker task: ${job.type}` };
@@ -51,6 +61,7 @@ export async function runBackgroundJob(job: Pick<BackgroundJob, 'id' | 'workspac
       progress: 10,
       attempts: { increment: 1 },
       error: null,
+      lockedBy: workerId,
     },
   });
 
@@ -62,6 +73,7 @@ export async function runBackgroundJob(job: Pick<BackgroundJob, 'id' | 'workspac
         status: JobStatus.COMPLETED,
         progress: 100,
         error: null,
+        ...clearLease,
       },
     });
     return { id: job.id, type: job.type, status: 'COMPLETED', message };
@@ -73,22 +85,67 @@ export async function runBackgroundJob(job: Pick<BackgroundJob, 'id' | 'workspac
         status: JobStatus.FAILED,
         progress: 100,
         error: message,
+        ...clearLease,
       },
     });
     return { id: job.id, type: job.type, status: 'FAILED', message };
   }
 }
 
-export async function runQueuedJobs(limit = 5): Promise<JobRunResult[]> {
-  const jobs = await prisma.backgroundJob.findMany({
-    where: { status: JobStatus.QUEUED },
+export async function leaseQueuedJobs(limit = 5, workerId = readWorkerId(), leaseMs = readLeaseMs()): Promise<RunnableJob[]> {
+  const normalizedLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 5;
+  const now = new Date();
+  const expires = nextLeaseExpiry(now, leaseMs);
+  const candidates = await prisma.backgroundJob.findMany({
+    where: {
+      status: JobStatus.QUEUED,
+      OR: [{ lockExpiresAt: null }, { lockExpiresAt: { lt: now } }],
+    },
     orderBy: { createdAt: 'asc' },
-    take: limit,
+    take: normalizedLimit * 3,
+    select: { id: true },
   });
 
+  const jobs: RunnableJob[] = [];
+  for (const candidate of candidates) {
+    if (jobs.length >= normalizedLimit) {
+      break;
+    }
+
+    const claim = await prisma.backgroundJob.updateMany({
+      where: {
+        id: candidate.id,
+        status: JobStatus.QUEUED,
+        OR: [{ lockExpiresAt: null }, { lockExpiresAt: { lt: now } }],
+      },
+      data: {
+        lockedAt: now,
+        lockedBy: workerId,
+        lockExpiresAt: expires,
+      },
+    });
+
+    if (claim.count !== 1) {
+      continue;
+    }
+
+    const job = await prisma.backgroundJob.findUnique({
+      where: { id: candidate.id },
+      select: { id: true, workspaceId: true, type: true },
+    });
+    if (job) {
+      jobs.push(job);
+    }
+  }
+
+  return jobs;
+}
+
+export async function runQueuedJobs(limit = 5, workerId = readWorkerId()): Promise<JobRunResult[]> {
+  const jobs = await leaseQueuedJobs(limit, workerId);
   const results: JobRunResult[] = [];
   for (const job of jobs) {
-    results.push(await runBackgroundJob(job));
+    results.push(await runBackgroundJob(job, workerId));
   }
   return results;
 }

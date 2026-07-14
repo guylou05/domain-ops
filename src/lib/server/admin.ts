@@ -11,6 +11,8 @@ export type AdminDashboard = {
     progress: number;
     attempts: number;
     error: string | null;
+    lockedBy: string | null;
+    lockExpiresAt: Date | null;
     updatedAt: Date;
   }>;
   auditLogs: Array<{
@@ -53,6 +55,8 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
         progress: true,
         attempts: true,
         error: true,
+        lockedBy: true,
+        lockExpiresAt: true,
         updatedAt: true,
       },
     }),

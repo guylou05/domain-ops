@@ -87,8 +87,13 @@ export default async function AdminPage() {
                     <div>
                       <h3 className="font-semibold">{formatLabel(job.type)}</h3>
                       <p className="mt-1 text-sm text-slate-400">
-                        {job.status} · {job.progress}% · {job.attempts} attempts
+                        {job.status} - {job.progress}% - {job.attempts} attempts
                       </p>
+                      {job.lockedBy && job.lockExpiresAt ? (
+                        <p className="mt-1 text-xs text-slate-500">
+                          Locked by {job.lockedBy} until {formatDate(job.lockExpiresAt)}
+                        </p>
+                      ) : null}
                     </div>
                     <p className="text-sm text-slate-500">{formatDate(job.updatedAt)}</p>
                   </div>
