@@ -31,6 +31,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 - [x] Availability provider adapter boundary with deterministic local mode and guarded live mode.
 - [x] Playwright E2E smoke coverage plus opt-in seeded workflow coverage.
 - [x] Initial Prisma migration and database deployment readiness checks.
+- [x] GitHub Actions CI with Playwright browser install and seeded workflow E2E against migrated PostgreSQL.
 - [x] Seed script with demo users, workspace, opportunities, watchlists, portfolio, reports, notifications, integrations, and admin data.
 - [x] Docker Compose for PostgreSQL, Redis, and the web app.
 - [x] Unit tests for generation, scoring, and domain import parsing.
@@ -67,10 +68,13 @@ This phase added the initial Prisma migration, production deploy/status scripts,
 
 This phase added database-backed leases to `BackgroundJob` processing. Worker processes now atomically claim queued jobs before execution, skip jobs already leased by another process, and clear lease metadata after completion or failure.
 
+## CI Seeded E2E Phase
+
+This phase added GitHub Actions checks for linting, typechecking, unit tests, production builds, Prisma validation, and seeded Playwright workflows against a migrated PostgreSQL service with Chromium installed in CI.
+
 ## Remaining Hardening
 
 - [ ] Add Redis-backed recurring scheduling around the executable `BackgroundJob` worker for production intervals.
-- [ ] Install Playwright browsers in CI and run seeded workflow E2E against a migrated database.
 - [ ] Implement live registrar, trademark, comparable-sales, and history adapters behind the provider interfaces.
 
 ## Local Setup
