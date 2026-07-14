@@ -130,6 +130,8 @@ npm install
 - `npm run doctor:db` - validate schema and checked-in migration readiness.
 - `npm run doctor:auth` - verify seeded demo users and demo password hashes.
 
+With `AUTH_DEBUG=1`, `/api/diagnostics/auth` returns a temporary Railway-friendly auth readiness check for seeded demo users. Disable `AUTH_DEBUG` after troubleshooting.
+
 ## Provider Integration Guide
 
 Create provider adapters that return normalized records equivalent to `AvailabilityResult` from `src/lib/providers/availability.ts`. Live providers must include rate limiting, caching, stale-data labeling, structured errors, feature flags, and clear failure states. Development uses `DOMAIN_PROVIDER=deterministic` by default so local workflows remain repeatable. `DOMAIN_PROVIDER=live` intentionally fails closed until credentials and operational safeguards are configured.

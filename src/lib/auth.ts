@@ -65,11 +65,26 @@ function authProviders(): AuthProviders {
 }
 
 export const authOptions: NextAuthOptions = {
+  debug: process.env.AUTH_DEBUG === '1',
+  secret: process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET,
   session: { strategy: 'jwt' },
   pages: {
     signIn: '/login',
   },
   providers: authProviders(),
+  logger: {
+    error(code, metadata) {
+      console.error('[next-auth:error]', code, metadata);
+    },
+    warn(code) {
+      console.warn('[next-auth:warn]', code);
+    },
+    debug(code, metadata) {
+      if (process.env.AUTH_DEBUG === '1') {
+        console.log('[next-auth:debug]', code, metadata);
+      }
+    },
+  },
   callbacks: {
     jwt({ token, user }) {
       if (user) {
