@@ -7,6 +7,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:e2e:list": "playwright test --list",
+    "test:e2e:install": "playwright install chromium",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
     "worker": "tsx src/worker/index.ts",
@@ -33,6 +35,7 @@
     "zod": "latest"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/bcryptjs": "latest",
     "@types/node": "latest",
     "@types/react": "latest",

@@ -29,6 +29,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 - [x] Server-rendered search, filter, and sort controls for opportunities, portfolio, and marketplace listings.
 - [x] Background job queueing and worker execution for digest, buyer research, and portfolio snapshot tasks.
 - [x] Availability provider adapter boundary with deterministic local mode and guarded live mode.
+- [x] Playwright E2E smoke coverage plus opt-in seeded workflow coverage.
 - [x] Seed script with demo users, workspace, opportunities, watchlists, portfolio, reports, notifications, integrations, and admin data.
 - [x] Docker Compose for PostgreSQL, Redis, and the web app.
 - [x] Unit tests for generation, scoring, and domain import parsing.
@@ -53,11 +54,15 @@ This phase moved domain availability behind an explicit provider interface. Loca
 
 This phase added optional Google OAuth readiness beside credential login. Google sign-in is shown only when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are configured, so local credential flows remain stable by default.
 
+## E2E Readiness Phase
+
+This phase added Playwright configuration, public/auth smoke coverage, and opt-in seeded workflow tests for generator persistence, watchlist acquisition, and admin job queueing. Workflow tests run only with `E2E_WORKFLOWS=1` and a migrated, seeded `DATABASE_URL`.
+
 ## Remaining Hardening
 
 - [ ] Run Prisma migrations against the target PostgreSQL environment.
 - [ ] Add Redis scheduling/locking around the executable `BackgroundJob` worker for multi-process deployments.
-- [ ] Add Playwright coverage for login, generator persistence, watchlist acquisition, and admin controls.
+- [ ] Install Playwright browsers in CI and run seeded workflow E2E against a migrated database.
 - [ ] Implement live registrar, trademark, comparable-sales, and history adapters behind the provider interfaces.
 
 ## Local Setup
@@ -104,6 +109,8 @@ npm install
 - `npm run typecheck` - strict TypeScript check.
 - `npm run test` - unit tests.
 - `npm run test:e2e` - Playwright test entry point.
+- `npm run test:e2e:list` - list Playwright tests without launching browsers.
+- `npm run test:e2e:install` - install the Chromium browser used by Playwright.
 - `npm run db:migrate` - Prisma migrations.
 - `npm run db:seed` - seed demonstration data.
 - `npm run worker` - process queued background jobs.
