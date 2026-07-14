@@ -157,6 +157,14 @@ This repository includes `railway.json` and a production Dockerfile so Railway c
    - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` for Google OAuth.
 6. Deploy from Railway. Watch the deployment logs for the Docker build, Prisma migration pre-deploy step, app boot, and `/api/health` check.
 
+Railway commonly injects `PORT=8080` for the running container. If you generate a public Railway service domain manually, use the port shown in the deploy logs, for example:
+
+```text
+Network: http://0.0.0.0:8080
+```
+
+In that case, set the Public Networking target port to `8080`.
+
 To seed demo data after the first successful deploy, open a Railway shell for the web service and run:
 
 ```bash
