@@ -56,3 +56,8 @@ export async function analyzeDomains(domains: string[], industry: string): Promi
   const provider = getAvailabilityProvider();
   return Promise.all(domains.map(async (domain) => scoreDomain(await provider.check(domain), industry)));
 }
+
+export async function analyzeDomainsWithProviderMode(domains: string[], industry: string, providerMode: string): Promise<DomainAnalysis[]> {
+  const provider = getAvailabilityProvider(providerMode);
+  return Promise.all(domains.map(async (domain) => scoreDomain(await provider.check(domain), industry)));
+}

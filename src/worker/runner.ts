@@ -141,8 +141,8 @@ export async function leaseQueuedJobs(limit = 5, workerId = readWorkerId(), leas
   return jobs;
 }
 
-export async function runQueuedJobs(limit = 5, workerId = readWorkerId()): Promise<JobRunResult[]> {
-  const jobs = await leaseQueuedJobs(limit, workerId);
+export async function runQueuedJobs(limit = 5, workerId = readWorkerId(), leaseMs = readLeaseMs()): Promise<JobRunResult[]> {
+  const jobs = await leaseQueuedJobs(limit, workerId, leaseMs);
   const results: JobRunResult[] = [];
   for (const job of jobs) {
     results.push(await runBackgroundJob(job, workerId));

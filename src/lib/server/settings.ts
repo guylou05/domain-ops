@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { getAppConfig, type AppConfig } from './app-config';
 import { requireWorkspaceContext } from './workspace-context';
 
 export type SettingsView = {
@@ -38,12 +39,13 @@ export type SettingsView = {
     enabled: boolean;
     description: string | null;
   }>;
+  appConfig: AppConfig;
 };
 
 export async function getSettingsView(): Promise<SettingsView> {
   const context = await requireWorkspaceContext();
 
-  const [workspace, currentMember, subscriptions, featureFlags] = await Promise.all([
+  const [workspace, currentMember, subscriptions, featureFlags, appConfig] = await Promise.all([
     prisma.workspace.findUniqueOrThrow({
       where: { id: context.workspaceId },
       select: {
@@ -84,6 +86,7 @@ export async function getSettingsView(): Promise<SettingsView> {
       orderBy: { key: 'asc' },
       select: { key: true, enabled: true, description: true },
     }),
+    getAppConfig(),
   ]);
 
   return {
@@ -119,5 +122,6 @@ export async function getSettingsView(): Promise<SettingsView> {
       },
     })),
     featureFlags,
+    appConfig,
   };
 }

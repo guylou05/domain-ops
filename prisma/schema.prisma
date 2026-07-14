@@ -529,3 +529,10 @@ model FeatureFlag {
   enabled     Boolean @default(false)
   description String?
 }
+
+model AppSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json     @default("{}")
+  updatedAt DateTime @updatedAt
+}

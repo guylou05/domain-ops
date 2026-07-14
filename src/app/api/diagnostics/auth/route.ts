@@ -1,6 +1,7 @@
 import { compare } from 'bcryptjs';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { isAuthDiagnosticsEnabled } from '@/lib/server/app-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,7 +9,7 @@ const demoPassword = 'demo-password';
 const emails = ['admin@domainscout.demo', 'investor@domainscout.demo'];
 
 export async function GET() {
-  if (process.env.AUTH_DEBUG !== '1') {
+  if (process.env.AUTH_DEBUG !== '1' && !(await isAuthDiagnosticsEnabled())) {
     return NextResponse.json({ ok: false, error: 'Auth diagnostics are disabled.' }, { status: 404 });
   }
 

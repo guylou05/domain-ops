@@ -1,4 +1,4 @@
-import { updateWorkspaceName } from './actions';
+import { updateRuntimeSettings, updateWorkspaceName } from './actions';
 import { getSettingsView } from '@/lib/server/settings';
 
 export const dynamic = 'force-dynamic';
@@ -68,6 +68,54 @@ export default async function SettingsPage() {
           <p className="mt-1 text-sm text-slate-400">{settings.currentUser.email}</p>
           <p className="mt-3 rounded-lg bg-white/5 px-3 py-2 text-sm text-slate-300">Role: {settings.currentUser.role}</p>
         </div>
+      </section>
+
+      <section className="card mt-6">
+        <h2 className="text-xl font-semibold">Runtime settings</h2>
+        <form action={updateRuntimeSettings} className="mt-4 grid gap-4 lg:grid-cols-2">
+          <label className="grid gap-2 text-sm">
+            <span className="text-slate-300">Availability provider</span>
+            <select
+              className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2"
+              defaultValue={settings.appConfig.availabilityProvider}
+              name="availabilityProvider"
+            >
+              <option value="mock">Mock</option>
+              <option value="deterministic">Deterministic</option>
+              <option value="live">Live</option>
+            </select>
+          </label>
+          <label className="grid gap-2 text-sm">
+            <span className="text-slate-300">Worker job limit</span>
+            <input
+              className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2"
+              defaultValue={settings.appConfig.workerJobLimit}
+              min={1}
+              max={50}
+              name="workerJobLimit"
+              type="number"
+            />
+          </label>
+          <label className="grid gap-2 text-sm">
+            <span className="text-slate-300">Worker lease milliseconds</span>
+            <input
+              className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2"
+              defaultValue={settings.appConfig.workerLeaseMs}
+              min={10000}
+              max={3600000}
+              name="workerLeaseMs"
+              step={1000}
+              type="number"
+            />
+          </label>
+          <label className="flex items-center gap-3 rounded-lg border border-white/10 px-3 py-2 text-sm">
+            <input defaultChecked={settings.appConfig.authDiagnosticsEnabled} name="authDiagnosticsEnabled" type="checkbox" />
+            <span>Enable auth diagnostics endpoint</span>
+          </label>
+          <div className="lg:col-span-2">
+            <button className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">Save runtime settings</button>
+          </div>
+        </form>
       </section>
 
       <section className="card mt-6">

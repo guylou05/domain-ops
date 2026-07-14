@@ -33,6 +33,20 @@ async function main() {
     },
   });
 
+  await prisma.appSetting.upsert({
+    where: { key: 'runtime' },
+    update: {},
+    create: {
+      key: 'runtime',
+      value: {
+        availabilityProvider: 'mock',
+        authDiagnosticsEnabled: false,
+        workerJobLimit: 5,
+        workerLeaseMs: 300000,
+      },
+    },
+  });
+
   const professionalPlan = await prisma.plan.upsert({
     where: { name: 'Professional' },
     update: {},

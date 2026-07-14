@@ -4,11 +4,13 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import { isGoogleOAuthConfigured } from '@/lib/auth-providers';
 import { prisma } from '@/lib/prisma';
+import { isAuthDiagnosticsEnabled } from '@/lib/server/app-config';
 
 type AuthProviders = NextAuthOptions['providers'];
 
-function logAuthDiagnostic(message: string, metadata: Record<string, string | boolean | undefined> = {}) {
-  if (process.env.AUTH_DEBUG !== '1') return;
+async function logAuthDiagnostic(message: string, metadata: Record<string, string | boolean | undefined> = {}) {
+  const enabled = process.env.AUTH_DEBUG === '1' || (await isAuthDiagnosticsEnabled());
+  if (!enabled) return;
   console.log('[auth]', message, metadata);
 }
 
@@ -24,7 +26,7 @@ function authProviders(): AuthProviders {
         const email = credentials?.email?.trim().toLowerCase();
         const password = credentials?.password ?? '';
         if (!email || !password) {
-          logAuthDiagnostic('missing credentials', { hasEmail: Boolean(email), hasPassword: Boolean(password) });
+          await logAuthDiagnostic('missing credentials', { hasEmail: Boolean(email), hasPassword: Boolean(password) });
           return null;
         }
 
@@ -34,12 +36,12 @@ function authProviders(): AuthProviders {
         });
 
         if (!user?.passwordHash) {
-          logAuthDiagnostic('user missing or password hash missing', { email, found: Boolean(user) });
+          await logAuthDiagnostic('user missing or password hash missing', { email, found: Boolean(user) });
           return null;
         }
 
         const passwordMatches = await compare(password, user.passwordHash);
-        logAuthDiagnostic('credential comparison completed', { email, passwordMatches });
+        await logAuthDiagnostic('credential comparison completed', { email, passwordMatches });
         if (!passwordMatches) return null;
 
         return {

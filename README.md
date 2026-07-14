@@ -49,7 +49,7 @@ This phase connected `BackgroundJob` records to executable worker task handlers.
 
 ## Provider Adapter Phase
 
-This phase moved domain availability behind an explicit provider interface. Local and CI workflows use deterministic adapters, while `DOMAIN_PROVIDER=live` fails closed until credentials, rate limits, caching, and stale-data handling are configured.
+This phase moved domain availability behind an explicit provider interface. Local and CI workflows use deterministic adapters, while live provider mode fails closed until credentials, rate limits, caching, and stale-data handling are configured.
 
 ## Auth Provider Phase
 
@@ -130,15 +130,15 @@ npm install
 - `npm run doctor:db` - validate schema and checked-in migration readiness.
 - `npm run doctor:auth` - verify seeded demo users and demo password hashes.
 
-With `AUTH_DEBUG=1`, `/api/diagnostics/auth` returns a temporary Railway-friendly auth readiness check for seeded demo users. Disable `AUTH_DEBUG` after troubleshooting.
+The Settings page stores runtime-tunable app configuration in the database, including availability provider mode, worker job limits, worker lease duration, and auth diagnostic visibility. Bootstrapping secrets such as `DATABASE_URL`, `NEXTAUTH_URL`, and `NEXTAUTH_SECRET` still belong in the deployment environment.
 
 ## Provider Integration Guide
 
-Create provider adapters that return normalized records equivalent to `AvailabilityResult` from `src/lib/providers/availability.ts`. Live providers must include rate limiting, caching, stale-data labeling, structured errors, feature flags, and clear failure states. Development uses `DOMAIN_PROVIDER=deterministic` by default so local workflows remain repeatable. `DOMAIN_PROVIDER=live` intentionally fails closed until credentials and operational safeguards are configured.
+Create provider adapters that return normalized records equivalent to `AvailabilityResult` from `src/lib/providers/availability.ts`. Live providers must include rate limiting, caching, stale-data labeling, structured errors, feature flags, and clear failure states. Provider mode is configured from Settings. Live mode intentionally fails closed until credentials and operational safeguards are configured.
 
 ## Deployment Notes
 
-Deploy the Next.js app to Railway, Render, Fly.io, AWS, or a VPS with managed PostgreSQL and Redis. Set `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `REDIS_URL`, and `ENCRYPTION_KEY`. Run `npm run doctor:db`, then `npm run db:deploy`, before routing production traffic.
+Deploy the Next.js app to Railway, Render, Fly.io, AWS, or a VPS with managed PostgreSQL and Redis. Set `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `REDIS_URL`, and `ENCRYPTION_KEY`. Run `npm run doctor:db`, then `npm run db:deploy`, before routing production traffic. After the app is online, use Settings for runtime provider and worker configuration.
 
 For Google OAuth, also set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. The callback URL should be `${NEXTAUTH_URL}/api/auth/callback/google`.
 
@@ -153,8 +153,7 @@ This repository includes `railway.json` and a production Dockerfile so Railway c
    - `NEXTAUTH_SECRET` - strong random secret.
    - `NEXTAUTH_URL` - the generated Railway URL first, then your custom domain later.
    - `ENCRYPTION_KEY` - strong application secret.
-   - `DOMAIN_PROVIDER=mock` for deterministic deploy previews.
-   - `WORKER_ID=railway-web`, `WORKER_JOB_LIMIT=5`, and `WORKER_LEASE_MS=300000`.
+   - `WORKER_ID=railway-web`.
 5. Optional variables:
    - `REDIS_URL` if you add a Redis service.
    - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` for Google OAuth.

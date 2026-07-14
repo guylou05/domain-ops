@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { toggleIntegrationStatus } from './actions';
 import { getIntegrations } from '@/lib/server/integrations';
-import { getAvailabilityProviderStatus } from '@/lib/providers/availability';
+import { getAvailabilityStatusFromConfig } from '@/lib/server/app-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +12,7 @@ function formatDate(value: Date | null): string {
 
 export default async function IntegrationsPage() {
   const integrations = await getIntegrations();
-  const providerStatus = getAvailabilityProviderStatus();
+  const providerStatus = await getAvailabilityStatusFromConfig();
   const configuredCount = integrations.filter((integration) => integration.configured).length;
 
   return (
@@ -36,7 +36,7 @@ export default async function IntegrationsPage() {
             <p className="mt-2 text-sm text-slate-400">{providerStatus.label}</p>
           </div>
           <div className="rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300">
-            DOMAIN_PROVIDER={providerStatus.mode}
+            Provider mode: {providerStatus.mode}
           </div>
         </div>
         {providerStatus.mode === 'live' && !providerStatus.liveReady ? (

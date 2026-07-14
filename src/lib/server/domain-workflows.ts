@@ -1,8 +1,9 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { parseDomainLines } from '@/lib/domain-parsing';
-import { analyzeDomains, generateDomainIdeas, generationSchema, type DomainAnalysis, type GenerationInput } from '@/lib/domain-engine';
+import { analyzeDomainsWithProviderMode, generateDomainIdeas, generationSchema, type DomainAnalysis, type GenerationInput } from '@/lib/domain-engine';
 import { assertWorkspaceWriter, type WorkspaceContext } from './workspace-context';
+import { getAppConfig } from './app-config';
 
 export type PersistedOpportunity = {
   domainId: string;
@@ -126,14 +127,16 @@ export async function persistAnalyzedOpportunities(context: WorkspaceContext, an
 
 export async function generateAnalyzeAndPersist(context: WorkspaceContext, input: GenerationInput): Promise<PersistedOpportunity[]> {
   const parsed = generationSchema.parse(input);
+  const config = await getAppConfig();
   const domains = generateDomainIdeas(parsed);
-  const analyses = await analyzeDomains(domains, parsed.industry);
+  const analyses = await analyzeDomainsWithProviderMode(domains, parsed.industry, config.availabilityProvider);
   return persistAnalyzedOpportunities(context, analyses, 'GENERATOR');
 }
 
 export async function importAnalyzeAndPersist(context: WorkspaceContext, rawDomains: string, industry: string): Promise<PersistedOpportunity[]> {
   const domains = parseDomainLines(rawDomains);
   if (domains.length === 0) throw new Error('No valid domains were provided.');
-  const analyses = await analyzeDomains(domains, industry || 'general');
+  const config = await getAppConfig();
+  const analyses = await analyzeDomainsWithProviderMode(domains, industry || 'general', config.availabilityProvider);
   return persistAnalyzedOpportunities(context, analyses, 'MANUAL_OR_CSV_IMPORT');
 }
