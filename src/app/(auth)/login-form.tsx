@@ -25,12 +25,15 @@ export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
         redirect: false,
       });
 
-      if (result?.ok && result.url) {
+      if (result?.url && !result.error) {
         window.location.assign(result.url);
         return;
       }
 
-      setState({ ok: false, message: result?.error ? `Sign-in failed: ${result.error}` : 'Invalid email or password.' });
+      setState({
+        ok: false,
+        message: result?.error ? `Sign-in failed: ${result.error}` : `Invalid email or password. Status: ${result?.status ?? 'unknown'}.`,
+      });
     } catch {
       setState({ ok: false, message: 'Sign-in failed. Check the deployment logs for the auth error.' });
     } finally {
