@@ -18,21 +18,42 @@ export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
     setPending(true);
     const formData = new FormData(event.currentTarget);
     try {
-      const result = await signIn('credentials', {
-        email: String(formData.get('email') ?? ''),
-        password: String(formData.get('password') ?? ''),
-        callbackUrl: '/overview',
-        redirect: false,
+      const csrfResponse = await fetch('/api/auth/csrf', {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
       });
+      const csrf = (await csrfResponse.json()) as { csrfToken?: string };
+      if (!csrf.csrfToken) {
+        setState({ ok: false, message: 'Sign-in failed: missing CSRF token.' });
+        return;
+      }
 
-      if (result?.url && !result.error) {
-        window.location.assign(result.url);
+      const callbackUrl = `${window.location.origin}/overview`;
+      const response = await fetch('/api/auth/callback/credentials', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          csrfToken: csrf.csrfToken,
+          email: String(formData.get('email') ?? ''),
+          password: String(formData.get('password') ?? ''),
+          callbackUrl,
+          json: 'true',
+        }),
+      });
+      const result = (await response.json()) as { url?: string; error?: string };
+
+      if (response.ok && result.url && !result.error) {
+        window.location.href = result.url;
         return;
       }
 
       setState({
         ok: false,
-        message: result?.error ? `Sign-in failed: ${result.error}` : `Invalid email or password. Status: ${result?.status ?? 'unknown'}.`,
+        message: result.error ? `Sign-in failed: ${result.error}` : `Invalid email or password. Status: ${response.status}.`,
       });
     } catch {
       setState({ ok: false, message: 'Sign-in failed. Check the deployment logs for the auth error.' });
