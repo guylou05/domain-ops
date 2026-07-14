@@ -12,6 +12,7 @@
     "test:e2e:install": "playwright install chromium",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
+    "railway:predeploy": "node scripts/railway-predeploy.mjs",
     "db:status": "prisma migrate status",
     "db:validate": "node scripts/doctor-db.mjs",
     "db:seed": "tsx prisma/seed.ts",

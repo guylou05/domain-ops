@@ -141,7 +141,7 @@ For Google OAuth, also set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. The ca
 
 ## Railway GitHub Deployment
 
-This repository includes `railway.json` and a production Dockerfile so Railway can deploy directly from GitHub. Railway will build the app, run `npx prisma migrate deploy` as a pre-deploy command, start the standalone Next.js server, and verify `/api/health` before marking the deploy healthy.
+This repository includes `railway.json` and a production Dockerfile so Railway can deploy directly from GitHub. Railway will build the app, run `npm run railway:predeploy` to recover the first migration if needed and apply Prisma migrations, start the standalone Next.js server, and verify `/api/health` before marking the deploy healthy.
 
 1. In Railway, create a project from the GitHub repository.
 2. Add a PostgreSQL database service.
