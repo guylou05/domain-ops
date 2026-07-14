@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { addOpportunityToWatchlist } from './actions';
 import { getOpportunityList } from '@/lib/server/opportunities';
+import { hasActiveParams, readParam, type SearchParams } from '@/lib/list-search-params';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,8 +15,17 @@ function formatAvailability(value: boolean | null): string {
   return value ? 'Available' : 'Taken';
 }
 
-export default async function Opportunities() {
-  const opportunities = await getOpportunityList();
+export default async function Opportunities({ searchParams }: { searchParams?: Promise<SearchParams> }) {
+  const params = (await searchParams) ?? {};
+  const filters = {
+    search: readParam(params, 'search'),
+    risk: readParam(params, 'risk', 'all'),
+    availability: readParam(params, 'availability', 'all'),
+    sort: readParam(params, 'sort', 'score'),
+  };
+  const opportunities = await getOpportunityList(filters);
+  const filtered = hasActiveParams(params, ['search', 'risk', 'availability', 'sort']) && filters.sort !== 'score';
+  const hasFilters = hasActiveParams(params, ['search', 'risk', 'availability']) || filtered;
 
   return (
     <div>
@@ -30,6 +40,43 @@ export default async function Opportunities() {
           Add domains
         </Link>
       </div>
+
+      <form className="card mt-6 grid gap-3 lg:grid-cols-[1fr_repeat(3,180px)_auto]" action="/opportunities">
+        <input
+          className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm"
+          defaultValue={filters.search}
+          name="search"
+          placeholder="Search domains"
+        />
+        <select className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm" defaultValue={filters.risk} name="risk">
+          <option value="all">All risks</option>
+          <option value="LOW">Low risk</option>
+          <option value="MODERATE">Moderate risk</option>
+          <option value="HIGH">High risk</option>
+          <option value="PROHIBITED">Prohibited</option>
+        </select>
+        <select className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm" defaultValue={filters.availability} name="availability">
+          <option value="all">All availability</option>
+          <option value="available">Available</option>
+          <option value="taken">Taken</option>
+          <option value="unchecked">Unchecked</option>
+        </select>
+        <select className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm" defaultValue={filters.sort} name="sort">
+          <option value="score">Score</option>
+          <option value="retail">Retail value</option>
+          <option value="buyers">Buyer count</option>
+          <option value="checked">Recently checked</option>
+          <option value="domain">Domain</option>
+        </select>
+        <div className="flex gap-2">
+          <button className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">Apply</button>
+          {hasFilters ? (
+            <Link className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-slate-200" href="/opportunities">
+              Reset
+            </Link>
+          ) : null}
+        </div>
+      </form>
 
       <div className="card mt-6 overflow-x-auto">
         {opportunities.length === 0 ? (

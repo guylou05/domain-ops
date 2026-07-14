@@ -26,6 +26,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 - [x] Buyer research, history checks, and marketplace listing generation.
 - [x] Outreach approval and notification read-state workflows.
 - [x] Settings, integrations, feature flags, and audit-backed admin controls.
+- [x] Server-rendered search, filter, and sort controls for opportunities, portfolio, and marketplace listings.
 - [x] Seed script with demo users, workspace, opportunities, watchlists, portfolio, reports, notifications, integrations, and admin data.
 - [x] Docker Compose for PostgreSQL, Redis, and the web app.
 - [x] Unit tests for generation, scoring, and domain import parsing.
@@ -34,11 +35,14 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 
 This phase centralized audit event recording, added reusable admin role guards, expanded unit coverage around deterministic scoring and import parsing, removed outdated launch-era language from user-facing pages, and refreshed project documentation to match the implemented app.
 
+## List Ergonomics Phase
+
+This phase added shareable query-param controls for high-volume operating tables. Opportunities, portfolio holdings, and marketplace listings now support server-rendered search, filters, and sort modes without introducing client-side table state.
+
 ## Remaining Hardening
 
 - [ ] Run Prisma migrations against the target PostgreSQL environment.
 - [ ] Add OAuth providers if the product needs non-credential sign-in.
-- [ ] Add richer table sorting/filtering for high-volume opportunity and portfolio views.
 - [ ] Connect Redis-backed job execution to `BackgroundJob` processing.
 - [ ] Add Playwright coverage for login, generator persistence, watchlist acquisition, and admin controls.
 - [ ] Configure live registrar, trademark, comparable-sales, and history providers behind feature flags.

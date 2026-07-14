@@ -27,7 +27,7 @@ export default async function Generator() {
         <p className="text-sm uppercase tracking-[0.3em] text-brand">Workspace workflow</p>
         <h1 className="mt-2 text-3xl font-bold">Domain Generator</h1>
         <p className="mt-3 max-w-3xl text-slate-300">
-          Generate ideas, run mock registrar availability, calculate explainable scores, and save opportunities into the workspace database for downstream review.
+          Generate ideas, run deterministic registrar availability, calculate explainable scores, and save opportunities into the workspace database for downstream review.
         </p>
       </div>
 

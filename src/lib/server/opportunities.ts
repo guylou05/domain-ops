@@ -1,6 +1,13 @@
 import { prisma } from '@/lib/prisma';
 import { requireWorkspaceContext } from './workspace-context';
 
+export type OpportunityListFilters = {
+  search?: string;
+  risk?: string;
+  availability?: string;
+  sort?: string;
+};
+
 export type OpportunityListItem = {
   domain: string;
   score: number;
@@ -40,11 +47,41 @@ function decimalToNumber(value: { toNumber(): number } | number): number {
   return typeof value === 'number' ? value : value.toNumber();
 }
 
-export async function getOpportunityList(): Promise<OpportunityListItem[]> {
+function sortOpportunities(items: OpportunityListItem[], sort: string | undefined): OpportunityListItem[] {
+  const sorted = [...items];
+  switch (sort) {
+    case 'retail':
+      return sorted.sort((a, b) => b.retailMax - a.retailMax);
+    case 'buyers':
+      return sorted.sort((a, b) => b.buyerCount - a.buyerCount);
+    case 'domain':
+      return sorted.sort((a, b) => a.domain.localeCompare(b.domain));
+    case 'checked':
+      return sorted.sort((a, b) => (b.checkedAt?.getTime() ?? 0) - (a.checkedAt?.getTime() ?? 0));
+    default:
+      return sorted.sort((a, b) => b.score - a.score || a.domain.localeCompare(b.domain));
+  }
+}
+
+function matchesAvailability(item: OpportunityListItem, availability: string | undefined): boolean {
+  if (!availability || availability === 'all') return true;
+  if (availability === 'available') return item.available === true;
+  if (availability === 'taken') return item.available === false;
+  if (availability === 'unchecked') return item.available === null;
+  return true;
+}
+
+export async function getOpportunityList(filters: OpportunityListFilters = {}): Promise<OpportunityListItem[]> {
   const context = await requireWorkspaceContext();
+  const search = filters.search?.trim().toLowerCase();
 
   const opportunities = await prisma.domainOpportunity.findMany({
-    where: { workspaceId: context.workspaceId, status: 'ACTIVE' },
+    where: {
+      workspaceId: context.workspaceId,
+      status: 'ACTIVE',
+      ...(filters.risk && filters.risk !== 'all' ? { riskLevel: filters.risk as never } : {}),
+      ...(search ? { domain: { name: { contains: search, mode: 'insensitive' } } } : {}),
+    },
     orderBy: [{ score: 'desc' }, { createdAt: 'desc' }],
     include: {
       domain: {
@@ -58,7 +95,7 @@ export async function getOpportunityList(): Promise<OpportunityListItem[]> {
     },
   });
 
-  return opportunities.map((opportunity) => {
+  const items = opportunities.map((opportunity) => {
     const latestCheck = opportunity.domain.checks[0];
 
     return {
@@ -73,6 +110,8 @@ export async function getOpportunityList(): Promise<OpportunityListItem[]> {
       checkedAt: latestCheck?.checkedAt ?? null,
     };
   });
+
+  return sortOpportunities(items.filter((item) => matchesAvailability(item, filters.availability)), filters.sort);
 }
 
 export async function getOpportunityDetail(domainName: string): Promise<OpportunityDetail | null> {

@@ -1,6 +1,12 @@
 import { prisma } from '@/lib/prisma';
 import { requireWorkspaceContext } from './workspace-context';
 
+export type PortfolioFilters = {
+  search?: string;
+  renewal?: string;
+  sort?: string;
+};
+
 export type WatchlistView = {
   id: string;
   name: string;
@@ -78,11 +84,39 @@ export async function getWatchlists(): Promise<WatchlistView[]> {
   }));
 }
 
-export async function getPortfolioHoldings(): Promise<PortfolioHolding[]> {
+function sortHoldings(items: PortfolioHolding[], sort: string | undefined): PortfolioHolding[] {
+  const sorted = [...items];
+  switch (sort) {
+    case 'value':
+      return sorted.sort((a, b) => b.currentValuation - a.currentValuation);
+    case 'cost':
+      return sorted.sort((a, b) => b.purchaseCost - a.purchaseCost);
+    case 'domain':
+      return sorted.sort((a, b) => a.domain.localeCompare(b.domain));
+    case 'score':
+      return sorted.sort((a, b) => (b.opportunityScore ?? 0) - (a.opportunityScore ?? 0));
+    default:
+      return sorted.sort((a, b) => a.expirationDate.getTime() - b.expirationDate.getTime());
+  }
+}
+
+function matchesRenewal(item: PortfolioHolding, renewal: string | undefined): boolean {
+  if (!renewal || renewal === 'all') return true;
+  if (renewal === 'auto') return item.autoRenew;
+  if (renewal === 'manual') return !item.autoRenew;
+  return true;
+}
+
+export async function getPortfolioHoldings(filters: PortfolioFilters = {}): Promise<PortfolioHolding[]> {
   const context = await requireWorkspaceContext();
+  const search = filters.search?.trim().toLowerCase();
 
   const holdings = await prisma.portfolioItem.findMany({
-    where: { workspaceId: context.workspaceId, status: 'ACTIVE' },
+    where: {
+      workspaceId: context.workspaceId,
+      status: 'ACTIVE',
+      ...(search ? { domain: { name: { contains: search, mode: 'insensitive' } } } : {}),
+    },
     orderBy: { expirationDate: 'asc' },
     include: {
       domain: {
@@ -93,7 +127,7 @@ export async function getPortfolioHoldings(): Promise<PortfolioHolding[]> {
     },
   });
 
-  return holdings.map((holding) => ({
+  const items = holdings.map((holding) => ({
     id: holding.id,
     domain: holding.domain.name,
     registrar: holding.registrar,
@@ -108,4 +142,6 @@ export async function getPortfolioHoldings(): Promise<PortfolioHolding[]> {
     opportunityScore: holding.domain.opportunity?.score ?? null,
     riskLevel: holding.domain.opportunity?.riskLevel ?? null,
   }));
+
+  return sortHoldings(items.filter((item) => matchesRenewal(item, filters.renewal)), filters.sort);
 }

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { publishPortfolioListings } from './actions';
 import { getAuctionListings } from '@/lib/server/auctions';
+import { hasActiveParams, readParam, type SearchParams } from '@/lib/list-search-params';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,9 +10,16 @@ function formatCurrency(value: number | null): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
 }
 
-export default async function AuctionsPage() {
-  const listings = await getAuctionListings();
+export default async function AuctionsPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
+  const params = (await searchParams) ?? {};
+  const filters = {
+    search: readParam(params, 'search'),
+    status: readParam(params, 'status', 'all'),
+    sort: readParam(params, 'sort', 'status'),
+  };
+  const listings = await getAuctionListings(filters);
   const activeCount = listings.filter((listing) => listing.status === 'ACTIVE').length;
+  const hasFilters = hasActiveParams(params, ['search', 'status']) || filters.sort !== 'status';
 
   return (
     <div>
@@ -31,6 +39,36 @@ export default async function AuctionsPage() {
           </form>
         </div>
       </div>
+
+      <form className="card mt-6 grid gap-3 lg:grid-cols-[1fr_180px_180px_auto]" action="/auctions">
+        <input
+          className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm"
+          defaultValue={filters.search}
+          name="search"
+          placeholder="Search listings"
+        />
+        <select className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm" defaultValue={filters.status} name="status">
+          <option value="all">All statuses</option>
+          <option value="ACTIVE">Active</option>
+          <option value="PAUSED">Paused</option>
+          <option value="REVIEW">Review</option>
+        </select>
+        <select className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm" defaultValue={filters.sort} name="sort">
+          <option value="status">Status</option>
+          <option value="price">Ask price</option>
+          <option value="value">Portfolio value</option>
+          <option value="score">Score</option>
+          <option value="domain">Domain</option>
+        </select>
+        <div className="flex gap-2">
+          <button className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">Apply</button>
+          {hasFilters ? (
+            <Link className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-slate-200" href="/auctions">
+              Reset
+            </Link>
+          ) : null}
+        </div>
+      </form>
 
       {listings.length === 0 ? (
         <div className="card mt-6 py-10 text-center">

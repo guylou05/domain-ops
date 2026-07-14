@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { archivePortfolioHolding, togglePortfolioAutoRenew } from './actions';
 import { getPortfolioHoldings } from '@/lib/server/portfolio-views';
+import { hasActiveParams, readParam, type SearchParams } from '@/lib/list-search-params';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,8 +14,15 @@ function formatDate(value: Date): string {
   return value.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export default async function PortfolioPage() {
-  const holdings = await getPortfolioHoldings();
+export default async function PortfolioPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
+  const params = (await searchParams) ?? {};
+  const filters = {
+    search: readParam(params, 'search'),
+    renewal: readParam(params, 'renewal', 'all'),
+    sort: readParam(params, 'sort', 'expires'),
+  };
+  const holdings = await getPortfolioHoldings(filters);
+  const hasFilters = hasActiveParams(params, ['search', 'renewal']) || filters.sort !== 'expires';
   const totalCost = holdings.reduce((sum, holding) => sum + holding.purchaseCost, 0);
   const totalValue = holdings.reduce((sum, holding) => sum + holding.currentValuation, 0);
   const renewalExposure = holdings.reduce((sum, holding) => sum + holding.renewalCost, 0);
@@ -47,6 +55,35 @@ export default async function PortfolioPage() {
           <p className="mt-2 text-2xl font-bold">{formatCurrency(renewalExposure)}</p>
         </div>
       </div>
+
+      <form className="card mt-6 grid gap-3 lg:grid-cols-[1fr_180px_180px_auto]" action="/portfolio">
+        <input
+          className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm"
+          defaultValue={filters.search}
+          name="search"
+          placeholder="Search holdings"
+        />
+        <select className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm" defaultValue={filters.renewal} name="renewal">
+          <option value="all">All renewals</option>
+          <option value="auto">Auto-renew</option>
+          <option value="manual">Manual</option>
+        </select>
+        <select className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm" defaultValue={filters.sort} name="sort">
+          <option value="expires">Expiration</option>
+          <option value="value">Valuation</option>
+          <option value="cost">Cost</option>
+          <option value="score">Score</option>
+          <option value="domain">Domain</option>
+        </select>
+        <div className="flex gap-2">
+          <button className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">Apply</button>
+          {hasFilters ? (
+            <Link className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-slate-200" href="/portfolio">
+              Reset
+            </Link>
+          ) : null}
+        </div>
+      </form>
 
       <div className="card mt-6 overflow-x-auto">
         {holdings.length === 0 ? (

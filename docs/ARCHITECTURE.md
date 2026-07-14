@@ -18,9 +18,10 @@ DomainScout AI uses a Next.js App Router web app, Prisma/PostgreSQL persistence,
 
 1. Middleware protects workspace routes and sends unauthenticated users to `/login`.
 2. Server components load page-specific view models through `src/lib/server/*`.
-3. Server actions resolve `requireWorkspaceContext`, enforce writer/admin guards where needed, mutate workspace records, record audit events for operational changes, and revalidate affected routes.
-4. Prisma persists normalized domain research, portfolio, buyer, outreach, report, notification, integration, and admin records.
-5. The worker entry point advertises registered task types; queue execution can be attached to `BackgroundJob` records without changing the UI contracts.
+3. List pages parse query parameters on the server and pass typed filters into page data loaders, keeping high-volume tables shareable and crawl-free without client-side state.
+4. Server actions resolve `requireWorkspaceContext`, enforce writer/admin guards where needed, mutate workspace records, record audit events for operational changes, and revalidate affected routes.
+5. Prisma persists normalized domain research, portfolio, buyer, outreach, report, notification, integration, and admin records.
+6. The worker entry point advertises registered task types; queue execution can be attached to `BackgroundJob` records without changing the UI contracts.
 
 ## Provider Strategy
 
