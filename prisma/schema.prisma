@@ -471,6 +471,9 @@ model ApiCredential {
   provider        String
   encryptedSecret String
   createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([workspaceId, provider])
 }
 
 model BackgroundJob {

@@ -23,14 +23,14 @@ function deterministicSales(domain: string): ComparableSalesResult {
   };
 }
 
-export function getComparableSalesProvider(mode: string | undefined, endpoint?: string): ComparableSalesProvider {
+export function getComparableSalesProvider(mode: string | undefined, endpoint?: string, apiKey?: string): ComparableSalesProvider {
   const providerMode = normalizeProviderMode(mode);
   if (providerMode !== 'live') return { mode: providerMode, label: 'Deterministic comparable-sales adapter', search: async (domain) => deterministicSales(domain) };
   return {
     mode: 'live', label: 'Live comparable-sales adapter',
     async search(domain) {
       const response = await fetchLiveProviderJson({
-        provider: 'Comparable sales', endpoint: endpoint || process.env.COMPARABLE_SALES_API_URL, apiKey: process.env.COMPARABLE_SALES_API_KEY, domain,
+        provider: 'Comparable sales', endpoint: endpoint || process.env.COMPARABLE_SALES_API_URL, apiKey: apiKey || process.env.COMPARABLE_SALES_API_KEY, domain,
         parse(value) {
           const record = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
           if (!Array.isArray(record.sales)) throw new ProviderConfigurationError('Comparable-sales response must include a sales array.');
@@ -48,7 +48,7 @@ export function getComparableSalesProvider(mode: string | undefined, endpoint?: 
   };
 }
 
-export function getComparableSalesProviderStatus(mode: string | undefined, endpoint?: string) {
-  const provider = getComparableSalesProvider(mode, endpoint);
-  return { mode: provider.mode, label: provider.label, liveReady: provider.mode !== 'live' || Boolean((endpoint || process.env.COMPARABLE_SALES_API_URL) && process.env.COMPARABLE_SALES_API_KEY) };
+export function getComparableSalesProviderStatus(mode: string | undefined, endpoint?: string, apiKey?: string) {
+  const provider = getComparableSalesProvider(mode, endpoint, apiKey);
+  return { mode: provider.mode, label: provider.label, liveReady: provider.mode !== 'live' || Boolean((endpoint || process.env.COMPARABLE_SALES_API_URL) && (apiKey || process.env.COMPARABLE_SALES_API_KEY)) };
 }

@@ -1,4 +1,10 @@
 import { prisma } from '@/lib/prisma';
+import { getAvailabilityProviderStatus } from '@/lib/providers/availability';
+import { getComparableSalesProviderStatus } from '@/lib/providers/comparable-sales';
+import { getHistoryProviderStatus } from '@/lib/providers/history';
+import { getTrademarkProviderStatus } from '@/lib/providers/trademark';
+import { getAppConfig } from './app-config';
+import { MANAGED_PROVIDER_CREDENTIALS, resolveProviderCredential } from './provider-credentials';
 import { requireWorkspaceContext } from './workspace-context';
 
 export type IntegrationView = {
@@ -68,4 +74,43 @@ export async function getIntegrations(): Promise<IntegrationView[]> {
       featureFlag: flagKey ? flagByKey.get(flagKey) ?? { key: flagKey, enabled: false } : null,
     };
   });
+}
+
+export async function getProviderCredentialViews() {
+  const context = await requireWorkspaceContext();
+  const credentials = await prisma.apiCredential.findMany({
+    where: { workspaceId: context.workspaceId, provider: { in: MANAGED_PROVIDER_CREDENTIALS.map((provider) => provider.key) } },
+    select: { provider: true, updatedAt: true },
+  });
+  const byProvider = new Map(credentials.map((credential) => [credential.provider, credential]));
+
+  return {
+    canManage: context.role === 'OWNER' || context.role === 'ADMIN',
+    providers: MANAGED_PROVIDER_CREDENTIALS.map((provider) => {
+      const stored = byProvider.get(provider.key);
+      return {
+        key: provider.key,
+        label: provider.label,
+        source: stored ? 'database' as const : process.env[provider.envName] ? 'environment' as const : 'missing' as const,
+        updatedAt: stored?.updatedAt ?? null,
+      };
+    }),
+  };
+}
+
+export async function getProviderRuntimeStatuses() {
+  const context = await requireWorkspaceContext();
+  const config = await getAppConfig();
+  const [registrarKey, trademarkKey, salesKey, historyKey] = await Promise.all([
+    resolveProviderCredential(context.workspaceId, 'registrar'),
+    resolveProviderCredential(context.workspaceId, 'trademark'),
+    resolveProviderCredential(context.workspaceId, 'comparable_sales'),
+    resolveProviderCredential(context.workspaceId, 'domain_history'),
+  ]);
+  return [
+    { key: 'registrar', ...getAvailabilityProviderStatus(config.availabilityProvider, config.providerEndpoints.registrar, registrarKey) },
+    { key: 'trademark', ...getTrademarkProviderStatus(config.trademarkProvider, config.providerEndpoints.trademark, trademarkKey) },
+    { key: 'comparableSales', ...getComparableSalesProviderStatus(config.comparableSalesProvider, config.providerEndpoints.comparableSales, salesKey) },
+    { key: 'history', ...getHistoryProviderStatus(config.historyProvider, config.providerEndpoints.history, historyKey) },
+  ];
 }

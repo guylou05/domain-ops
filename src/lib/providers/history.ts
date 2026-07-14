@@ -12,14 +12,14 @@ function deterministicHistory(domain: string, score = 70): HistoryResult {
   };
 }
 
-export function getHistoryProvider(mode: string | undefined, endpoint?: string): HistoryProvider {
+export function getHistoryProvider(mode: string | undefined, endpoint?: string, apiKey?: string): HistoryProvider {
   const providerMode = normalizeProviderMode(mode);
   if (providerMode !== 'live') return { mode: providerMode, label: 'Deterministic history adapter', check: async (domain, score) => deterministicHistory(domain, score) };
   return {
     mode: 'live', label: 'Live domain-history adapter',
     async check(domain) {
       const response = await fetchLiveProviderJson({
-        provider: 'Domain history', endpoint: endpoint || process.env.DOMAIN_HISTORY_API_URL, apiKey: process.env.DOMAIN_HISTORY_API_KEY, domain,
+        provider: 'Domain history', endpoint: endpoint || process.env.DOMAIN_HISTORY_API_URL, apiKey: apiKey || process.env.DOMAIN_HISTORY_API_KEY, domain,
         parse(value) {
           const record = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
           const riskLevel = typeof record.riskLevel === 'string' ? record.riskLevel.toUpperCase() : '';
@@ -33,7 +33,7 @@ export function getHistoryProvider(mode: string | undefined, endpoint?: string):
   };
 }
 
-export function getHistoryProviderStatus(mode: string | undefined, endpoint?: string) {
-  const provider = getHistoryProvider(mode, endpoint);
-  return { mode: provider.mode, label: provider.label, liveReady: provider.mode !== 'live' || Boolean((endpoint || process.env.DOMAIN_HISTORY_API_URL) && process.env.DOMAIN_HISTORY_API_KEY) };
+export function getHistoryProviderStatus(mode: string | undefined, endpoint?: string, apiKey?: string) {
+  const provider = getHistoryProvider(mode, endpoint, apiKey);
+  return { mode: provider.mode, label: provider.label, liveReady: provider.mode !== 'live' || Boolean((endpoint || process.env.DOMAIN_HISTORY_API_URL) && (apiKey || process.env.DOMAIN_HISTORY_API_KEY)) };
 }

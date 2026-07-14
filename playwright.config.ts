@@ -24,6 +24,7 @@ export default defineConfig({
       NEXTAUTH_URL: baseURL,
       DOMAIN_PROVIDER: process.env.DOMAIN_PROVIDER ?? 'deterministic',
       DATABASE_URL: process.env.DATABASE_URL ?? '',
+      ENCRYPTION_KEY: process.env.ENCRYPTION_KEY ?? 'playwright-encryption-key-with-at-least-32-characters',
     },
   },
   projects: [

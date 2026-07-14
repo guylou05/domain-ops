@@ -1,9 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../prisma';
-import { getAvailabilityProviderStatus, type AvailabilityProviderMode } from '../providers/availability';
-import { getComparableSalesProviderStatus } from '../providers/comparable-sales';
-import { getHistoryProviderStatus } from '../providers/history';
-import { getTrademarkProviderStatus } from '../providers/trademark';
+import type { AvailabilityProviderMode } from '../providers/availability';
 
 export type AppConfig = {
   availabilityProvider: AvailabilityProviderMode;
@@ -134,21 +131,6 @@ export async function updateAppConfig(patch: Partial<AppConfig>): Promise<AppCon
   const next = parseAppConfig({ ...current, ...patch });
   await upsertAppConfig(next);
   return next;
-}
-
-export async function getAvailabilityStatusFromConfig() {
-  const config = await getAppConfig();
-  return getAvailabilityProviderStatus(config.availabilityProvider, config.providerEndpoints.registrar);
-}
-
-export async function getProviderStatusesFromConfig() {
-  const config = await getAppConfig();
-  return [
-    { key: 'registrar', ...getAvailabilityProviderStatus(config.availabilityProvider, config.providerEndpoints.registrar) },
-    { key: 'trademark', ...getTrademarkProviderStatus(config.trademarkProvider, config.providerEndpoints.trademark) },
-    { key: 'comparableSales', ...getComparableSalesProviderStatus(config.comparableSalesProvider, config.providerEndpoints.comparableSales) },
-    { key: 'history', ...getHistoryProviderStatus(config.historyProvider, config.providerEndpoints.history) },
-  ];
 }
 
 export async function isAuthDiagnosticsEnabled(): Promise<boolean> {

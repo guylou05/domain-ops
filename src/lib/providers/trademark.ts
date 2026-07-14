@@ -24,7 +24,7 @@ function deterministicResult(domain: string): TrademarkResult {
   };
 }
 
-export function getTrademarkProvider(mode: string | undefined, endpoint?: string): TrademarkProvider {
+export function getTrademarkProvider(mode: string | undefined, endpoint?: string, apiKey?: string): TrademarkProvider {
   const providerMode = normalizeProviderMode(mode);
   if (providerMode !== 'live') {
     return { mode: providerMode, label: 'Deterministic trademark screening', check: async (domain) => deterministicResult(domain) };
@@ -34,7 +34,7 @@ export function getTrademarkProvider(mode: string | undefined, endpoint?: string
     label: 'Live trademark adapter',
     async check(domain) {
       const response = await fetchLiveProviderJson({
-        provider: 'Trademark', endpoint: endpoint || process.env.TRADEMARK_API_URL, apiKey: process.env.TRADEMARK_API_KEY, domain,
+        provider: 'Trademark', endpoint: endpoint || process.env.TRADEMARK_API_URL, apiKey: apiKey || process.env.TRADEMARK_API_KEY, domain,
         parse(value) {
           const record = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
           const riskLevel = typeof record.riskLevel === 'string' ? record.riskLevel.toUpperCase() : '';
@@ -48,7 +48,7 @@ export function getTrademarkProvider(mode: string | undefined, endpoint?: string
   };
 }
 
-export function getTrademarkProviderStatus(mode: string | undefined, endpoint?: string) {
-  const provider = getTrademarkProvider(mode, endpoint);
-  return { mode: provider.mode, label: provider.label, liveReady: provider.mode !== 'live' || Boolean((endpoint || process.env.TRADEMARK_API_URL) && process.env.TRADEMARK_API_KEY) };
+export function getTrademarkProviderStatus(mode: string | undefined, endpoint?: string, apiKey?: string) {
+  const provider = getTrademarkProvider(mode, endpoint, apiKey);
+  return { mode: provider.mode, label: provider.label, liveReady: provider.mode !== 'live' || Boolean((endpoint || process.env.TRADEMARK_API_URL) && (apiKey || process.env.TRADEMARK_API_KEY)) };
 }

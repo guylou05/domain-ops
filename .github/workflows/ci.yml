@@ -63,6 +63,7 @@ jobs:
       NEXTAUTH_SECRET: ci-nextauth-secret-for-seeded-workflow-tests
       NEXTAUTH_URL: http://127.0.0.1:3000
       E2E_WORKFLOWS: "1"
+      ENCRYPTION_KEY: ci-provider-credential-encryption-key-32-chars
     steps:
       - name: Check out repository
         uses: actions/checkout@v4

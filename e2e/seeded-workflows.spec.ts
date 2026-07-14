@@ -60,4 +60,14 @@ test.describe('seeded workspace workflows', () => {
     await expect(page.getByRole('heading', { name: 'Comparable sales' })).toBeVisible();
     await expect(page.getByText(/Deterministic|risk/).first()).toBeVisible();
   });
+
+  test('admin can store a provider credential from the UI', async ({ page }) => {
+    await login(page);
+    await page.goto('/integrations');
+
+    const input = page.getByLabel('Registrar availability API key');
+    await input.fill(`playwright-provider-key-${Date.now()}`);
+    await input.locator('xpath=ancestor::form').getByRole('button', { name: 'Save' }).click();
+    await expect(page.getByText(/Stored .+/).first()).toBeVisible();
+  });
 });

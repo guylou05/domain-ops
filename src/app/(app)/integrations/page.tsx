@@ -1,7 +1,6 @@
 import Link from 'next/link';
-import { toggleIntegrationStatus } from './actions';
-import { getIntegrations } from '@/lib/server/integrations';
-import { getProviderStatusesFromConfig } from '@/lib/server/app-config';
+import { removeProviderCredential, saveProviderCredential, toggleIntegrationStatus } from './actions';
+import { getIntegrations, getProviderCredentialViews, getProviderRuntimeStatuses } from '@/lib/server/integrations';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,9 +10,12 @@ function formatDate(value: Date | null): string {
 }
 
 export default async function IntegrationsPage() {
-  const integrations = await getIntegrations();
-  const providerStatuses = await getProviderStatusesFromConfig();
-  const configuredCount = integrations.filter((integration) => integration.configured).length;
+  const [integrations, providerStatuses, credentialVault] = await Promise.all([
+    getIntegrations(),
+    getProviderRuntimeStatuses(),
+    getProviderCredentialViews(),
+  ]);
+  const configuredCount = credentialVault.providers.filter((provider) => provider.source !== 'missing').length;
 
   return (
     <div>
@@ -25,7 +27,7 @@ export default async function IntegrationsPage() {
           </p>
         </div>
         <div className="rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300">
-          {configuredCount}/{integrations.length} configured
+          {configuredCount}/{credentialVault.providers.length} live credentials
         </div>
       </div>
 
@@ -39,6 +41,46 @@ export default async function IntegrationsPage() {
             </p>
           </div>
         ))}
+      </section>
+
+      <section className="card mt-6">
+        <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-start">
+          <div>
+            <h2 className="text-xl font-semibold">Credential vault</h2>
+            <p className="mt-1 text-sm text-slate-400">Stored keys are encrypted and never displayed after saving.</p>
+          </div>
+          <span className="text-xs font-semibold text-slate-400">{credentialVault.canManage ? 'Admin access' : 'Read only'}</span>
+        </div>
+        <div className="mt-5 divide-y divide-white/10">
+          {credentialVault.providers.map((provider) => (
+            <div className="grid gap-3 py-4 lg:grid-cols-[220px_1fr_auto] lg:items-end" key={provider.key}>
+              <div>
+                <h3 className="font-semibold">{provider.label}</h3>
+                <p className="mt-1 text-xs text-slate-400">
+                  {provider.source === 'database' ? `Stored ${formatDate(provider.updatedAt)}` : provider.source === 'environment' ? 'Using Railway variable' : 'No key configured'}
+                </p>
+              </div>
+              <form action={saveProviderCredential} className="flex min-w-0 flex-col gap-2 sm:flex-row">
+                <input name="provider" type="hidden" value={provider.key} />
+                <input
+                  aria-label={`${provider.label} API key`}
+                  autoComplete="new-password"
+                  className="min-w-0 flex-1 rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm disabled:opacity-50"
+                  disabled={!credentialVault.canManage}
+                  name="secret"
+                  placeholder="Enter a new API key"
+                  required
+                  type="password"
+                />
+                <button className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={!credentialVault.canManage}>Save</button>
+              </form>
+              <form action={removeProviderCredential}>
+                <input name="provider" type="hidden" value={provider.key} />
+                <button className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm font-semibold text-slate-300 disabled:opacity-50" disabled={!credentialVault.canManage || provider.source !== 'database'}>Remove</button>
+              </form>
+            </div>
+          ))}
+        </div>
       </section>
 
       {integrations.length === 0 ? (

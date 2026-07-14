@@ -4,6 +4,7 @@ import { getComparableSalesProvider } from '@/lib/providers/comparable-sales';
 import { getHistoryProvider } from '@/lib/providers/history';
 import { getTrademarkProvider } from '@/lib/providers/trademark';
 import { getAppConfig } from './app-config';
+import { resolveProviderCredential } from './provider-credentials';
 import { assertWorkspaceWriter, type WorkspaceContext } from './workspace-context';
 
 function riskLevel(value: 'LOW' | 'MODERATE' | 'HIGH' | 'PROHIBITED'): RiskLevel {
@@ -19,9 +20,14 @@ export async function runDomainDueDiligence(context: WorkspaceContext, domainNam
   if (!domain) throw new Error('Domain was not found in this workspace.');
 
   const config = await getAppConfig();
-  const trademarkProvider = getTrademarkProvider(config.trademarkProvider, config.providerEndpoints.trademark);
-  const salesProvider = getComparableSalesProvider(config.comparableSalesProvider, config.providerEndpoints.comparableSales);
-  const historyProvider = getHistoryProvider(config.historyProvider, config.providerEndpoints.history);
+  const [trademarkKey, salesKey, historyKey] = await Promise.all([
+    resolveProviderCredential(context.workspaceId, 'trademark'),
+    resolveProviderCredential(context.workspaceId, 'comparable_sales'),
+    resolveProviderCredential(context.workspaceId, 'domain_history'),
+  ]);
+  const trademarkProvider = getTrademarkProvider(config.trademarkProvider, config.providerEndpoints.trademark, trademarkKey);
+  const salesProvider = getComparableSalesProvider(config.comparableSalesProvider, config.providerEndpoints.comparableSales, salesKey);
+  const historyProvider = getHistoryProvider(config.historyProvider, config.providerEndpoints.history, historyKey);
   const [trademark, comparableSales, history] = await Promise.all([
     trademarkProvider.check(domain.name),
     salesProvider.search(domain.name),
@@ -74,7 +80,8 @@ export async function runDomainDueDiligence(context: WorkspaceContext, domainNam
 export async function runWorkspaceHistoryChecks(context: WorkspaceContext, limit = 8): Promise<number> {
   assertWorkspaceWriter(context);
   const config = await getAppConfig();
-  const provider = getHistoryProvider(config.historyProvider, config.providerEndpoints.history);
+  const apiKey = await resolveProviderCredential(context.workspaceId, 'domain_history');
+  const provider = getHistoryProvider(config.historyProvider, config.providerEndpoints.history, apiKey);
   const opportunities = await prisma.domainOpportunity.findMany({
     where: { workspaceId: context.workspaceId, status: 'ACTIVE' },
     orderBy: { score: 'desc' },

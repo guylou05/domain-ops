@@ -34,6 +34,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 - [x] GitHub Actions CI with Playwright browser install and seeded workflow E2E against migrated PostgreSQL.
 - [x] Redis-backed recurring scheduling with UI-managed task cadence and distributed worker execution.
 - [x] Live-ready registrar, trademark, comparable-sales, and domain-history adapters with due-diligence workflows.
+- [x] Encrypted workspace provider credentials managed from the Integrations UI.
 - [x] Seed script with demo users, workspace, opportunities, watchlists, portfolio, reports, notifications, integrations, and admin data.
 - [x] Docker Compose for PostgreSQL, Redis, and the web app.
 - [x] Unit tests for generation, scoring, and domain import parsing.
@@ -81,6 +82,10 @@ This phase added a persistent scheduler process that uses a Redis lock to coordi
 ## Research Provider Phase
 
 This phase added normalized provider interfaces for registrar availability, trademark screening, comparable sales, and domain history. Live HTTP adapters include serialized rate limiting, request timeouts, response caching, stale fallback, structured errors, and readiness reporting. Opportunity details can run due diligence and persist all three research result types, while Runtime Settings controls provider modes and endpoint URLs.
+
+## Credential Vault Phase
+
+This phase made live provider keys manageable from Integrations. Credentials are encrypted with AES-256-GCM before persistence, bound to their workspace and provider, replaceable without exposing the saved value, removable by workspace admins, and covered by secret-free audit events. Deployment variables remain supported as a fallback.
 
 ## Local Setup
 
@@ -145,7 +150,7 @@ The Settings page stores runtime-tunable app configuration in the database, incl
 
 ## Provider Integration Guide
 
-Provider mode and endpoint URLs are configured from Settings. Live requests use a bearer token from the corresponding Railway secret: `REGISTRAR_API_KEY`, `TRADEMARK_API_KEY`, `COMPARABLE_SALES_API_KEY`, or `DOMAIN_HISTORY_API_KEY`. Live mode fails closed when either the endpoint or key is absent; readiness is visible on Integrations.
+Provider mode and endpoint URLs are configured from Settings. API keys are saved from the Integrations credential vault and sent as bearer tokens. Live mode fails closed when either the endpoint or key is absent; readiness is visible on Integrations. `REGISTRAR_API_KEY`, `TRADEMARK_API_KEY`, `COMPARABLE_SALES_API_KEY`, and `DOMAIN_HISTORY_API_KEY` remain optional deployment-variable fallbacks.
 
 Each endpoint receives `GET <configured-url>?domain=<domain>` and must return JSON:
 
@@ -158,11 +163,13 @@ Valid risk levels are `LOW`, `MODERATE`, `HIGH`, and `PROHIBITED`. Deterministic
 
 ## Deployment Notes
 
-Deploy the Next.js app to Railway, Render, Fly.io, AWS, or a VPS with managed PostgreSQL and Redis. Set `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `REDIS_URL`, and `ENCRYPTION_KEY`. Run `npm run doctor:db`, then `npm run db:deploy`, before routing production traffic. After the app is online, use Settings for runtime provider and worker configuration.
+Deploy the Next.js app to Railway, Render, Fly.io, AWS, or a VPS with managed PostgreSQL and Redis. Set `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `REDIS_URL`, and an `ENCRYPTION_KEY` of at least 32 characters. Run `npm run doctor:db`, then `npm run db:deploy`, before routing production traffic. After the app is online, use Settings for runtime provider and worker configuration.
+
+Keep `ENCRYPTION_KEY` stable. Changing it makes previously stored provider credentials unreadable; after an intentional rotation, re-enter each provider key from Integrations.
 
 For Google OAuth, also set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. The callback URL should be `${NEXTAUTH_URL}/api/auth/callback/google`.
 
-For live research providers, add only the selected provider API keys to the web service. Endpoint URLs and provider modes are managed from Settings.
+For live research providers, save keys from Integrations. Endpoint URLs and provider modes are managed from Settings. Railway API-key variables are optional fallbacks.
 
 ## Railway GitHub Deployment
 

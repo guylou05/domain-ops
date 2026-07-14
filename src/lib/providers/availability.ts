@@ -43,7 +43,7 @@ function deterministicProvider(mode: Extract<AvailabilityProviderMode, 'determin
   };
 }
 
-function liveProvider(endpoint?: string): AvailabilityProvider {
+function liveProvider(endpoint?: string, apiKey?: string): AvailabilityProvider {
   return {
     mode: 'live',
     label: 'Live registrar adapter',
@@ -51,7 +51,7 @@ function liveProvider(endpoint?: string): AvailabilityProvider {
       const response = await fetchLiveProviderJson({
         provider: 'Registrar',
         endpoint: endpoint || process.env.REGISTRAR_API_URL,
-        apiKey: process.env.REGISTRAR_API_KEY,
+        apiKey: apiKey || process.env.REGISTRAR_API_KEY,
         domain,
         parse(value) {
           const record = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
@@ -73,21 +73,21 @@ function liveProvider(endpoint?: string): AvailabilityProvider {
   };
 }
 
-export function getAvailabilityProvider(mode = process.env.DOMAIN_PROVIDER, endpoint?: string): AvailabilityProvider {
+export function getAvailabilityProvider(mode = process.env.DOMAIN_PROVIDER, endpoint?: string, apiKey?: string): AvailabilityProvider {
   const providerMode = normalizeProviderMode(mode);
-  if (providerMode === 'live') return liveProvider(endpoint);
+  if (providerMode === 'live') return liveProvider(endpoint, apiKey);
   return deterministicProvider(providerMode);
 }
 
-export function getAvailabilityProviderStatus(mode = process.env.DOMAIN_PROVIDER, endpoint?: string): {
+export function getAvailabilityProviderStatus(mode = process.env.DOMAIN_PROVIDER, endpoint?: string, apiKey?: string): {
   mode: AvailabilityProviderMode;
   label: string;
   liveReady: boolean;
 } {
-  const provider = getAvailabilityProvider(mode, endpoint);
+  const provider = getAvailabilityProvider(mode, endpoint, apiKey);
   return {
     mode: provider.mode,
     label: provider.label,
-    liveReady: provider.mode !== 'live' ? true : Boolean((endpoint || process.env.REGISTRAR_API_URL) && process.env.REGISTRAR_API_KEY),
+    liveReady: provider.mode !== 'live' ? true : Boolean((endpoint || process.env.REGISTRAR_API_URL) && (apiKey || process.env.REGISTRAR_API_KEY)),
   };
 }
