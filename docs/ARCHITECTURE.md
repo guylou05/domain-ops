@@ -10,6 +10,7 @@ DomainScout AI uses a Next.js App Router web app, Prisma/PostgreSQL persistence,
 - `src/lib/server`: workspace context, audit helpers, page data loaders, and workflow persistence utilities.
 - `src/worker`: registered background task entry point.
 - `prisma`: schema and seed data.
+- `prisma/migrations`: checked-in SQL migrations for deployable PostgreSQL environments.
 - `services/api`: Python FastAPI analysis service.
 - `tests`: unit coverage for deterministic domain logic and workflow parsing.
 - `e2e`: Playwright smoke tests and opt-in seeded workflow specs.

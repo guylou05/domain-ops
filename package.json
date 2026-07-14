@@ -10,11 +10,15 @@
     "test:e2e:list": "playwright test --list",
     "test:e2e:install": "playwright install chromium",
     "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:status": "prisma migrate status",
+    "db:validate": "node scripts/doctor-db.mjs",
     "db:seed": "tsx prisma/seed.ts",
     "worker": "tsx src/worker/index.ts",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
-    "doctor:registry": "node scripts/doctor-registry.mjs"
+    "doctor:registry": "node scripts/doctor-registry.mjs",
+    "doctor:db": "node scripts/doctor-db.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "latest",

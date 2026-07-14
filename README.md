@@ -30,6 +30,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 - [x] Background job queueing and worker execution for digest, buyer research, and portfolio snapshot tasks.
 - [x] Availability provider adapter boundary with deterministic local mode and guarded live mode.
 - [x] Playwright E2E smoke coverage plus opt-in seeded workflow coverage.
+- [x] Initial Prisma migration and database deployment readiness checks.
 - [x] Seed script with demo users, workspace, opportunities, watchlists, portfolio, reports, notifications, integrations, and admin data.
 - [x] Docker Compose for PostgreSQL, Redis, and the web app.
 - [x] Unit tests for generation, scoring, and domain import parsing.
@@ -58,9 +59,12 @@ This phase added optional Google OAuth readiness beside credential login. Google
 
 This phase added Playwright configuration, public/auth smoke coverage, and opt-in seeded workflow tests for generator persistence, watchlist acquisition, and admin job queueing. Workflow tests run only with `E2E_WORKFLOWS=1` and a migrated, seeded `DATABASE_URL`.
 
+## Database Deployment Phase
+
+This phase added the initial Prisma migration, production deploy/status scripts, and `npm run doctor:db` for schema and migration readiness checks. Use `npm run db:deploy` for production-style migration application.
+
 ## Remaining Hardening
 
-- [ ] Run Prisma migrations against the target PostgreSQL environment.
 - [ ] Add Redis scheduling/locking around the executable `BackgroundJob` worker for multi-process deployments.
 - [ ] Install Playwright browsers in CI and run seeded workflow E2E against a migrated database.
 - [ ] Implement live registrar, trademark, comparable-sales, and history adapters behind the provider interfaces.
@@ -112,10 +116,14 @@ npm install
 - `npm run test:e2e:list` - list Playwright tests without launching browsers.
 - `npm run test:e2e:install` - install the Chromium browser used by Playwright.
 - `npm run db:migrate` - Prisma migrations.
+- `npm run db:deploy` - apply checked-in Prisma migrations.
+- `npm run db:status` - inspect migration status against `DATABASE_URL`.
+- `npm run db:validate` - validate Prisma schema syntax.
 - `npm run db:seed` - seed demonstration data.
 - `npm run worker` - process queued background jobs.
 - `npm run worker -- --list` - list registered worker tasks without requiring a database connection.
 - `npm run docker:up` / `npm run docker:down` - local infrastructure.
+- `npm run doctor:db` - validate schema and checked-in migration readiness.
 
 ## Provider Integration Guide
 
@@ -123,7 +131,7 @@ Create provider adapters that return normalized records equivalent to `Availabil
 
 ## Deployment Notes
 
-Deploy the Next.js app to Railway, Render, Fly.io, AWS, or a VPS with managed PostgreSQL and Redis. Set `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `REDIS_URL`, and `ENCRYPTION_KEY`. Run Prisma migrations before routing production traffic.
+Deploy the Next.js app to Railway, Render, Fly.io, AWS, or a VPS with managed PostgreSQL and Redis. Set `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `REDIS_URL`, and `ENCRYPTION_KEY`. Run `npm run doctor:db`, then `npm run db:deploy`, before routing production traffic.
 
 For Google OAuth, also set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. The callback URL should be `${NEXTAUTH_URL}/api/auth/callback/google`.
 
