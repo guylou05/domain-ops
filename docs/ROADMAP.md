@@ -51,7 +51,7 @@ This file is the canonical development sequence for DomainScout AI. A phase is c
    - Renewal calendar, carrying-cost analysis, keep/review/drop recommendations, decision history, and configurable reminders
    - Dashboard revenue, profit, sales, offers, sell-through, ROI, and renewal metrics sourced from persisted records
    - Exit gate: an end-to-end test covers opportunity to watchlist, acquisition, offer, sale, and renewal decision
-11. [ ] Discovery Operations and Data Mobility
+11. [x] Discovery Operations and Data Mobility
    - Discovery jobs and saved searches with manual, daily, and weekly schedules, progress, cancellation, and history
    - Real CSV file upload with validation, duplicate handling, CSV-injection protection, review, and error reporting
    - Opportunity export, portfolio export, bulk selection, comparison, watchlisting, and approval actions
