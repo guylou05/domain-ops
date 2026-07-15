@@ -1,6 +1,9 @@
 name: Authenticated production canary
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
   schedule:
     - cron: '37 */6 * * *'
@@ -35,14 +38,24 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
-          oidc_response="$(curl --fail --silent --show-error --header "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=domainscout-production-canary")"
-          oidc_token="$(printf '%s' "${oidc_response}" | node -e "let input=''; process.stdin.on('data', chunk => input += chunk); process.stdin.on('end', () => process.stdout.write(JSON.parse(input).value ?? '')); ")"
-          if [ -z "${oidc_token}" ]; then
-            echo 'GitHub did not issue a canary identity token.'
-            exit 1
-          fi
-          echo "::add-mask::${oidc_token}"
-          credential_response="$(curl --fail --silent --show-error --request POST --header "Authorization: Bearer ${oidc_token}" "${CANARY_BASE_URL}/api/canary/session")"
+          credential_response=''
+          for attempt in {1..24}; do
+            oidc_response="$(curl --fail --silent --show-error --header "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=domainscout-production-canary")"
+            oidc_token="$(printf '%s' "${oidc_response}" | node -e "let input=''; process.stdin.on('data', chunk => input += chunk); process.stdin.on('end', () => process.stdout.write(JSON.parse(input).value ?? '')); ")"
+            if [ -z "${oidc_token}" ]; then
+              echo 'GitHub did not issue a canary identity token.'
+              exit 1
+            fi
+            echo "::add-mask::${oidc_token}"
+            if credential_response="$(curl --fail --silent --show-error --request POST --header "Authorization: Bearer ${oidc_token}" "${CANARY_BASE_URL}/api/canary/session")"; then
+              break
+            fi
+            if [ "${attempt}" -eq 24 ]; then
+              echo 'Railway did not accept the canary identity after the deployment window.'
+              exit 1
+            fi
+            sleep 10
+          done
           password="$(printf '%s' "${credential_response}" | node -e "let input=''; process.stdin.on('data', chunk => input += chunk); process.stdin.on('end', () => process.stdout.write(JSON.parse(input).password ?? '')); ")"
           if [ -z "${password}" ]; then
             echo 'Railway did not issue an ephemeral canary credential.'

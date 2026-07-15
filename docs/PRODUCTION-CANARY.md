@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The external canary signs in through the production Auth.js credentials flow, loads read-only dashboard routes, confirms the workspace role is `VIEWER`, signs out, and verifies the old session cannot reach a protected route. It runs every six hours and can be dispatched manually from GitHub Actions.
+The external canary signs in through the production Auth.js credentials flow, loads read-only dashboard routes, confirms the workspace role is `VIEWER`, signs out, and verifies the old session cannot reach a protected route. It runs after every push to `main`, every six hours, and on manual dispatch. Release runs retry the credential exchange while Railway deploys the matching revision.
 
 The canary never submits a workspace mutation. Its account has global and workspace `VIEWER` roles, no OAuth account, no MFA secret, and exactly one workspace membership.
 

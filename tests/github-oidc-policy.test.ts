@@ -27,6 +27,7 @@ describe('GitHub canary OIDC policy', () => {
   it('accepts only the production canary workflow on main', () => {
     expect(() => assertGithubCanaryClaims(valid, now)).not.toThrow();
     expect(() => assertGithubCanaryClaims({ ...valid, event_name: 'schedule' }, now)).not.toThrow();
+    expect(() => assertGithubCanaryClaims({ ...valid, event_name: 'push' }, now)).not.toThrow();
   });
 
   it('rejects another audience, repository, workflow, ref, and event', () => {

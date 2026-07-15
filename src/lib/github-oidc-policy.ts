@@ -36,7 +36,7 @@ export function assertGithubCanaryClaims(claims: GithubOidcClaims, nowSeconds = 
   if (claims.repository_id !== CANARY_REPOSITORY_ID) throw new Error('Unexpected OIDC repository identity.');
   if (claims.ref !== 'refs/heads/main') throw new Error('Canary OIDC token must originate from main.');
   if (claims.workflow_ref !== CANARY_WORKFLOW_REF) throw new Error('Unexpected OIDC workflow.');
-  if (claims.event_name !== 'schedule' && claims.event_name !== 'workflow_dispatch') throw new Error('Unexpected OIDC workflow event.');
+  if (claims.event_name !== 'push' && claims.event_name !== 'schedule' && claims.event_name !== 'workflow_dispatch') throw new Error('Unexpected OIDC workflow event.');
 }
 
 let cachedKeys: { expiresAt: number; keys: GithubSigningKey[] } | null = null;
