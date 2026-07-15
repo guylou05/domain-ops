@@ -7,3 +7,7 @@ body {@apply bg-slate-950 text-slate-100;}
 .skip-link {@apply fixed left-4 top-4 z-50 -translate-y-24 rounded-lg bg-white px-4 py-2 font-semibold text-slate-950 transition-transform;}
 .skip-link:focus {@apply translate-y-0;}
 :where(a, button, input, select, textarea, summary):focus-visible {@apply outline-none ring-2 ring-cyan-300 ring-offset-2 ring-offset-slate-950;}
+.usage-progress {@apply appearance-none border-0 bg-white/10;}
+.usage-progress::-webkit-progress-bar {@apply bg-white/10;}
+.usage-progress::-webkit-progress-value {@apply bg-brand;}
+.usage-progress::-moz-progress-bar {@apply bg-brand;}

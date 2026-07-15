@@ -1,4 +1,4 @@
-import { assertCanaryPage, assertSafeCallback, CookieJar, readCanaryIdentity } from './lib/production-canary.mjs';
+import { assertCanaryPage, assertSafeCallback, assertStrictContentSecurityPolicy, CookieJar, readCanaryIdentity } from './lib/production-canary.mjs';
 
 const baseUrl = (process.env.CANARY_BASE_URL ?? 'https://domain-ops-production.up.railway.app').replace(/\/$/, '');
 const maxResponseMs = Number(process.env.CANARY_MAX_RESPONSE_MS ?? 8000);
@@ -61,6 +61,7 @@ for (const check of checks) {
   const result = await request(check.path, { headers: { Accept: 'text/html' } });
   const body = await result.response.text();
   assertCanaryPage(check.path, result.response.status, body, check.marker);
+  assertStrictContentSecurityPolicy(check.path, result.response.headers);
   console.log(`${check.path}: viewer page passed in ${result.durationMs} ms`);
 }
 

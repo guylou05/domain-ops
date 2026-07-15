@@ -18,9 +18,16 @@ const healthBody = await health.response.json();
 if (!healthBody.ok || healthBody.database !== 'connected') throw new Error('/api/health did not report a connected database.');
 console.log(`health: ${health.response.status} in ${health.durationMs} ms`);
 
+let renderedPageHeaders;
+let renderedPageBody = '';
 for (const path of ['/', '/login', '/pricing']) {
   const result = await request(path);
   if (result.response.status !== 200) throw new Error(`${path} returned ${result.response.status}.`);
+  const body = await result.response.text();
+  if (path === '/login') {
+    renderedPageHeaders = result.response.headers;
+    renderedPageBody = body;
+  }
   console.log(`${path}: ${result.response.status} in ${result.durationMs} ms`);
 }
 
@@ -32,7 +39,6 @@ console.log(`/overview: protected redirect in ${protectedRoute.durationMs} ms`);
 
 const headers = health.response.headers;
 const requiredHeaders = {
-  'content-security-policy': "default-src 'self'",
   'permissions-policy': 'camera=()',
   'referrer-policy': 'strict-origin-when-cross-origin',
   'x-content-type-options': 'nosniff',
@@ -41,6 +47,18 @@ const requiredHeaders = {
 for (const [name, expected] of Object.entries(requiredHeaders)) {
   const value = headers.get(name) ?? '';
   if (!value.includes(expected)) throw new Error(`Missing or invalid ${name} header.`);
+}
+const policy = renderedPageHeaders?.get('content-security-policy') ?? '';
+if (!policy.includes("script-src 'self' 'nonce-") || !policy.includes("style-src 'self' 'nonce-") || !policy.includes("'strict-dynamic'")) {
+  throw new Error('Rendered pages did not return a strict nonce-based Content Security Policy.');
+}
+if (policy.includes("'unsafe-inline'") || policy.includes("'unsafe-eval'")) {
+  throw new Error('Production Content Security Policy permits unsafe script or style execution.');
+}
+const nonce = policy.match(/'nonce-([^']+)'/)?.[1];
+const scriptTags = [...renderedPageBody.matchAll(/<script\b([^>]*)>/g)];
+if (!nonce || scriptTags.length === 0 || scriptTags.some(([, attributes]) => !attributes.includes(`nonce="${nonce}"`))) {
+  throw new Error('A rendered framework script is missing the response CSP nonce.');
 }
 console.log('Security headers: passed');
 console.log('Production smoke checks passed.');

@@ -17,7 +17,7 @@ The review covers browser-to-Next.js requests, Auth.js sessions, workspace autho
 - Responses set CSP, frame denial, MIME sniffing prevention, restrictive browser permissions, referrer policy, and HSTS headers.
 - CI enforces lint, type safety, unit tests, migrations, production builds, asset budgets, query profiles, and seeded browser workflows.
 - Production health and public/auth boundaries are checked daily by a separate smoke workflow.
-- Secret-backed production canaries authenticate as a single-workspace `VIEWER`, exercise read-only dashboard routes, revoke their session, and alert through a deduplicated GitHub issue.
+- GitHub OIDC-backed production canaries authenticate as a single-workspace `VIEWER` with an ephemeral credential, exercise read-only dashboard routes, revoke their session, and alert through a deduplicated GitHub issue.
 - Credential callbacks, login preflight, registration, recovery, and verification delivery use privacy-safe fixed-window limits backed by Redis, with UI-managed thresholds and process-local fallback.
 - Exact npm versions, SHA-512 lockfile integrity, digest-pinned containers, SHA-pinned Actions, expiring advisory exceptions, Dependabot review PRs, and CycloneDX SBOM artifacts protect the software supply chain.
 
@@ -28,14 +28,13 @@ The review covers browser-to-Next.js requests, Auth.js sessions, workspace autho
 | Cross-workspace record access | Server-side workspace context and scoped queries are the required boundary; seeded multi-workspace tests cover selection and viewer authorization. |
 | Credential disclosure | Encrypted storage and secret-free audit/telemetry metadata are implemented. Operators must keep `ENCRYPTION_KEY` stable and access-controlled. |
 | Forged or replayed billing events | Stripe signature verification, event persistence, and idempotent processing are implemented. |
-| Browser injection and clickjacking | CSP, `frame-ancestors 'none'`, `X-Frame-Options: DENY`, and output escaping are enabled. Inline styles/scripts remain permitted where required by Next.js. |
+| Browser injection and clickjacking | Per-request nonces, a strict dynamic script policy, `object-src 'none'`, frame denial, and output escaping protect rendered pages. Production does not permit unsafe inline script or style execution. |
 | Destructive administrative actions | Role checks, verified-email gates, step-up authentication, and audit events are implemented. Database restore remains an operator-only procedure. |
 | Dependency and supply-chain drift | Exact direct versions, immutable image/action references, lockfile provenance checks, weekly advisory enforcement, and SBOM evidence are implemented. Major frameworks require dedicated upgrade and rollback evidence. |
 | Authentication and email abuse | Redis-backed IP and account counters protect direct Auth.js callbacks and public actions; blocked requests emit privacy-safe operational events. |
 
 ## Accepted Residual Risks
 
-- Content Security Policy allows inline script and style execution for the current Next.js runtime. A nonce-based policy is a future defense-in-depth improvement.
 - Provider correctness and availability remain third-party dependencies. Timeouts, stale fallback, failure telemetry, quotas, and operator alerts reduce impact but cannot remove it.
 - Production canary access depends on GitHub's OIDC issuer and signing-key availability. Railway restricts exchange claims to the canary workflow on `main`; sanitized diagnostics intentionally omit identity, ephemeral passwords, cookies, tokens, and response bodies.
 

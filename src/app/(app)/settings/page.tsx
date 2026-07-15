@@ -400,7 +400,6 @@ export default async function SettingsPage({
                     {subscription.plan.entitlements.map((entitlement) => {
                       const usage = settings.monthlyUsage.entitlements.find((item) => item.key === entitlement.key);
                       const used = usage?.used ?? 0;
-                      const percent = entitlement.limit ? Math.min(100, Math.round((used / entitlement.limit) * 100)) : 0;
                       return (
                         <div className="rounded-lg border border-white/10 px-3 py-2" key={entitlement.key}>
                           <div className="flex justify-between gap-3">
@@ -408,9 +407,12 @@ export default async function SettingsPage({
                             <span>{entitlement.enabled ? `${used} / ${entitlement.limit ?? 'Unlimited'}` : 'Off'}</span>
                           </div>
                           {entitlement.enabled && entitlement.limit ? (
-                            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-                              <div className="h-full bg-brand" style={{ width: `${percent}%` }} />
-                            </div>
+                            <progress
+                              aria-label={`${formatLabel(entitlement.key)} usage`}
+                              className="usage-progress mt-2 block h-1.5 w-full overflow-hidden rounded-full"
+                              max={entitlement.limit}
+                              value={Math.min(used, entitlement.limit)}
+                            />
                           ) : null}
                         </div>
                       );

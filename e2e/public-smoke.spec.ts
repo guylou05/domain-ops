@@ -18,6 +18,20 @@ test('login page exposes credential sign-in and hides Google when not configured
   await expect(page.getByRole('button', { name: 'Continue with Google' })).toHaveCount(0);
 });
 
+test('rendered pages attach the CSP nonce to every framework script', async ({ page }) => {
+  const response = await page.goto('/login');
+  const policy = response?.headers()['content-security-policy'] ?? '';
+  const nonce = policy.match(/'nonce-([^']+)'/)?.[1];
+
+  expect(nonce).toBeTruthy();
+  expect(policy).toContain("'strict-dynamic'");
+  expect(policy).not.toContain("'unsafe-inline'");
+  const scriptNonces = await page.locator('script').evaluateAll((scripts) => scripts.map((script) => script.nonce));
+  const bootstrapNonces = scriptNonces.filter(Boolean);
+  expect(bootstrapNonces.length).toBeGreaterThan(0);
+  expect(bootstrapNonces.every((scriptNonce) => scriptNonce === nonce)).toBe(true);
+});
+
 test('protected routes redirect unauthenticated users to login', async ({ page }) => {
   await page.goto('/overview');
 

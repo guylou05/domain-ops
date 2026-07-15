@@ -62,3 +62,13 @@ export function assertCanaryPage(path, status, body, marker) {
   if (!body.includes(marker)) throw new Error(`${path} did not render its expected marker.`);
   if (!body.includes('VIEWER')) throw new Error(`${path} did not confirm the least-privilege viewer role.`);
 }
+
+export function assertStrictContentSecurityPolicy(path, headers) {
+  const policy = headers.get('content-security-policy') ?? '';
+  if (!policy.includes("script-src 'self' 'nonce-")) throw new Error(`${path} did not return a script nonce.`);
+  if (!policy.includes("style-src 'self' 'nonce-")) throw new Error(`${path} did not return a style nonce.`);
+  if (!policy.includes("'strict-dynamic'")) throw new Error(`${path} did not enable strict dynamic scripts.`);
+  if (policy.includes("'unsafe-inline'") || policy.includes("'unsafe-eval'")) {
+    throw new Error(`${path} permits unsafe production script or style execution.`);
+  }
+}

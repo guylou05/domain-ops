@@ -7,7 +7,7 @@
 - Client assets remain within `npm run perf:budget` limits.
 - Seeded PostgreSQL critical queries remain within `npm run perf:queries` limits.
 - Playwright covers public pages, authentication boundaries, mobile navigation, workspace workflows, billing controls, MFA, provider research, and Operations incident handling.
-- `npm run smoke:production` verifies Railway health, latency, public routes, auth redirect, and browser security headers.
+- `npm run smoke:production` verifies Railway health, latency, public routes, auth redirect, and nonce-based browser security headers on rendered framework scripts.
 - Supply-chain policy, vulnerability exceptions, digest/SHA pins, and CycloneDX SBOM generation pass.
 - The OIDC-authorized authenticated production canary passes as `VIEWER`, signs out, and leaves no open canary failure issue.
 

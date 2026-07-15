@@ -26,3 +26,7 @@ export class CookieJar {
 
 export function assertSafeCallback(callbackUrl: string, baseUrl: string): void;
 export function assertCanaryPage(path: string, status: number, body: string, marker: string): void;
+export function assertStrictContentSecurityPolicy(
+  path: string,
+  headers: { get(name: string): string | null },
+): void;

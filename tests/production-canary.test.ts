@@ -3,6 +3,7 @@ import {
   assertCanaryAccountBoundary,
   assertCanaryPage,
   assertSafeCallback,
+  assertStrictContentSecurityPolicy,
   CANARY_NAME,
   CookieJar,
   DEFAULT_CANARY_EMAIL,
@@ -44,5 +45,14 @@ describe('production canary policy', () => {
     expect(() => assertSafeCallback('https://attacker.example/overview', 'https://app.example')).toThrow(/unexpected destination/);
     expect(() => assertCanaryPage('/overview', 200, '<h1>Executive dashboard</h1><p>VIEWER</p>', 'Executive dashboard')).not.toThrow();
     expect(() => assertCanaryPage('/overview', 200, '<h1>Executive dashboard</h1><p>OWNER</p>', 'Executive dashboard')).toThrow(/viewer role/);
+  });
+
+  it('requires strict nonce-based headers on canary pages', () => {
+    const headers = new Headers({
+      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'nonce-value' 'strict-dynamic'; style-src 'self' 'nonce-value'",
+    });
+    expect(() => assertStrictContentSecurityPolicy('/overview', headers)).not.toThrow();
+    headers.set('Content-Security-Policy', "script-src 'self' 'unsafe-inline'");
+    expect(() => assertStrictContentSecurityPolicy('/overview', headers)).toThrow(/script nonce/);
   });
 });

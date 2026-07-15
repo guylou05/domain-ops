@@ -38,6 +38,10 @@ This file defines the development order after the implemented milestones in `REA
 8. [x] Authenticated Production Canaries
    - Least-privilege synthetic account and scheduled authenticated workflows
    - Alerted canary failures without production credential exposure
+9. [x] Browser Injection Hardening
+   - Per-request nonce-based Content Security Policy for rendered pages
+   - Production removal of inline script and style execution allowances
+   - Public and authenticated production regression checks
 
 ## Change Policy
 
