@@ -4,6 +4,8 @@ import { safeRecordOperationalEvent } from '@/lib/server/observability';
 
 export const dynamic = 'force-dynamic';
 
+const release = process.env.RAILWAY_GIT_COMMIT_SHA ?? process.env.GITHUB_SHA ?? 'local';
+
 export async function GET() {
   const startedAt = Date.now();
   try {
@@ -13,8 +15,8 @@ export async function GET() {
       select: { id: true },
     });
     if (!recent) await safeRecordOperationalEvent({ source: 'request', level: 'INFO', outcome: 'SUCCESS', event: 'request.health', message: 'Health check completed.', durationMs: Date.now() - startedAt, metadata: { method: 'GET', path: '/api/health', status: 200 } });
-    return NextResponse.json({ ok: true, service: 'domainscout-ai', database: 'connected', uptime: Math.round(process.uptime()), checkedAt: new Date().toISOString() });
+    return NextResponse.json({ ok: true, service: 'domainscout-ai', release, database: 'connected', uptime: Math.round(process.uptime()), checkedAt: new Date().toISOString() });
   } catch (error) {
-    return NextResponse.json({ ok: false, service: 'domainscout-ai', database: 'unavailable', error: error instanceof Error ? error.message : 'Health check failed.', checkedAt: new Date().toISOString() }, { status: 503 });
+    return NextResponse.json({ ok: false, service: 'domainscout-ai', release, database: 'unavailable', error: error instanceof Error ? error.message : 'Health check failed.', checkedAt: new Date().toISOString() }, { status: 503 });
   }
 }

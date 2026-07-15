@@ -33,6 +33,22 @@ jobs:
       - name: Use pinned npm
         run: npm install --global npm@11.4.2
 
+      - name: Wait for the Railway release
+        shell: bash
+        run: |
+          for attempt in {1..36}; do
+            deployed_sha="$(curl --fail --silent --show-error "${CANARY_BASE_URL}/api/health" | node -e "let input=''; process.stdin.on('data', chunk => input += chunk); process.stdin.on('end', () => process.stdout.write(JSON.parse(input).release ?? '')); ")" || true
+            if [ "${deployed_sha}" = "${GITHUB_SHA}" ]; then
+              echo "Railway is serving ${GITHUB_SHA}."
+              break
+            fi
+            if [ "${attempt}" -eq 36 ]; then
+              echo "Railway did not serve ${GITHUB_SHA} within the deployment window."
+              exit 1
+            fi
+            sleep 10
+          done
+
       - name: Exchange GitHub identity for ephemeral credential
         id: credential
         continue-on-error: true
