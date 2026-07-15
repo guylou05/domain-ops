@@ -8,6 +8,9 @@ import { isAuthDiagnosticsEnabled } from '@/lib/server/app-config';
 import { createTrackedAuthSession, revokeAuthSession } from '@/lib/server/auth-sessions';
 import { verifyMfaChallenge } from '@/lib/server/mfa';
 import { AUTH_SESSION_TTL_MS } from '@/lib/mfa-policy';
+import { clientAddressFromHeaders } from '@/lib/rate-limit-policy';
+import { getAppConfig } from '@/lib/server/app-config';
+import { enforceRateLimits, resetRateLimit } from '@/lib/server/rate-limit';
 
 type AuthProviders = NextAuthOptions['providers'];
 
@@ -26,12 +29,25 @@ function authProviders(): AuthProviders {
         password: { label: 'Password', type: 'password' },
         mfaCode: { label: 'Authenticator or recovery code', type: 'text' },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         const email = credentials?.email?.trim().toLowerCase();
         const password = credentials?.password ?? '';
         if (!email || !password) {
           await logAuthDiagnostic('missing credentials', { hasEmail: Boolean(email), hasPassword: Boolean(password) });
           return null;
+        }
+
+        const config = await getAppConfig();
+        if (config.abuseProtection.enabled) {
+          const windowSeconds = config.abuseProtection.loginWindowMinutes * 60;
+          const limit = await enforceRateLimits([
+            { scope: 'login_ip', discriminator: clientAddressFromHeaders(request.headers), limit: config.abuseProtection.loginIpLimit, windowSeconds },
+            { scope: 'login_account', discriminator: email, limit: config.abuseProtection.loginAccountLimit, windowSeconds },
+          ]);
+          if (!limit.allowed) {
+            await logAuthDiagnostic('credential request rate limited', { email });
+            return null;
+          }
         }
 
         const user = await prisma.user.findUnique({
@@ -50,6 +66,13 @@ function authProviders(): AuthProviders {
         if (user.mfaEnabledAt && !(await verifyMfaChallenge(user.id, credentials?.mfaCode ?? ''))) {
           await logAuthDiagnostic('MFA challenge failed', { email });
           return null;
+        }
+
+        if (config.abuseProtection.enabled) {
+          await Promise.all([
+            resetRateLimit('login_account', email),
+            resetRateLimit('login_preflight_account', email),
+          ]);
         }
 
         return {

@@ -30,6 +30,19 @@ export type AppConfig = {
     emailRecipients: string[];
     alertCooldownMinutes: number;
   };
+  abuseProtection: {
+    enabled: boolean;
+    loginIpLimit: number;
+    loginAccountLimit: number;
+    loginWindowMinutes: number;
+    registrationIpLimit: number;
+    registrationWindowMinutes: number;
+    recoveryIpLimit: number;
+    recoveryAccountLimit: number;
+    recoveryWindowMinutes: number;
+    verificationAccountLimit: number;
+    verificationWindowMinutes: number;
+  };
   workerJobLimit: number;
   workerLeaseMs: number;
   schedulerEnabled: boolean;
@@ -69,6 +82,19 @@ const DEFAULT_CONFIG: AppConfig = {
     emailAlertsEnabled: false,
     emailRecipients: [],
     alertCooldownMinutes: 60,
+  },
+  abuseProtection: {
+    enabled: true,
+    loginIpLimit: 60,
+    loginAccountLimit: 8,
+    loginWindowMinutes: 15,
+    registrationIpLimit: 10,
+    registrationWindowMinutes: 60,
+    recoveryIpLimit: 10,
+    recoveryAccountLimit: 3,
+    recoveryWindowMinutes: 60,
+    verificationAccountLimit: 3,
+    verificationWindowMinutes: 60,
   },
   workerJobLimit: 5,
   workerLeaseMs: 300000,
@@ -142,6 +168,7 @@ export function parseAppConfig(value: unknown): AppConfig {
   const transactionalEmail = readObject(object.transactionalEmail);
   const billing = readObject(object.billing);
   const observability = readObject(object.observability);
+  const abuseProtection = readObject(object.abuseProtection);
   return {
     availabilityProvider: readProvider(object.availabilityProvider),
     trademarkProvider: readProvider(object.trademarkProvider),
@@ -169,6 +196,19 @@ export function parseAppConfig(value: unknown): AppConfig {
       emailAlertsEnabled: observability.emailAlertsEnabled === true,
       emailRecipients: readEmailRecipients(observability.emailRecipients),
       alertCooldownMinutes: readPositiveInteger(observability.alertCooldownMinutes, DEFAULT_CONFIG.observability.alertCooldownMinutes, 5, 1440),
+    },
+    abuseProtection: {
+      enabled: abuseProtection.enabled !== false,
+      loginIpLimit: readPositiveInteger(abuseProtection.loginIpLimit, DEFAULT_CONFIG.abuseProtection.loginIpLimit, 5, 1000),
+      loginAccountLimit: readPositiveInteger(abuseProtection.loginAccountLimit, DEFAULT_CONFIG.abuseProtection.loginAccountLimit, 3, 100),
+      loginWindowMinutes: readPositiveInteger(abuseProtection.loginWindowMinutes, DEFAULT_CONFIG.abuseProtection.loginWindowMinutes, 1, 1440),
+      registrationIpLimit: readPositiveInteger(abuseProtection.registrationIpLimit, DEFAULT_CONFIG.abuseProtection.registrationIpLimit, 1, 100),
+      registrationWindowMinutes: readPositiveInteger(abuseProtection.registrationWindowMinutes, DEFAULT_CONFIG.abuseProtection.registrationWindowMinutes, 1, 1440),
+      recoveryIpLimit: readPositiveInteger(abuseProtection.recoveryIpLimit, DEFAULT_CONFIG.abuseProtection.recoveryIpLimit, 1, 1000),
+      recoveryAccountLimit: readPositiveInteger(abuseProtection.recoveryAccountLimit, DEFAULT_CONFIG.abuseProtection.recoveryAccountLimit, 1, 100),
+      recoveryWindowMinutes: readPositiveInteger(abuseProtection.recoveryWindowMinutes, DEFAULT_CONFIG.abuseProtection.recoveryWindowMinutes, 1, 1440),
+      verificationAccountLimit: readPositiveInteger(abuseProtection.verificationAccountLimit, DEFAULT_CONFIG.abuseProtection.verificationAccountLimit, 1, 100),
+      verificationWindowMinutes: readPositiveInteger(abuseProtection.verificationWindowMinutes, DEFAULT_CONFIG.abuseProtection.verificationWindowMinutes, 1, 1440),
     },
     workerJobLimit: readPositiveInteger(object.workerJobLimit, DEFAULT_CONFIG.workerJobLimit, 1, 50),
     workerLeaseMs: readPositiveInteger(object.workerLeaseMs, DEFAULT_CONFIG.workerLeaseMs, 10000, 3600000),

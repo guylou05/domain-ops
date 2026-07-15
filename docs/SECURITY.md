@@ -17,6 +17,7 @@ The review covers browser-to-Next.js requests, Auth.js sessions, workspace autho
 - Responses set CSP, frame denial, MIME sniffing prevention, restrictive browser permissions, referrer policy, and HSTS headers.
 - CI enforces lint, type safety, unit tests, migrations, production builds, asset budgets, query profiles, and seeded browser workflows.
 - Production health and public/auth boundaries are checked daily by a separate smoke workflow.
+- Credential callbacks, login preflight, registration, recovery, and verification delivery use privacy-safe fixed-window limits backed by Redis, with UI-managed thresholds and process-local fallback.
 
 ## Review Findings
 
@@ -28,10 +29,10 @@ The review covers browser-to-Next.js requests, Auth.js sessions, workspace autho
 | Browser injection and clickjacking | CSP, `frame-ancestors 'none'`, `X-Frame-Options: DENY`, and output escaping are enabled. Inline styles/scripts remain permitted where required by Next.js. |
 | Destructive administrative actions | Role checks, verified-email gates, step-up authentication, and audit events are implemented. Database restore remains an operator-only procedure. |
 | Dependency and supply-chain drift | `package-lock.json` pins installs and CI uses `npm ci`. Dependency update review and vulnerability scanning remain recurring maintenance. |
+| Authentication and email abuse | Redis-backed IP and account counters protect direct Auth.js callbacks and public actions; blocked requests emit privacy-safe operational events. |
 
 ## Accepted Residual Risks
 
-- Credential login, registration, and recovery do not yet have a shared distributed abuse limiter. Railway edge controls or an upstream WAF should rate-limit authentication endpoints before broad public acquisition campaigns.
 - Content Security Policy allows inline script and style execution for the current Next.js runtime. A nonce-based policy is a future defense-in-depth improvement.
 - Provider correctness and availability remain third-party dependencies. Timeouts, stale fallback, failure telemetry, quotas, and operator alerts reduce impact but cannot remove it.
 - Daily smoke checks verify public and auth boundaries without production credentials. Authenticated production workflows are covered in seeded CI and should also be exercised manually after high-risk releases.

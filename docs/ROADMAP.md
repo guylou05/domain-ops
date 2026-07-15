@@ -26,6 +26,19 @@ This file defines the development order after the implemented milestones in `REA
    - Performance budgets and query profiling
    - Backup/restore runbook, security review, and production smoke checks
 
+## Post-Launch Sequence
+
+6. [x] Distributed Abuse Protection
+   - Redis-backed limits for credential auth, registration, recovery, and verification delivery
+   - Privacy-safe counters, local fallback, and operational enforcement telemetry
+   - UI-managed thresholds and seeded workflow coverage
+7. [ ] Supply Chain Maintenance
+   - Automated dependency review and vulnerability policy
+   - Controlled framework upgrade cadence and rollback evidence
+8. [ ] Authenticated Production Canaries
+   - Least-privilege synthetic account and scheduled authenticated workflows
+   - Alerted canary failures without production credential exposure
+
 ## Change Policy
 
 The sequence changes only when a newly discovered security, data-integrity, or deployment blocker must take priority. Such a change should be recorded here before implementation.

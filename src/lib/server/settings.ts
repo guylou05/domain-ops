@@ -61,6 +61,7 @@ export type SettingsView = {
     expiresAt: Date;
     current: boolean;
   }>;
+  abuseProtectionBackend: 'Redis configured' | 'Process-local fallback';
 };
 
 export async function getSettingsView(): Promise<SettingsView> {
@@ -163,5 +164,6 @@ export async function getSettingsView(): Promise<SettingsView> {
     monthlyUsage,
     billing,
     sessions: sessions.map((authSession) => ({ ...authSession, current: authSession.id === context.authSessionId })),
+    abuseProtectionBackend: process.env.REDIS_URL ? 'Redis configured' : 'Process-local fallback',
   };
 }

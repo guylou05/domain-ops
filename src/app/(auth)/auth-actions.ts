@@ -6,6 +6,9 @@ import { prisma } from '@/lib/prisma';
 import { OnboardingError, provisionTrialWorkspace } from '@/lib/server/onboarding';
 import { sendEmailVerification } from '@/lib/server/email-verification';
 import { sendPasswordResetEmail } from '@/lib/server/password-recovery';
+import { getAppConfig } from '@/lib/server/app-config';
+import { enforceRateLimits, requestClientAddress, resetRateLimit } from '@/lib/server/rate-limit';
+import { rateLimitMessage } from '@/lib/rate-limit-policy';
 import type { AuthActionState } from './auth-state';
 
 function readString(formData: FormData, key: string): string {
@@ -26,6 +29,17 @@ export async function verifyCredentials(_previousState: AuthActionState, formDat
 
   if (!email || !password) return { ok: false, message: 'Email and password are required.' };
 
+  const config = await getAppConfig();
+  if (config.abuseProtection.enabled) {
+    const ip = await requestClientAddress();
+    const windowSeconds = config.abuseProtection.loginWindowMinutes * 60;
+    const limit = await enforceRateLimits([
+      { scope: 'login_preflight_ip', discriminator: ip, limit: config.abuseProtection.loginIpLimit, windowSeconds },
+      { scope: 'login_preflight_account', discriminator: email, limit: config.abuseProtection.loginAccountLimit, windowSeconds },
+    ]);
+    if (!limit.allowed) return { ok: false, message: rateLimitMessage(limit.retryAfterSeconds) };
+  }
+
   const user = await prisma.user.findUnique({
     where: { email },
     select: { passwordHash: true, mfaEnabledAt: true },
@@ -39,6 +53,8 @@ export async function verifyCredentials(_previousState: AuthActionState, formDat
     return { ok: false, requiresMfa: true, message: 'Enter your authenticator or recovery code.' };
   }
 
+  if (config.abuseProtection.enabled) await resetRateLimit('login_preflight_account', email);
+
   return { ok: true, message: 'Credentials verified.' };
 }
 
@@ -51,6 +67,17 @@ export async function registerWorkspaceUser(_previousState: AuthActionState, for
   if (!email || !password) return { ok: false, message: 'Email and password are required.' };
   if (!/^\S+@\S+\.\S+$/.test(email)) return { ok: false, message: 'Enter a valid email address.' };
   if (password.length < 8) return { ok: false, message: 'Password must be at least 8 characters.' };
+
+  const config = await getAppConfig();
+  if (config.abuseProtection.enabled) {
+    const limit = await enforceRateLimits([{
+      scope: 'registration_ip',
+      discriminator: await requestClientAddress(),
+      limit: config.abuseProtection.registrationIpLimit,
+      windowSeconds: config.abuseProtection.registrationWindowMinutes * 60,
+    }]);
+    if (!limit.allowed) return { ok: false, message: rateLimitMessage(limit.retryAfterSeconds) };
+  }
 
   const passwordHash = await hash(password, 10);
 
@@ -71,6 +98,16 @@ export async function registerWorkspaceUser(_previousState: AuthActionState, for
 export async function requestPasswordReset(_previousState: AuthActionState, formData: FormData): Promise<AuthActionState> {
   const email = readString(formData, 'email').toLowerCase();
   if (!email) return { ok: false, message: 'Email is required.' };
+
+  const config = await getAppConfig();
+  if (config.abuseProtection.enabled) {
+    const windowSeconds = config.abuseProtection.recoveryWindowMinutes * 60;
+    const limit = await enforceRateLimits([
+      { scope: 'recovery_ip', discriminator: await requestClientAddress(), limit: config.abuseProtection.recoveryIpLimit, windowSeconds },
+      { scope: 'recovery_account', discriminator: email, limit: config.abuseProtection.recoveryAccountLimit, windowSeconds },
+    ]);
+    if (!limit.allowed) return { ok: true, message: 'If that account exists and recovery email is configured, a reset link has been sent.' };
+  }
 
   const baseUrl = await requestBaseUrl();
   await sendPasswordResetEmail(email, baseUrl).catch((error) => console.error('[password-reset] delivery failed', error));

@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import * as OTPAuth from 'otpauth';
 import { prisma } from '../src/lib/prisma';
+import { getAppConfig, upsertAppConfig } from '../src/lib/server/app-config';
 
 const runSeededWorkflows = process.env.E2E_WORKFLOWS === '1' && Boolean(process.env.DATABASE_URL);
 
@@ -119,6 +120,8 @@ test.describe('seeded workspace workflows', () => {
     await page.goto('/settings');
     await expect(page.getByText('Email verified', { exact: true })).toBeVisible();
     await expect(page.getByRole('group', { name: 'Subscription billing' })).toBeVisible();
+    await expect(page.getByRole('group', { name: 'Abuse protection' })).toBeVisible();
+    await expect(page.getByText('Backend: Redis configured')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Start paid subscription' })).toBeDisabled();
     await page.goto('/integrations');
     await expect(page.getByLabel('Stripe secret key API key')).toBeVisible();
@@ -277,5 +280,31 @@ test.describe('seeded workspace workflows', () => {
     await page.goto('/settings');
     await expect(page.locator('input[name="name"]')).toHaveValue('Demo Domain Portfolio');
     await expect(page.getByText('Role: VIEWER')).toBeVisible();
+  });
+
+  test('credential preflight blocks repeated account attempts', async ({ page }) => {
+    const original = await getAppConfig();
+    const email = `playwright-limited-${Date.now()}@domainscout.demo`;
+    const startedAt = new Date();
+    await upsertAppConfig({
+      ...original,
+      abuseProtection: { ...original.abuseProtection, enabled: true, loginAccountLimit: 3 },
+    });
+
+    try {
+      await page.goto('/login');
+      await page.getByPlaceholder('email@example.com').fill(email);
+      await page.getByPlaceholder('Password').fill('incorrect-password');
+      const button = page.getByRole('button', { name: 'Sign in' });
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        await button.click();
+        await expect(button).toBeEnabled();
+      }
+      await button.click();
+      await expect(page.getByText('Too many attempts. Try again in 15 minutes.')).toBeVisible();
+      await expect(prisma.operationalEvent.findFirst({ where: { event: 'abuse.login_preflight_account_blocked', occurredAt: { gte: startedAt } } })).resolves.not.toBeNull();
+    } finally {
+      await upsertAppConfig(original);
+    }
   });
 });

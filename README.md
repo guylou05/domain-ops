@@ -45,6 +45,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 - [x] TOTP multi-factor authentication, one-use recovery codes, tracked session revocation, and time-limited step-up access.
 - [x] Structured operational telemetry, source health, incident resolution, email alert routing, and retention controls.
 - [x] Responsive and keyboard-accessible navigation, security headers, performance gates, recovery runbooks, and scheduled production smoke checks.
+- [x] Redis-backed abuse protection for credential auth, registration, recovery, and verification delivery with UI-managed limits.
 - [x] Seed script with demo users, workspace, opportunities, watchlists, portfolio, reports, notifications, integrations, and admin data.
 - [x] Docker Compose for PostgreSQL, Redis, and the web app.
 - [x] Unit tests for generation, scoring, and domain import parsing.
@@ -137,6 +138,10 @@ This phase added structured PostgreSQL-backed telemetry for requests, workers, s
 
 This phase added mobile application navigation, keyboard skip/focus behavior, browser security headers, client asset budgets, timed PostgreSQL query profiles, daily production smoke automation, and documented backup, restore, security, and release procedures. The enforceable launch criteria live in `docs/LAUNCH-CHECKLIST.md`.
 
+## Distributed Abuse Protection Phase
+
+This phase added atomic Redis fixed-window limits around login preflight, direct Auth.js credential callbacks, registration, password recovery, and email-verification resend. Runtime Settings controls IP/account thresholds and windows, keys contain only SHA-256 fingerprints, local development has a bounded process-local fallback, and blocked requests appear in Operations without exposing addresses or emails.
+
 ## Local Setup
 
 ```bash
@@ -199,7 +204,7 @@ npm install
 - `npm run perf:queries` - run timed PostgreSQL execution plans for critical query paths.
 - `npm run smoke:production` - verify production health, routes, latency, auth redirect, and security headers.
 
-The Settings page stores runtime-tunable app configuration in the database, including research provider modes and endpoint URLs, subscription billing mode and currency, worker limits, lease duration, recurring task cadence, scheduler polling, and auth diagnostic visibility. Provider and Stripe credentials are encrypted through Integrations. Bootstrapping secrets and infrastructure connection values such as `DATABASE_URL`, `REDIS_URL`, `NEXTAUTH_URL`, and `NEXTAUTH_SECRET` still belong in the deployment environment.
+The Settings page stores runtime-tunable app configuration in the database, including research provider modes and endpoint URLs, subscription billing mode and currency, abuse-protection thresholds, worker limits, lease duration, recurring task cadence, scheduler polling, and auth diagnostic visibility. Provider and Stripe credentials are encrypted through Integrations. Bootstrapping secrets and infrastructure connection values such as `DATABASE_URL`, `REDIS_URL`, `NEXTAUTH_URL`, and `NEXTAUTH_SECRET` still belong in the deployment environment.
 
 ## Provider Integration Guide
 

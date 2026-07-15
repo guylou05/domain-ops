@@ -32,6 +32,7 @@ DomainScout AI uses a Next.js App Router web app, Prisma/PostgreSQL persistence,
 11. Password recovery uses one-hour SHA-256 token hashes and Resend-compatible HTTP delivery configured through Settings and the encrypted workspace credential vault.
 12. Request, worker, scheduler, provider, and webhook operations emit structured events to PostgreSQL; the Operations page summarizes source health, incident history, alert routing, and retention.
 13. Release CI enforces client asset budgets and seeded PostgreSQL query timing, while a scheduled production workflow verifies health, authentication boundaries, latency, and security headers.
+14. Public authentication and account-email actions consume hashed fixed-window counters through Redis; local environments fall back to an in-process store, and blocked requests become OperationalEvent records.
 
 ## Provider Strategy
 

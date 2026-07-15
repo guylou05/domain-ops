@@ -212,6 +212,35 @@ export default async function SettingsPage({
             <span>Enable auth diagnostics endpoint</span>
           </label>
           <fieldset className="grid gap-4 border-y border-white/10 py-4 lg:col-span-2">
+            <legend className="pr-3 text-sm font-semibold text-slate-200">Abuse protection</legend>
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+              <label className="flex items-center gap-3 text-sm">
+                <input defaultChecked={settings.appConfig.abuseProtection.enabled} name="abuseProtectionEnabled" type="checkbox" />
+                <span>Enable distributed request limits</span>
+              </label>
+              <p className="text-xs text-slate-400">Backend: {settings.abuseProtectionBackend}</p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              {[
+                ['Login attempts per IP', 'loginIpLimit', settings.appConfig.abuseProtection.loginIpLimit, 5, 1000],
+                ['Login attempts per account', 'loginAccountLimit', settings.appConfig.abuseProtection.loginAccountLimit, 3, 100],
+                ['Login window minutes', 'loginWindowMinutes', settings.appConfig.abuseProtection.loginWindowMinutes, 1, 1440],
+                ['Registrations per IP', 'registrationIpLimit', settings.appConfig.abuseProtection.registrationIpLimit, 1, 100],
+                ['Registration window minutes', 'registrationWindowMinutes', settings.appConfig.abuseProtection.registrationWindowMinutes, 1, 1440],
+                ['Recovery requests per IP', 'recoveryIpLimit', settings.appConfig.abuseProtection.recoveryIpLimit, 1, 1000],
+                ['Recovery requests per account', 'recoveryAccountLimit', settings.appConfig.abuseProtection.recoveryAccountLimit, 1, 100],
+                ['Recovery window minutes', 'recoveryWindowMinutes', settings.appConfig.abuseProtection.recoveryWindowMinutes, 1, 1440],
+                ['Verification sends per account', 'verificationAccountLimit', settings.appConfig.abuseProtection.verificationAccountLimit, 1, 100],
+                ['Verification window minutes', 'verificationWindowMinutes', settings.appConfig.abuseProtection.verificationWindowMinutes, 1, 1440],
+              ].map(([label, name, value, min, max]) => (
+                <label className="grid gap-2 text-xs text-slate-400" key={String(name)}>
+                  {label}
+                  <input className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-white" defaultValue={Number(value)} max={Number(max)} min={Number(min)} name={String(name)} type="number" />
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <fieldset className="grid gap-4 border-y border-white/10 py-4 lg:col-span-2">
             <legend className="pr-3 text-sm font-semibold text-slate-200">Transactional email</legend>
             <label className="flex items-center gap-3 text-sm">
               <input defaultChecked={settings.appConfig.transactionalEmail.enabled} name="transactionalEmailEnabled" type="checkbox" />
