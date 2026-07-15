@@ -163,6 +163,7 @@ model Workspace {
   subscriptions           Subscription[]
   billingEvents           BillingEvent[]
   emailVerificationTokens EmailVerificationToken[]
+  operationalEvents       OperationalEvent[]
 }
 
 model WorkspaceMember {
@@ -647,4 +648,25 @@ model AppSetting {
   key       String   @unique
   value     Json     @default("{}")
   updatedAt DateTime @updatedAt
+}
+
+model OperationalEvent {
+  id            String     @id @default(cuid())
+  workspaceId   String?
+  source        String
+  level         String
+  outcome       String
+  event         String
+  message       String
+  correlationId String?
+  durationMs    Int?
+  metadata      Json       @default("{}")
+  occurredAt    DateTime   @default(now())
+  resolvedAt    DateTime?
+  alertedAt     DateTime?
+  workspace     Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, occurredAt])
+  @@index([source, outcome, occurredAt])
+  @@index([workspaceId, resolvedAt, occurredAt])
 }

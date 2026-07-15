@@ -6,6 +6,7 @@ import { assertWorkspaceWriter, type WorkspaceContext } from './workspace-contex
 import { getAppConfig } from './app-config';
 import { withEntitlementUsage } from './entitlements';
 import { resolveProviderCredential } from './provider-credentials';
+import { observeOperationalCall } from './observability';
 
 export type PersistedOpportunity = {
   domainId: string;
@@ -133,7 +134,7 @@ export async function generateAnalyzeAndPersist(context: WorkspaceContext, input
   const apiKey = await resolveProviderCredential(context.workspaceId, 'registrar');
   const domains = generateDomainIdeas(parsed);
   return withEntitlementUsage(context.workspaceId, 'domain_checks', domains.length, async () => {
-    const analyses = await analyzeDomainsWithProviderMode(domains, parsed.industry, config.availabilityProvider, config.providerEndpoints.registrar, apiKey);
+    const analyses = await observeOperationalCall({ workspaceId: context.workspaceId, source: 'provider', event: 'provider.registrar_batch', metadata: { mode: config.availabilityProvider, count: domains.length } }, () => analyzeDomainsWithProviderMode(domains, parsed.industry, config.availabilityProvider, config.providerEndpoints.registrar, apiKey));
     return persistAnalyzedOpportunities(context, analyses, 'GENERATOR');
   }, (results) => results.length);
 }
@@ -144,7 +145,7 @@ export async function importAnalyzeAndPersist(context: WorkspaceContext, rawDoma
   const config = await getAppConfig();
   const apiKey = await resolveProviderCredential(context.workspaceId, 'registrar');
   return withEntitlementUsage(context.workspaceId, 'domain_checks', domains.length, async () => {
-    const analyses = await analyzeDomainsWithProviderMode(domains, industry || 'general', config.availabilityProvider, config.providerEndpoints.registrar, apiKey);
+    const analyses = await observeOperationalCall({ workspaceId: context.workspaceId, source: 'provider', event: 'provider.registrar_batch', metadata: { mode: config.availabilityProvider, count: domains.length } }, () => analyzeDomainsWithProviderMode(domains, industry || 'general', config.availabilityProvider, config.providerEndpoints.registrar, apiKey));
     return persistAnalyzedOpportunities(context, analyses, 'MANUAL_OR_CSV_IMPORT');
   }, (results) => results.length);
 }

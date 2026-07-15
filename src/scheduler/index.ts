@@ -5,6 +5,7 @@ import { runQueuedJobs } from '@/worker/runner';
 import { readWorkerId } from '@/worker/lease';
 import { withRedisLock } from './redis-lock';
 import { enqueueDueJobs } from './schedule';
+import { observeOperationalCall, pruneOperationalEvents } from '@/lib/server/observability';
 
 const SCHEDULER_LOCK_KEY = 'domainscout:scheduler:recurring-jobs';
 let stopping = false;
@@ -43,6 +44,7 @@ async function runCycle(client: ReturnType<typeof createClient>): Promise<number
   const results = await runQueuedJobs(config.workerJobLimit, readWorkerId(), config.workerLeaseMs);
   for (const result of results) console.log(`${result.status} ${result.type} ${result.id}: ${result.message}`);
   if (results.length === 0) console.log('No queued background jobs found.');
+  await pruneOperationalEvents(config.observability.retentionDays);
 
   return config.schedulerPollMs;
 }
@@ -58,7 +60,7 @@ async function main() {
 
   try {
     do {
-      const pollMs = await runCycle(client);
+      const pollMs = await observeOperationalCall({ source: 'scheduler', event: 'scheduler.cycle', correlationId: readWorkerId() }, () => runCycle(client));
       if (process.argv.includes('--once') || stopping) break;
       await delay(pollMs);
     } while (!stopping);

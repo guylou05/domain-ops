@@ -9,7 +9,7 @@ import { verifyMfaChallenge } from '@/lib/server/mfa';
 import { requireWorkspaceContext } from '@/lib/server/workspace-context';
 import type { AuthActionState } from '@/app/(auth)/auth-state';
 
-const RETURN_PATHS = new Set(['/settings', '/integrations', '/admin']);
+const RETURN_PATHS = new Set(['/settings', '/integrations', '/admin', '/operations']);
 
 export async function confirmSensitiveAccess(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
   const context = await requireWorkspaceContext();

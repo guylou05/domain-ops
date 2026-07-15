@@ -109,7 +109,7 @@ export function assertVerifiedUser(context: WorkspaceContext): void {
   }
 }
 
-export function requireRecentStepUp(context: WorkspaceContext, returnTo: '/settings' | '/integrations' | '/admin'): void {
+export function requireRecentStepUp(context: WorkspaceContext, returnTo: '/settings' | '/integrations' | '/admin' | '/operations'): void {
   if (!authSessionHasRecentStepUp(context.stepUpAt)) {
     redirect(`/confirm-access?returnTo=${encodeURIComponent(returnTo)}`);
   }

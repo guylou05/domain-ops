@@ -11,6 +11,7 @@ export const config = {
     '/expired-domains/:path*',
     '/integrations/:path*',
     '/notifications/:path*',
+    '/operations/:path*',
     '/opportunities/:path*',
     '/outreach/:path*',
     '/overview/:path*',

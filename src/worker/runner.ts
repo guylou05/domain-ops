@@ -7,6 +7,7 @@ import {
 } from '@/lib/server/workflow-generators';
 import { nextLeaseExpiry, readLeaseMs, readWorkerId } from './lease';
 import { isWorkerTaskType, type WorkerTaskType } from './task-registry';
+import { safeRecordOperationalEvent } from '@/lib/server/observability';
 
 export type JobRunResult = {
   id: string;
@@ -41,6 +42,7 @@ async function executeTask(type: WorkerTaskType, workspaceId: string): Promise<s
 }
 
 export async function runBackgroundJob(job: RunnableJob, workerId = readWorkerId()): Promise<JobRunResult> {
+  const startedAt = Date.now();
   if (!isWorkerTaskType(job.type)) {
     await prisma.backgroundJob.update({
       where: { id: job.id },
@@ -51,6 +53,7 @@ export async function runBackgroundJob(job: RunnableJob, workerId = readWorkerId
         ...clearLease,
       },
     });
+    await safeRecordOperationalEvent({ workspaceId: job.workspaceId, source: 'worker', level: 'ERROR', outcome: 'FAILURE', event: 'worker.job', message: `Unsupported worker task: ${job.type}`, correlationId: job.id, durationMs: Date.now() - startedAt, metadata: { workerId, taskType: job.type } });
     return { id: job.id, type: job.type, status: 'FAILED', message: `Unsupported worker task: ${job.type}` };
   }
 
@@ -76,6 +79,7 @@ export async function runBackgroundJob(job: RunnableJob, workerId = readWorkerId
         ...clearLease,
       },
     });
+    await safeRecordOperationalEvent({ workspaceId: job.workspaceId, source: 'worker', level: 'INFO', outcome: 'SUCCESS', event: 'worker.job', message, correlationId: job.id, durationMs: Date.now() - startedAt, metadata: { workerId, taskType: job.type } });
     return { id: job.id, type: job.type, status: 'COMPLETED', message };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Worker task failed.';
@@ -88,6 +92,7 @@ export async function runBackgroundJob(job: RunnableJob, workerId = readWorkerId
         ...clearLease,
       },
     });
+    await safeRecordOperationalEvent({ workspaceId: job.workspaceId, source: 'worker', level: 'ERROR', outcome: 'FAILURE', event: 'worker.job', message, correlationId: job.id, durationMs: Date.now() - startedAt, metadata: { workerId, taskType: job.type } });
     return { id: job.id, type: job.type, status: 'FAILED', message };
   }
 }

@@ -17,7 +17,7 @@ This file defines the development order after the implemented milestones in `REA
    - TOTP enrollment and recovery codes
    - Active-session visibility and revocation
    - Step-up authentication for billing, credentials, and team administration
-4. [ ] Operational Observability
+4. [x] Operational Observability
    - Structured request, worker, scheduler, provider, and webhook telemetry
    - UI-visible operational health and failure history
    - Alert routing and retention controls

@@ -43,6 +43,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 - [x] Stripe subscription checkout, customer portal access, encrypted billing credentials, and signed webhook reconciliation.
 - [x] Single-use email verification with self-service resend, administrative visibility, and high-risk action gates.
 - [x] TOTP multi-factor authentication, one-use recovery codes, tracked session revocation, and time-limited step-up access.
+- [x] Structured operational telemetry, source health, incident resolution, email alert routing, and retention controls.
 - [x] Seed script with demo users, workspace, opportunities, watchlists, portfolio, reports, notifications, integrations, and admin data.
 - [x] Docker Compose for PostgreSQL, Redis, and the web app.
 - [x] Unit tests for generation, scoring, and domain import parsing.
@@ -126,6 +127,10 @@ This phase added 24-hour, single-use email verification tokens stored only as SH
 ## Multi-Factor Authentication and Session Control Phase
 
 This phase added interoperable TOTP enrollment with QR setup, encrypted authenticator secrets, and ten hashed one-use recovery codes. Password and Google sign-ins honor enabled MFA, Settings shows and revokes tracked JWT sessions, logout and credential changes invalidate session records, and protected routes reject revoked or expired sessions. Billing, provider credentials, runtime configuration, feature flags, and team administration require identity confirmation within a ten-minute step-up window.
+
+## Operational Observability Phase
+
+This phase added structured PostgreSQL-backed telemetry for requests, workers, scheduler cycles, research providers, and Stripe webhooks. The Operations page exposes source health, searchable event history, incident resolution, UI-managed email alert thresholds and cooldowns, and configurable retention with automatic scheduler pruning.
 
 ## Local Setup
 

@@ -7,6 +7,7 @@ import { getAppConfig } from './app-config';
 import { withEntitlementUsage } from './entitlements';
 import { resolveProviderCredential } from './provider-credentials';
 import { assertWorkspaceWriter, type WorkspaceContext } from './workspace-context';
+import { observeOperationalCall } from './observability';
 
 function riskLevel(value: 'LOW' | 'MODERATE' | 'HIGH' | 'PROHIBITED'): RiskLevel {
   return RiskLevel[value];
@@ -34,9 +35,9 @@ async function executeDomainDueDiligence(context: WorkspaceContext, domainName: 
   const salesProvider = getComparableSalesProvider(config.comparableSalesProvider, config.providerEndpoints.comparableSales, salesKey);
   const historyProvider = getHistoryProvider(config.historyProvider, config.providerEndpoints.history, historyKey);
   const [trademark, comparableSales, history] = await Promise.all([
-    trademarkProvider.check(domain.name),
-    salesProvider.search(domain.name),
-    historyProvider.check(domain.name, domain.opportunity?.score),
+    observeOperationalCall({ workspaceId: context.workspaceId, source: 'provider', event: 'provider.trademark', correlationId: domain.id, metadata: { mode: trademarkProvider.mode } }, () => trademarkProvider.check(domain.name)),
+    observeOperationalCall({ workspaceId: context.workspaceId, source: 'provider', event: 'provider.comparable_sales', correlationId: domain.id, metadata: { mode: salesProvider.mode } }, () => salesProvider.search(domain.name)),
+    observeOperationalCall({ workspaceId: context.workspaceId, source: 'provider', event: 'provider.history', correlationId: domain.id, metadata: { mode: historyProvider.mode } }, () => historyProvider.check(domain.name, domain.opportunity?.score)),
   ]);
 
   await prisma.$transaction([
@@ -98,10 +99,10 @@ async function executeWorkspaceHistoryChecks(context: WorkspaceContext, limit: n
     select: { score: true, domain: { select: { id: true, name: true } } },
   });
 
-  const results = await Promise.all(opportunities.map(async (opportunity) => ({
+  const results = await observeOperationalCall({ workspaceId: context.workspaceId, source: 'provider', event: 'provider.history_batch', metadata: { mode: provider.mode, count: opportunities.length } }, () => Promise.all(opportunities.map(async (opportunity) => ({
     domainId: opportunity.domain.id,
     result: await provider.check(opportunity.domain.name, opportunity.score),
-  })));
+  }))));
   await prisma.$transaction(results.map(({ domainId, result }) => prisma.domainHistoryCheck.create({
     data: {
       domainId,

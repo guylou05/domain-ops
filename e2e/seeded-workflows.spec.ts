@@ -68,6 +68,30 @@ test.describe('seeded workspace workflows', () => {
     await expect(page.getByText(/Deterministic|risk/).first()).toBeVisible();
   });
 
+  test('admin can inspect and resolve an operational failure', async ({ page }) => {
+    const workspace = await prisma.workspace.findUniqueOrThrow({ where: { slug: 'demo-domain-portfolio' }, select: { id: true } });
+    const failure = await prisma.operationalEvent.create({
+      data: {
+        workspaceId: workspace.id,
+        source: 'provider',
+        level: 'ERROR',
+        outcome: 'FAILURE',
+        event: 'provider.playwright_probe',
+        message: 'Synthetic provider timeout for the operational workflow test.',
+      },
+    });
+
+    await login(page);
+    await page.goto('/operations');
+    await expect(page.getByRole('heading', { name: 'Operations' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Source health' })).toBeVisible();
+    const incident = page.getByText('Synthetic provider timeout for the operational workflow test.').first().locator('xpath=ancestor::div[contains(@class,"border-l-2")]');
+    await expect(incident).toBeVisible();
+    await incident.getByRole('button', { name: 'Resolve' }).click();
+    await expect(incident).not.toBeVisible();
+    await expect.poll(async () => (await prisma.operationalEvent.findUniqueOrThrow({ where: { id: failure.id } })).resolvedAt).not.toBeNull();
+  });
+
   test('admin can store a provider credential from the UI', async ({ page }) => {
     await login(page);
     await page.goto('/integrations');

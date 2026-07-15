@@ -23,6 +23,13 @@ export type AppConfig = {
     mode: 'off' | 'test' | 'live';
     currency: string;
   };
+  observability: {
+    retentionDays: number;
+    alertMinimumLevel: 'WARN' | 'ERROR';
+    emailAlertsEnabled: boolean;
+    emailRecipients: string[];
+    alertCooldownMinutes: number;
+  };
   workerJobLimit: number;
   workerLeaseMs: number;
   schedulerEnabled: boolean;
@@ -55,6 +62,13 @@ const DEFAULT_CONFIG: AppConfig = {
   billing: {
     mode: 'off',
     currency: 'usd',
+  },
+  observability: {
+    retentionDays: 30,
+    alertMinimumLevel: 'ERROR',
+    emailAlertsEnabled: false,
+    emailRecipients: [],
+    alertCooldownMinutes: 60,
   },
   workerJobLimit: 5,
   workerLeaseMs: 300000,
@@ -96,6 +110,11 @@ function readBillingMode(value: unknown): AppConfig['billing']['mode'] {
   return value === 'test' || value === 'live' ? value : 'off';
 }
 
+function readEmailRecipients(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter((item): item is string => typeof item === 'string').map((item) => item.trim().toLowerCase()).filter((item) => /^\S+@\S+\.\S+$/.test(item)))].slice(0, 5);
+}
+
 function readCurrency(value: unknown): string {
   if (typeof value !== 'string') return DEFAULT_CONFIG.billing.currency;
   const currency = value.trim().toLowerCase();
@@ -122,6 +141,7 @@ export function parseAppConfig(value: unknown): AppConfig {
   const endpoints = readObject(object.providerEndpoints);
   const transactionalEmail = readObject(object.transactionalEmail);
   const billing = readObject(object.billing);
+  const observability = readObject(object.observability);
   return {
     availabilityProvider: readProvider(object.availabilityProvider),
     trademarkProvider: readProvider(object.trademarkProvider),
@@ -142,6 +162,13 @@ export function parseAppConfig(value: unknown): AppConfig {
     billing: {
       mode: readBillingMode(billing.mode),
       currency: readCurrency(billing.currency),
+    },
+    observability: {
+      retentionDays: readPositiveInteger(observability.retentionDays, DEFAULT_CONFIG.observability.retentionDays, 7, 365),
+      alertMinimumLevel: observability.alertMinimumLevel === 'WARN' ? 'WARN' : 'ERROR',
+      emailAlertsEnabled: observability.emailAlertsEnabled === true,
+      emailRecipients: readEmailRecipients(observability.emailRecipients),
+      alertCooldownMinutes: readPositiveInteger(observability.alertCooldownMinutes, DEFAULT_CONFIG.observability.alertCooldownMinutes, 5, 1440),
     },
     workerJobLimit: readPositiveInteger(object.workerJobLimit, DEFAULT_CONFIG.workerJobLimit, 1, 50),
     workerLeaseMs: readPositiveInteger(object.workerLeaseMs, DEFAULT_CONFIG.workerLeaseMs, 10000, 3600000),
