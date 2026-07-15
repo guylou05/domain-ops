@@ -150,7 +150,7 @@ This phase replaced floating dependencies with exact reviewed versions, pinned D
 
 ## Authenticated Production Canary Phase
 
-This phase added Railway-managed rotation for a dedicated single-workspace `VIEWER` identity and an external GitHub Actions probe that exercises credential login, read-only dashboard rendering, logout, and session revocation every six hours. Canary diagnostics omit credentials, cookies, tokens, and response bodies; failures update one GitHub issue and recoveries close it automatically. Configuration and rotation procedures live in `docs/PRODUCTION-CANARY.md`.
+This phase added OIDC-authorized Railway rotation for a dedicated single-workspace `VIEWER` identity and an external GitHub Actions probe that exercises credential login, read-only dashboard rendering, logout, and session revocation every six hours. Passwords are random, masked, and valid for one workflow run without a shared long-lived secret. Canary diagnostics omit identity, credentials, cookies, tokens, and response bodies; failures update one GitHub issue and recoveries close it automatically. Configuration and rotation procedures live in `docs/PRODUCTION-CANARY.md`.
 
 ## Local Setup
 

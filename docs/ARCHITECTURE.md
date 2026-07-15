@@ -34,7 +34,7 @@ DomainScout AI uses a Next.js App Router web app, Prisma/PostgreSQL persistence,
 13. Release CI enforces client asset budgets and seeded PostgreSQL query timing, while a scheduled production workflow verifies health, authentication boundaries, latency, and security headers.
 14. Public authentication and account-email actions consume hashed fixed-window counters through Redis; local environments fall back to an in-process store, and blocked requests become OperationalEvent records.
 15. Direct packages, container images, and CI actions are immutable inputs; Dependabot proposes reviewed updates while CI enforces provenance, vulnerability exceptions, and CycloneDX inventory generation.
-16. Railway rotates a dedicated single-workspace `VIEWER` canary during predeploy. GitHub Actions authenticates externally every six hours, exercises read-only server-rendered routes, revokes the session, and manages a deduplicated failure issue without logging credentials or response data.
+16. A Railway endpoint validates GitHub Actions OIDC claims before rotating a random one-run password for a dedicated single-workspace `VIEWER`. The external workflow exercises read-only server-rendered routes, revokes the session, and manages a deduplicated failure issue without logging identity, credentials, tokens, or response data.
 
 ## Provider Strategy
 

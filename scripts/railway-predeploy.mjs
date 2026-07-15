@@ -18,7 +18,4 @@ if (recoveryStatus === 0) {
 }
 
 const deployStatus = run('npx', ['prisma', 'migrate', 'deploy']);
-if (deployStatus !== 0) process.exit(deployStatus);
-
-const canaryStatus = run(process.execPath, ['scripts/provision-production-canary.mjs']);
-process.exit(canaryStatus);
+process.exit(deployStatus);

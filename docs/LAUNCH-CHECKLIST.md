@@ -9,7 +9,7 @@
 - Playwright covers public pages, authentication boundaries, mobile navigation, workspace workflows, billing controls, MFA, provider research, and Operations incident handling.
 - `npm run smoke:production` verifies Railway health, latency, public routes, auth redirect, and browser security headers.
 - Supply-chain policy, vulnerability exceptions, digest/SHA pins, and CycloneDX SBOM generation pass.
-- The secret-backed authenticated production canary passes as `VIEWER`, signs out, and leaves no open canary failure issue.
+- The OIDC-authorized authenticated production canary passes as `VIEWER`, signs out, and leaves no open canary failure issue.
 
 ## Responsive And Accessibility Audit
 

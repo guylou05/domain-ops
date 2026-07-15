@@ -37,7 +37,7 @@ The review covers browser-to-Next.js requests, Auth.js sessions, workspace autho
 
 - Content Security Policy allows inline script and style execution for the current Next.js runtime. A nonce-based policy is a future defense-in-depth improvement.
 - Provider correctness and availability remain third-party dependencies. Timeouts, stale fallback, failure telemetry, quotas, and operator alerts reduce impact but cannot remove it.
-- Production canary credentials remain operational secrets shared by Railway and GitHub Actions. Rotation is required after suspected exposure; sanitized diagnostics intentionally omit identity, cookies, tokens, and response bodies.
+- Production canary access depends on GitHub's OIDC issuer and signing-key availability. Railway restricts exchange claims to the canary workflow on `main`; sanitized diagnostics intentionally omit identity, ephemeral passwords, cookies, tokens, and response bodies.
 
 ## Incident Handling
 

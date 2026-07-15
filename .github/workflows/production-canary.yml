@@ -12,11 +12,11 @@ jobs:
     timeout-minutes: 8
     permissions:
       contents: read
+      id-token: write
       issues: write
     env:
       CANARY_BASE_URL: https://domain-ops-production.up.railway.app
       CANARY_EMAIL: ${{ vars.PRODUCTION_CANARY_EMAIL }}
-      CANARY_PASSWORD: ${{ secrets.PRODUCTION_CANARY_PASSWORD }}
     steps:
       - name: Check out repository
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
@@ -30,9 +30,33 @@ jobs:
       - name: Use pinned npm
         run: npm install --global npm@11.4.2
 
+      - name: Exchange GitHub identity for ephemeral credential
+        id: credential
+        continue-on-error: true
+        shell: bash
+        run: |
+          oidc_response="$(curl --fail --silent --show-error --header "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=domainscout-production-canary")"
+          oidc_token="$(printf '%s' "${oidc_response}" | node -e "let input=''; process.stdin.on('data', chunk => input += chunk); process.stdin.on('end', () => process.stdout.write(JSON.parse(input).value ?? '')); ")"
+          if [ -z "${oidc_token}" ]; then
+            echo 'GitHub did not issue a canary identity token.'
+            exit 1
+          fi
+          echo "::add-mask::${oidc_token}"
+          credential_response="$(curl --fail --silent --show-error --request POST --header "Authorization: Bearer ${oidc_token}" "${CANARY_BASE_URL}/api/canary/session")"
+          password="$(printf '%s' "${credential_response}" | node -e "let input=''; process.stdin.on('data', chunk => input += chunk); process.stdin.on('end', () => process.stdout.write(JSON.parse(input).password ?? '')); ")"
+          if [ -z "${password}" ]; then
+            echo 'Railway did not issue an ephemeral canary credential.'
+            exit 1
+          fi
+          echo "::add-mask::${password}"
+          echo "password=${password}" >> "${GITHUB_OUTPUT}"
+
       - name: Run authenticated canary
         id: canary
+        if: steps.credential.outcome == 'success'
         continue-on-error: true
+        env:
+          CANARY_PASSWORD: ${{ steps.credential.outputs.password }}
         shell: bash
         run: |
           set -o pipefail
@@ -47,7 +71,7 @@ jobs:
           retention-days: 7
 
       - name: Open or update failure alert
-        if: steps.canary.outcome == 'failure'
+        if: steps.credential.outcome == 'failure' || steps.canary.outcome == 'failure'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -63,7 +87,7 @@ jobs:
           fi
 
       - name: Close recovered failure alert
-        if: steps.canary.outcome == 'success'
+        if: steps.credential.outcome == 'success' && steps.canary.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -75,5 +99,5 @@ jobs:
           fi
 
       - name: Enforce canary result
-        if: steps.canary.outcome == 'failure'
+        if: steps.credential.outcome == 'failure' || steps.canary.outcome == 'failure'
         run: exit 1
