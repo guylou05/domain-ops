@@ -119,10 +119,13 @@ jobs:
       - name: Provision least-privilege canary
         run: npm run canary:provision
 
+      - name: Build production canary server
+        run: npm run build
+
       - name: Verify authenticated canary scripts
         shell: bash
         run: |
-          setsid npm run dev -- --hostname 127.0.0.1 > /tmp/domainscout-canary-server.log 2>&1 &
+          setsid node .next/standalone/server.js > /tmp/domainscout-canary-server.log 2>&1 &
           server_pid=$!
           trap 'kill -- "-${server_pid}" 2>/dev/null || true' EXIT
           for attempt in {1..30}; do
