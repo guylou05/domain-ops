@@ -57,7 +57,7 @@ This file is the canonical development sequence for DomainScout AI. A phase is c
    - Opportunity export, portfolio export, bulk selection, comparison, watchlisting, and approval actions
    - Source workflows for manual, generated, expired, auction, closeout, trend, and external-provider discoveries
    - Exit gate: seeded browser workflows cover scheduled discovery, bulk review, import, export, and workspace isolation
-12. [ ] Live Research and Registrar Integrations
+12. [x] Live Research and Registrar Integrations
    - Production registrar adapter for availability and pricing, plus documented contracts for additional registrars
    - Comparable-sales management with manual entry, CSV import, filtering, duplicate review, and provider synchronization
    - Production trademark, history, and approved public-business-data adapters with evidence, freshness, and legal-use controls
