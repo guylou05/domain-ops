@@ -1,6 +1,8 @@
 import { getServerSession } from 'next-auth';
+import { cookies } from 'next/headers';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { selectWorkspaceMembership, WORKSPACE_COOKIE_NAME } from '@/lib/workspace-selection';
 
 export type WorkspaceContext = {
   userId: string;
@@ -12,10 +14,14 @@ export async function requireWorkspaceContext(): Promise<WorkspaceContext> {
   const session = await getServerSession(authOptions);
   const userId = session?.user?.id;
   const userEmail = session?.user?.email ?? process.env.DEMO_USER_EMAIL ?? 'investor@domainscout.demo';
+  const cookieStore = await cookies();
+  const preferredWorkspaceId = cookieStore.get(WORKSPACE_COOKIE_NAME)?.value;
   const preferredWorkspaceSlug = process.env.DEMO_WORKSPACE_SLUG;
 
   const memberships = await prisma.workspaceMember.findMany({
-    where: userId ? { userId } : { user: { email: userEmail } },
+    where: userId
+      ? { userId, workspace: { status: 'ACTIVE' } }
+      : { user: { email: userEmail }, workspace: { status: 'ACTIVE' } },
     select: {
       role: true,
       userId: true,
@@ -25,8 +31,7 @@ export async function requireWorkspaceContext(): Promise<WorkspaceContext> {
     orderBy: { createdAt: 'asc' },
   });
 
-  const membership =
-    memberships.find((item) => preferredWorkspaceSlug && item.workspace.slug === preferredWorkspaceSlug) ?? memberships[0];
+  const membership = selectWorkspaceMembership(memberships, preferredWorkspaceId, preferredWorkspaceSlug);
 
   if (!membership) {
     throw new Error(`No workspace membership found for ${userEmail}. Accept an invitation or create a workspace.`);
@@ -43,6 +48,38 @@ export function assertWorkspaceWriter(context: WorkspaceContext): void {
   if (context.role === 'VIEWER') {
     throw new Error('Viewer role cannot modify workspace records.');
   }
+}
+
+export type WorkspaceNavigation = {
+  currentWorkspaceId: string;
+  workspaces: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    role: WorkspaceContext['role'];
+  }>;
+};
+
+export async function getWorkspaceNavigation(): Promise<WorkspaceNavigation> {
+  const context = await requireWorkspaceContext();
+  const memberships = await prisma.workspaceMember.findMany({
+    where: { userId: context.userId, workspace: { status: 'ACTIVE' } },
+    orderBy: { createdAt: 'asc' },
+    select: {
+      role: true,
+      workspace: { select: { id: true, name: true, slug: true } },
+    },
+  });
+
+  return {
+    currentWorkspaceId: context.workspaceId,
+    workspaces: memberships.map((membership) => ({
+      id: membership.workspace.id,
+      name: membership.workspace.name,
+      slug: membership.workspace.slug,
+      role: membership.role,
+    })),
+  };
 }
 
 export function assertWorkspaceAdmin(context: WorkspaceContext): void {

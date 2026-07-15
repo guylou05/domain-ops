@@ -21,7 +21,7 @@ DomainScout AI uses a Next.js App Router web app, Prisma/PostgreSQL persistence,
 1. Middleware protects workspace routes and sends unauthenticated users to `/login`.
 2. Auth.js always enables credentials and enables Google OAuth only when both Google environment variables are present.
 3. Registration provisions the user, owned workspace, trial subscription, and audit record in one serializable transaction, then signs in through the credential callback.
-4. Server components resolve workspace membership from the authenticated user and load page-specific view models through `src/lib/server/*`.
+4. Server components resolve the selected workspace from an HTTP-only preference cookie that is validated against the authenticated user's active memberships, then load page-specific view models through `src/lib/server/*`.
 5. List pages parse query parameters on the server and pass typed filters into page data loaders, keeping high-volume tables shareable and crawl-free without client-side state.
 6. Server actions resolve `requireWorkspaceContext`, enforce writer/admin guards where needed, mutate workspace records, record audit events for operational changes, and revalidate affected routes.
 7. Prisma persists normalized domain research, portfolio, buyer, outreach, report, notification, integration, and admin records.

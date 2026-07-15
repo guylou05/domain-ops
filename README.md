@@ -5,7 +5,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 ## Current Architecture
 
 - **Frontend:** Next.js App Router, TypeScript, Tailwind CSS, responsive SaaS shell, and server-action workflows.
-- **Auth and workspace context:** Auth.js credentials, JWT sessions, protected app routes, atomic trial workspace provisioning, role-aware workspace access, expiring invitations, and seeded demo users.
+- **Auth and workspace context:** Auth.js credentials, JWT sessions, protected app routes, atomic trial workspace provisioning, role-aware multi-workspace selection, expiring invitations, and seeded demo users.
 - **Application logic:** `src/lib/domain-engine.ts` provides deterministic availability, generation, scoring, and valuation logic for local development.
 - **Database:** PostgreSQL via Prisma. The schema covers users, workspaces, RBAC, subscriptions, usage, domains, opportunities, scores, valuations, watchlists, portfolio records, buyers, outreach, jobs, reports, notifications, integrations, audit logs, AI usage, webhooks, and feature flags.
 - **Operations:** Server actions support generator persistence, watchlist saves, portfolio acquisition/archive/renewal controls, report snapshots, buyer research generation, history checks, marketplace listing publication, notification read state, integration toggles, workspace settings, feature flags, entitlement enforcement, and audit logging.
@@ -38,6 +38,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 - [x] Monthly subscription entitlement enforcement with atomic usage reservations and visible quota state.
 - [x] Workspace team administration with hashed invitation links, role changes, revocation, and member removal.
 - [x] Self-service workspace registration with automatic sign-in and 14-day subscription provisioning.
+- [x] Validated multi-workspace switching from the application sidebar.
 - [x] Seed script with demo users, workspace, opportunities, watchlists, portfolio, reports, notifications, integrations, and admin data.
 - [x] Docker Compose for PostgreSQL, Redis, and the web app.
 - [x] Unit tests for generation, scoring, and domain import parsing.
@@ -101,6 +102,10 @@ This phase added owner and administrator controls for workspace membership. Invi
 ## Trial Onboarding Phase
 
 This phase made public registration operational for metered workflows. Production migrations now guarantee the Professional plan catalog, and signup atomically creates the account, owned workspace, 14-day trial subscription, and audit event before signing the user in. Workspace slugs include a stable email hash to avoid collisions, trial enforcement fails closed at expiration, and Settings displays expired trial state explicitly.
+
+## Multi-Workspace Phase
+
+This phase made multiple workspace memberships usable. The selected workspace is stored in an HTTP-only cookie, revalidated against the signed-in user's active memberships on every context resolution, and exposed through a compact sidebar switcher. Unauthorized or stale cookie values fall back to an accessible workspace, and successful switches create audit events in the destination workspace.
 
 ## Local Setup
 

@@ -118,4 +118,42 @@ test.describe('seeded workspace workflows', () => {
     await expect(page.getByText(/Trialing/)).toBeVisible();
     await expect(page.getByText('0 / 5000')).toBeVisible();
   });
+
+  test('member can switch between authorized workspaces', async ({ page }) => {
+    const email = `playwright-multi-${Date.now()}@domainscout.demo`;
+    const password = 'playwright-password';
+    await page.goto('/register?plan=Professional');
+    await page.getByPlaceholder('Name').fill('Multi Workspace User');
+    await page.getByPlaceholder('email@example.com').fill(email);
+    await page.getByPlaceholder('Password').fill(password);
+    await page.getByRole('button', { name: 'Start trial' }).click();
+    await expect(page).toHaveURL(/\/overview/);
+    await page.getByRole('button', { name: 'Log out' }).click();
+
+    await login(page);
+    await page.goto('/admin');
+    await page.getByPlaceholder('teammate@example.com').fill(email);
+    await page.locator('form').filter({ has: page.getByPlaceholder('teammate@example.com') }).locator('select[name="role"]').selectOption('VIEWER');
+    await page.getByRole('button', { name: 'Invite' }).click();
+    const invitationPath = await page.getByText(/^\/invite\//).textContent();
+    expect(invitationPath).toBeTruthy();
+    await page.goto(invitationPath!);
+    await page.locator('input[name="password"]').fill(password);
+    await page.getByRole('button', { name: 'Join workspace' }).click();
+    await expect(page.getByText('Workspace access is ready. Sign in with this email and password.')).toBeVisible();
+
+    await page.goto('/overview');
+    await page.getByRole('button', { name: 'Log out' }).click();
+    await page.getByPlaceholder('email@example.com').fill(email);
+    await page.getByPlaceholder('Password').fill(password);
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    await expect(page).toHaveURL(/\/overview/);
+
+    await page.getByLabel('Current workspace').selectOption({ label: 'Demo Domain Portfolio' });
+    await page.getByRole('button', { name: 'Switch workspace' }).click();
+    await expect(page).toHaveURL(/\/overview/);
+    await page.goto('/settings');
+    await expect(page.locator('input[name="name"]')).toHaveValue('Demo Domain Portfolio');
+    await expect(page.getByText('Role: VIEWER')).toBeVisible();
+  });
 });
