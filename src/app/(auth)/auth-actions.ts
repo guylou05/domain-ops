@@ -22,16 +22,21 @@ async function requestBaseUrl(): Promise<string> {
 export async function verifyCredentials(_previousState: AuthActionState, formData: FormData): Promise<AuthActionState> {
   const email = readString(formData, 'email').toLowerCase();
   const password = readString(formData, 'password');
+  const mfaCode = readString(formData, 'mfaCode');
 
   if (!email || !password) return { ok: false, message: 'Email and password are required.' };
 
   const user = await prisma.user.findUnique({
     where: { email },
-    select: { passwordHash: true },
+    select: { passwordHash: true, mfaEnabledAt: true },
   });
 
   if (!user?.passwordHash || !(await compare(password, user.passwordHash))) {
     return { ok: false, message: 'Invalid email or password.' };
+  }
+
+  if (user.mfaEnabledAt && !mfaCode) {
+    return { ok: false, requiresMfa: true, message: 'Enter your authenticator or recovery code.' };
   }
 
   return { ok: true, message: 'Credentials verified.' };

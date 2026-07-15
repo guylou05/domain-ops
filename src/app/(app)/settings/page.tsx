@@ -3,11 +3,17 @@ import { getSettingsView } from '@/lib/server/settings';
 import { PasswordChangeForm } from '@/components/password-change-form';
 import { openBillingPortal, startSubscriptionCheckout } from './billing-actions';
 import { resendEmailVerification } from './verification-actions';
+import { MfaSecurityPanel } from '@/components/mfa-security-panel';
+import { revokeAllOtherSessions, revokeSession } from './security-actions';
 
 export const dynamic = 'force-dynamic';
 
 function formatDate(value: Date): string {
   return value.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatDateTime(value: Date): string {
+  return value.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
 function formatCurrency(cents: number): string {
@@ -112,6 +118,40 @@ export default async function SettingsPage({
             ) : null}
           </div>
           <PasswordChangeForm />
+        </div>
+      </section>
+
+      <section className="mt-6 grid gap-4 xl:grid-cols-2">
+        <MfaSecurityPanel mfaEnabled={Boolean(settings.currentUser.mfaEnabledAt)} recoveryCodesRemaining={settings.currentUser.recoveryCodesRemaining} />
+        <div className="card">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold">Active sessions</h2>
+              <p className="mt-1 text-sm text-slate-400">{settings.sessions.length} active {settings.sessions.length === 1 ? 'session' : 'sessions'}</p>
+            </div>
+            {settings.sessions.length > 1 ? (
+              <form action={revokeAllOtherSessions}>
+                <button className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold hover:bg-white/10">End other sessions</button>
+              </form>
+            ) : null}
+          </div>
+          <div className="mt-4 grid gap-3">
+            {settings.sessions.map((authSession) => (
+              <div className="flex items-start justify-between gap-4 border-l-2 border-white/10 pl-3" key={authSession.id}>
+                <div>
+                  <p className="text-sm font-semibold">{formatLabel(authSession.provider)} {authSession.current ? '· Current session' : ''}</p>
+                  <p className="mt-1 text-xs text-slate-400">Last active {formatDateTime(authSession.lastSeenAt)}</p>
+                  <p className="mt-1 text-xs text-slate-500">Started {formatDateTime(authSession.createdAt)} · expires {formatDate(authSession.expiresAt)}</p>
+                </div>
+                {!authSession.current ? (
+                  <form action={revokeSession}>
+                    <input name="id" type="hidden" value={authSession.id} />
+                    <button className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold hover:bg-white/10">End</button>
+                  </form>
+                ) : null}
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 

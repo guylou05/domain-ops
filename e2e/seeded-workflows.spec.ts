@@ -1,4 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
+import * as OTPAuth from 'otpauth';
+import { prisma } from '../src/lib/prisma';
 
 const runSeededWorkflows = process.env.E2E_WORKFLOWS === '1' && Boolean(process.env.DATABASE_URL);
 
@@ -142,6 +144,65 @@ test.describe('seeded workspace workflows', () => {
     await page.getByPlaceholder('Password').fill('playwright-password-updated');
     await page.getByRole('button', { name: 'Sign in' }).click();
     await expect(page).toHaveURL(/\/overview/);
+  });
+
+  test('user can enroll in MFA, complete step-up, and revoke another session', async ({ page, browser }) => {
+    const email = `playwright-mfa-${Date.now()}@domainscout.demo`;
+    const password = 'playwright-password';
+    await page.goto('/register?plan=Professional');
+    await page.getByPlaceholder('Name').fill('MFA User');
+    await page.getByPlaceholder('email@example.com').fill(email);
+    await page.getByPlaceholder('Password').fill(password);
+    await page.getByRole('button', { name: 'Start trial' }).click();
+    await expect(page).toHaveURL(/\/overview/);
+
+    const user = await prisma.user.update({ where: { email }, data: { emailVerified: new Date() }, select: { id: true } });
+    await page.goto('/settings');
+    const mfaPanel = page.getByRole('heading', { name: 'Two-factor authentication' }).locator('xpath=ancestor::div[contains(@class,"card")]');
+    await mfaPanel.getByPlaceholder('Current password').fill(password);
+    await mfaPanel.getByRole('button', { name: 'Set up authenticator' }).click();
+    await expect(mfaPanel.getByAltText('Authenticator QR code')).toBeVisible();
+    const secret = (await mfaPanel.locator('code').first().textContent())!;
+    const totp = new OTPAuth.TOTP({ secret, digits: 6, period: 30 });
+    await mfaPanel.getByPlaceholder('6-digit authenticator code').fill(totp.generate());
+    await mfaPanel.getByRole('button', { name: 'Enable two-factor authentication' }).click();
+    await expect(mfaPanel.getByText('Recovery codes', { exact: true })).toBeVisible();
+    await expect(mfaPanel.getByText('Enabled', { exact: true }).first()).toBeVisible();
+
+    const trackedSession = await prisma.authSession.findFirstOrThrow({ where: { userId: user.id, revokedAt: null }, orderBy: { createdAt: 'desc' } });
+    await prisma.authSession.update({ where: { id: trackedSession.id }, data: { stepUpAt: new Date(Date.now() - 20 * 60 * 1000) } });
+    await page.reload();
+    await page.getByRole('button', { name: 'Save runtime settings' }).click();
+    await expect(page).toHaveURL(/\/confirm-access/);
+    await page.getByPlaceholder('Authenticator or recovery code').fill(totp.generate());
+    await page.getByRole('button', { name: 'Confirm access' }).click();
+    await expect(page).toHaveURL(/\/settings/);
+
+    await page.getByRole('button', { name: 'Log out' }).click();
+    await page.getByPlaceholder('email@example.com').fill(email);
+    await page.getByPlaceholder('Password').fill(password);
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    await page.getByPlaceholder('Authenticator or recovery code').fill(totp.generate());
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    await expect(page).toHaveURL(/\/overview/);
+
+    const secondContext = await browser.newContext();
+    const secondPage = await secondContext.newPage();
+    await secondPage.goto('/login');
+    await secondPage.getByPlaceholder('email@example.com').fill(email);
+    await secondPage.getByPlaceholder('Password').fill(password);
+    await secondPage.getByRole('button', { name: 'Sign in' }).click();
+    await secondPage.getByPlaceholder('Authenticator or recovery code').fill(totp.generate());
+    await secondPage.getByRole('button', { name: 'Sign in' }).click();
+    await expect(secondPage).toHaveURL(/\/overview/);
+
+    await page.goto('/settings');
+    await expect(page.getByText('2 active sessions')).toBeVisible();
+    await page.getByRole('button', { name: 'End other sessions' }).click();
+    await expect(page.getByText('1 active session')).toBeVisible();
+    await secondPage.goto('/overview');
+    await expect(secondPage).toHaveURL(/\/login\?session=expired/);
+    await secondContext.close();
   });
 
   test('member can switch between authorized workspaces', async ({ page }) => {

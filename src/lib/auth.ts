@@ -5,6 +5,9 @@ import GoogleProvider from 'next-auth/providers/google';
 import { googleProfileEmailIsVerified, isGoogleOAuthConfigured } from '@/lib/auth-providers';
 import { prisma } from '@/lib/prisma';
 import { isAuthDiagnosticsEnabled } from '@/lib/server/app-config';
+import { createTrackedAuthSession, revokeAuthSession } from '@/lib/server/auth-sessions';
+import { verifyMfaChallenge } from '@/lib/server/mfa';
+import { AUTH_SESSION_TTL_MS } from '@/lib/mfa-policy';
 
 type AuthProviders = NextAuthOptions['providers'];
 
@@ -21,6 +24,7 @@ function authProviders(): AuthProviders {
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
+        mfaCode: { label: 'Authenticator or recovery code', type: 'text' },
       },
       async authorize(credentials) {
         const email = credentials?.email?.trim().toLowerCase();
@@ -32,7 +36,7 @@ function authProviders(): AuthProviders {
 
         const user = await prisma.user.findUnique({
           where: { email },
-          select: { id: true, email: true, name: true, role: true, passwordHash: true },
+          select: { id: true, email: true, name: true, role: true, passwordHash: true, mfaEnabledAt: true },
         });
 
         if (!user?.passwordHash) {
@@ -43,12 +47,17 @@ function authProviders(): AuthProviders {
         const passwordMatches = await compare(password, user.passwordHash);
         await logAuthDiagnostic('credential comparison completed', { email, passwordMatches });
         if (!passwordMatches) return null;
+        if (user.mfaEnabledAt && !(await verifyMfaChallenge(user.id, credentials?.mfaCode ?? ''))) {
+          await logAuthDiagnostic('MFA challenge failed', { email });
+          return null;
+        }
 
         return {
           id: user.id,
           email: user.email,
           name: user.name,
           role: user.role,
+          mfaAuthenticated: true,
         };
       },
     }),
@@ -69,7 +78,7 @@ function authProviders(): AuthProviders {
 export const authOptions: NextAuthOptions = {
   debug: process.env.AUTH_DEBUG === '1',
   secret: process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET,
-  session: { strategy: 'jwt' },
+  session: { strategy: 'jwt', maxAge: AUTH_SESSION_TTL_MS / 1000 },
   pages: {
     signIn: '/login',
   },
@@ -95,7 +104,7 @@ export const authOptions: NextAuthOptions = {
 
       const existing = await prisma.user.findUnique({
         where: { email },
-        select: { id: true, name: true, role: true, emailVerified: true },
+        select: { id: true, name: true, role: true, emailVerified: true, mfaEnabledAt: true },
       });
       if (!existing) return false;
       if (!existing.emailVerified) {
@@ -104,12 +113,18 @@ export const authOptions: NextAuthOptions = {
       user.id = existing.id;
       user.name = existing.name ?? user.name;
       user.role = existing.role;
+      user.mfaAuthenticated = !existing.mfaEnabledAt;
       return true;
     },
-    jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id ?? token.sub;
         token.role = user.role ?? token.role ?? 'MEMBER';
+        token.authSessionId = await createTrackedAuthSession(
+          String(user.id ?? token.sub ?? ''),
+          account?.provider ?? 'credentials',
+          user.mfaAuthenticated !== false,
+        );
       }
       return token;
     },
@@ -118,7 +133,13 @@ export const authOptions: NextAuthOptions = {
         session.user.id = String(token.id ?? token.sub ?? '');
         session.user.role = String(token.role ?? 'MEMBER');
       }
+      session.authSessionId = String(token.authSessionId ?? '');
       return session;
+    },
+  },
+  events: {
+    async signOut({ token }) {
+      if (token?.authSessionId) await revokeAuthSession(String(token.authSessionId));
     },
   },
 };

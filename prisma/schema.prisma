@@ -37,21 +37,26 @@ enum JobStatus {
 }
 
 model User {
-  id                 String                   @id @default(cuid())
-  email              String                   @unique
-  name               String?
-  passwordHash       String?
-  emailVerified      DateTime?
-  role               Role                     @default(MEMBER)
-  createdAt          DateTime                 @default(now())
-  updatedAt          DateTime                 @updatedAt
-  memberships        WorkspaceMember[]
-  accounts           Account[]
-  sessions           Session[]
-  createdDomains     Domain[]
-  sentInvitations    WorkspaceInvitation[]    @relation("InvitationSender")
-  passwordResets     PasswordResetToken[]
-  emailVerifications EmailVerificationToken[]
+  id                        String                   @id @default(cuid())
+  email                     String                   @unique
+  name                      String?
+  passwordHash              String?
+  emailVerified             DateTime?
+  mfaEnabledAt              DateTime?
+  mfaSecretEncrypted        String?
+  mfaPendingSecretEncrypted String?
+  role                      Role                     @default(MEMBER)
+  createdAt                 DateTime                 @default(now())
+  updatedAt                 DateTime                 @updatedAt
+  memberships               WorkspaceMember[]
+  accounts                  Account[]
+  sessions                  Session[]
+  createdDomains            Domain[]
+  sentInvitations           WorkspaceInvitation[]    @relation("InvitationSender")
+  passwordResets            PasswordResetToken[]
+  emailVerifications        EmailVerificationToken[]
+  mfaRecoveryCodes          MfaRecoveryCode[]
+  authSessions              AuthSession[]
 }
 
 model Account {
@@ -113,6 +118,32 @@ model EmailVerificationToken {
 
   @@index([userId, usedAt, expiresAt])
   @@index([workspaceId, createdAt])
+}
+
+model MfaRecoveryCode {
+  id        String    @id @default(cuid())
+  userId    String
+  codeHash  String    @unique
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, usedAt])
+}
+
+model AuthSession {
+  id                 String    @id
+  userId             String
+  provider           String
+  createdAt          DateTime  @default(now())
+  lastSeenAt         DateTime  @default(now())
+  expiresAt          DateTime
+  mfaAuthenticatedAt DateTime?
+  stepUpAt           DateTime?
+  revokedAt          DateTime?
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt, expiresAt])
 }
 
 model Workspace {

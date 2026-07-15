@@ -6,6 +6,7 @@ export const config = {
     '/analytics/:path*',
     '/auctions/:path*',
     '/buyer-research/:path*',
+    '/confirm-access/:path*',
     '/domain-generator/:path*',
     '/expired-domains/:path*',
     '/integrations/:path*',

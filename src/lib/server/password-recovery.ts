@@ -121,6 +121,7 @@ export async function consumePasswordResetToken(token: string, passwordHash: str
         const now = new Date();
         await tx.user.update({ where: { id: reset.userId }, data: { passwordHash, emailVerified: now } });
         await tx.passwordResetToken.updateMany({ where: { userId: reset.userId, usedAt: null }, data: { usedAt: now } });
+        await tx.authSession.updateMany({ where: { userId: reset.userId, revokedAt: null }, data: { revokedAt: now } });
         return true;
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },

@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { signIn } from 'next-auth/react';
 import { initialAuthActionState } from './auth-state';
 import { credentialSignIn } from '@/lib/client/credential-sign-in';
+import { verifyCredentials } from './auth-actions';
 
 function ActionMessage({ ok, message }: { ok: boolean; message: string }) {
   if (!message) return null;
@@ -13,13 +14,24 @@ function ActionMessage({ ok, message }: { ok: boolean; message: string }) {
 export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
   const [state, setState] = useState(initialAuthActionState);
   const [pending, setPending] = useState(false);
+  const [requiresMfa, setRequiresMfa] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
     const formData = new FormData(event.currentTarget);
     try {
-      const result = await credentialSignIn(String(formData.get('email') ?? ''), String(formData.get('password') ?? ''));
+      const verification = await verifyCredentials(initialAuthActionState, formData);
+      if (!verification.ok) {
+        setRequiresMfa(Boolean(verification.requiresMfa));
+        setState(verification);
+        return;
+      }
+      const result = await credentialSignIn(
+        String(formData.get('email') ?? ''),
+        String(formData.get('password') ?? ''),
+        String(formData.get('mfaCode') ?? ''),
+      );
       if (result.ok) {
         window.location.href = result.url;
         return;
@@ -46,6 +58,9 @@ export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
       </div>
       <input className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2" name="email" placeholder="email@example.com" type="email" required />
       <input className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2" name="password" placeholder="Password" type="password" required />
+      {requiresMfa ? (
+        <input className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2" autoComplete="one-time-code" inputMode="numeric" name="mfaCode" placeholder="Authenticator or recovery code" required />
+      ) : null}
       <button className="rounded-xl bg-brand px-4 py-2 font-semibold disabled:opacity-60" disabled={pending}>
         {pending ? 'Signing in...' : 'Sign in'}
       </button>

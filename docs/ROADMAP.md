@@ -13,7 +13,7 @@ This file defines the development order after the implemented milestones in `REA
    - Single-use verification tokens and transactional delivery
    - Verification status in account settings and administrative visibility
    - Protected high-risk workflows for unverified accounts
-3. [ ] Multi-Factor Authentication and Session Control
+3. [x] Multi-Factor Authentication and Session Control
    - TOTP enrollment and recovery codes
    - Active-session visibility and revocation
    - Step-up authentication for billing, credentials, and team administration

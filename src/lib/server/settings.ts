@@ -18,6 +18,8 @@ export type SettingsView = {
     name: string | null;
     role: string;
     emailVerified: Date | null;
+    mfaEnabledAt: Date | null;
+    recoveryCodesRemaining: number;
   };
   members: Array<{
     email: string;
@@ -51,12 +53,20 @@ export type SettingsView = {
   appConfig: AppConfig;
   monthlyUsage: Awaited<ReturnType<typeof getMonthlyEntitlementUsage>>;
   billing: Awaited<ReturnType<typeof getBillingReadiness>>;
+  sessions: Array<{
+    id: string;
+    provider: string;
+    createdAt: Date;
+    lastSeenAt: Date;
+    expiresAt: Date;
+    current: boolean;
+  }>;
 };
 
 export async function getSettingsView(): Promise<SettingsView> {
   const context = await requireWorkspaceContext();
 
-  const [workspace, currentMember, subscriptions, featureFlags, appConfig, monthlyUsage, billing] = await Promise.all([
+  const [workspace, currentMember, subscriptions, featureFlags, appConfig, monthlyUsage, billing, sessions, recoveryCodesRemaining] = await Promise.all([
     prisma.workspace.findUniqueOrThrow({
       where: { id: context.workspaceId },
       select: {
@@ -79,7 +89,7 @@ export async function getSettingsView(): Promise<SettingsView> {
       where: { workspaceId_userId: { workspaceId: context.workspaceId, userId: context.userId } },
       select: {
         role: true,
-        user: { select: { email: true, name: true, emailVerified: true } },
+        user: { select: { email: true, name: true, emailVerified: true, mfaEnabledAt: true } },
       },
     }),
     prisma.subscription.findMany({
@@ -100,6 +110,12 @@ export async function getSettingsView(): Promise<SettingsView> {
     getAppConfig(),
     getMonthlyEntitlementUsage(context.workspaceId),
     getBillingReadiness(context.workspaceId),
+    prisma.authSession.findMany({
+      where: { userId: context.userId, revokedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { lastSeenAt: 'desc' },
+      select: { id: true, provider: true, createdAt: true, lastSeenAt: true, expiresAt: true },
+    }),
+    prisma.mfaRecoveryCode.count({ where: { userId: context.userId, usedAt: null } }),
   ]);
 
   return {
@@ -115,6 +131,8 @@ export async function getSettingsView(): Promise<SettingsView> {
       name: currentMember.user.name,
       role: currentMember.role,
       emailVerified: currentMember.user.emailVerified,
+      mfaEnabledAt: currentMember.user.mfaEnabledAt,
+      recoveryCodesRemaining,
     },
     members: workspace.members.map((member) => ({
       email: member.user.email,
@@ -144,5 +162,6 @@ export async function getSettingsView(): Promise<SettingsView> {
     appConfig,
     monthlyUsage,
     billing,
+    sessions: sessions.map((authSession) => ({ ...authSession, current: authSession.id === context.authSessionId })),
   };
 }

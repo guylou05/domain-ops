@@ -5,8 +5,9 @@ import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { recordAuditEvent } from '@/lib/server/audit';
 import { updateAppConfig } from '@/lib/server/app-config';
-import { assertVerifiedUser, assertWorkspaceAdmin, assertWorkspaceWriter, requireWorkspaceContext } from '@/lib/server/workspace-context';
+import { assertVerifiedUser, assertWorkspaceAdmin, assertWorkspaceWriter, requireRecentStepUp, requireWorkspaceContext } from '@/lib/server/workspace-context';
 import type { AuthActionState } from '@/app/(auth)/auth-state';
+import { markSessionStepUp, revokeOtherAuthSessions } from '@/lib/server/auth-sessions';
 
 export async function changeCurrentPassword(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
   const context = await requireWorkspaceContext();
@@ -24,6 +25,8 @@ export async function changeCurrentPassword(_state: AuthActionState, formData: F
 
   await prisma.user.update({ where: { id: context.userId }, data: { passwordHash: await hash(newPassword, 10) } });
   await prisma.passwordResetToken.updateMany({ where: { userId: context.userId, usedAt: null }, data: { usedAt: new Date() } });
+  await revokeOtherAuthSessions(context.userId, context.authSessionId);
+  await markSessionStepUp(context.authSessionId, context.userId);
   await recordAuditEvent(context, { action: 'account.password_changed', targetType: 'User', targetId: context.userId });
   return { ok: true, message: 'Password changed successfully.' };
 }
@@ -56,6 +59,7 @@ export async function updateRuntimeSettings(formData: FormData): Promise<void> {
   const context = await requireWorkspaceContext();
   assertWorkspaceAdmin(context);
   assertVerifiedUser(context);
+  requireRecentStepUp(context, '/settings');
 
   const availabilityProvider = String(formData.get('availabilityProvider') ?? 'mock');
   const readProvider = (name: string) => {

@@ -12,7 +12,7 @@ import {
   normalizeInvitationEmail,
 } from '@/lib/invitation-policy';
 import { recordAuditEvent } from '@/lib/server/audit';
-import { assertVerifiedUser, assertWorkspaceAdmin, requireWorkspaceContext } from '@/lib/server/workspace-context';
+import { assertVerifiedUser, assertWorkspaceAdmin, requireRecentStepUp, requireWorkspaceContext } from '@/lib/server/workspace-context';
 import { isWorkerTaskType } from '@/worker/task-registry';
 import { sendPasswordResetEmail } from '@/lib/server/password-recovery';
 
@@ -20,6 +20,7 @@ export async function toggleFeatureFlag(formData: FormData): Promise<void> {
   const context = await requireWorkspaceContext();
   assertWorkspaceAdmin(context);
   assertVerifiedUser(context);
+  requireRecentStepUp(context, '/admin');
   const key = String(formData.get('key') ?? '').trim();
   if (!key) throw new Error('Feature flag key is required.');
 
@@ -80,6 +81,7 @@ export async function createWorkspaceInvitation(formData: FormData): Promise<voi
   const context = await requireWorkspaceContext();
   assertWorkspaceAdmin(context);
   assertVerifiedUser(context);
+  requireRecentStepUp(context, '/admin');
 
   const email = normalizeInvitationEmail(String(formData.get('email') ?? ''));
   const role = String(formData.get('role') ?? 'MEMBER');
@@ -127,6 +129,7 @@ export async function revokeWorkspaceInvitation(formData: FormData): Promise<voi
   const context = await requireWorkspaceContext();
   assertWorkspaceAdmin(context);
   assertVerifiedUser(context);
+  requireRecentStepUp(context, '/admin');
   const id = String(formData.get('id') ?? '');
 
   const result = await prisma.workspaceInvitation.updateMany({
@@ -147,6 +150,7 @@ export async function updateWorkspaceMemberRole(formData: FormData): Promise<voi
   const context = await requireWorkspaceContext();
   assertWorkspaceAdmin(context);
   assertVerifiedUser(context);
+  requireRecentStepUp(context, '/admin');
   const membershipId = String(formData.get('membershipId') ?? '');
   const role = String(formData.get('role') ?? '');
   if (!isInvitableRole(role)) throw new Error('Choose a valid member role.');
@@ -176,6 +180,7 @@ export async function removeWorkspaceMember(formData: FormData): Promise<void> {
   const context = await requireWorkspaceContext();
   assertWorkspaceAdmin(context);
   assertVerifiedUser(context);
+  requireRecentStepUp(context, '/admin');
   const membershipId = String(formData.get('membershipId') ?? '');
 
   const member = await prisma.workspaceMember.findFirst({
@@ -201,6 +206,7 @@ export async function sendMemberRecoveryEmail(formData: FormData): Promise<void>
   const context = await requireWorkspaceContext();
   assertWorkspaceAdmin(context);
   assertVerifiedUser(context);
+  requireRecentStepUp(context, '/admin');
   const membershipId = String(formData.get('membershipId') ?? '');
   const member = await prisma.workspaceMember.findFirst({
     where: { id: membershipId, workspaceId: context.workspaceId },

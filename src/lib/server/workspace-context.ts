@@ -4,12 +4,15 @@ import { redirect } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { selectWorkspaceMembership, WORKSPACE_COOKIE_NAME } from '@/lib/workspace-selection';
+import { authSessionHasRecentStepUp, getActiveAuthSession } from './auth-sessions';
 
 export type WorkspaceContext = {
   userId: string;
   workspaceId: string;
   role: 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
   emailVerified: boolean;
+  authSessionId: string;
+  stepUpAt: Date | null;
 };
 
 export async function requireWorkspaceContext(): Promise<WorkspaceContext> {
@@ -19,6 +22,11 @@ export async function requireWorkspaceContext(): Promise<WorkspaceContext> {
   if (!userId || !userEmail) {
     redirect('/login');
   }
+  const authSessionId = session.authSessionId;
+  if (!authSessionId) redirect('/login?session=expired');
+  const authSession = await getActiveAuthSession(authSessionId, userId);
+  if (!authSession) redirect('/login?session=expired');
+  if (!authSession.mfaAuthenticatedAt) redirect('/mfa-challenge');
   const cookieStore = await cookies();
   const preferredWorkspaceId = cookieStore.get(WORKSPACE_COOKIE_NAME)?.value;
   const preferredWorkspaceSlug = process.env.DEMO_WORKSPACE_SLUG;
@@ -46,6 +54,8 @@ export async function requireWorkspaceContext(): Promise<WorkspaceContext> {
     workspaceId: membership.workspaceId,
     role: membership.role,
     emailVerified: Boolean(membership.user.emailVerified),
+    authSessionId,
+    stepUpAt: authSession.stepUpAt,
   };
 }
 
@@ -96,5 +106,11 @@ export function assertWorkspaceAdmin(context: WorkspaceContext): void {
 export function assertVerifiedUser(context: WorkspaceContext): void {
   if (!context.emailVerified) {
     throw new Error('Verify your email before performing this security-sensitive action.');
+  }
+}
+
+export function requireRecentStepUp(context: WorkspaceContext, returnTo: '/settings' | '/integrations' | '/admin'): void {
+  if (!authSessionHasRecentStepUp(context.stepUpAt)) {
+    redirect(`/confirm-access?returnTo=${encodeURIComponent(returnTo)}`);
   }
 }
