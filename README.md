@@ -25,6 +25,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 - [x] Portfolio detail, offer negotiation, completed-sale economics, renewal decisions, and renewal-calendar workflows.
 - [x] Executive deal metrics for revenue, profit, sales, offers, sell-through, ROI, holding period, and upcoming renewals.
 - [x] Discovery operations with source runs, manual/daily/weekly saved searches, durable progress, cancellation, and history.
+- [x] Governed live research with registrar contracts, comparable-sales operations, public-business evidence, provider quotas, freshness, and smoke checks.
 - [x] Reviewable CSV file imports, duplicate/error reporting, formula-injection protection, workspace exports, and bulk opportunity review.
 - [x] Reports with generated portfolio snapshots.
 - [x] Buyer research, history checks, and marketplace listing generation.

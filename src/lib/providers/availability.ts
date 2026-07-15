@@ -43,6 +43,30 @@ function deterministicProvider(mode: Extract<AvailabilityProviderMode, 'determin
   };
 }
 
+function nameComProvider(endpoint?: string, apiKey?: string): AvailabilityProvider {
+  return {
+    mode: 'live',
+    label: 'Name.com Core registrar adapter',
+    async check(domain) {
+      const separator = apiKey?.indexOf(':') ?? -1;
+      if (separator < 1) throw new ProviderConfigurationError('Name.com credentials must use username:token format.');
+      const response = await fetch(endpoint || 'https://api.name.com/core/v1/domains:checkAvailability', {
+        method: 'POST',
+        headers: { Accept: 'application/json', Authorization: `Basic ${btoa(apiKey!)}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domainNames: [domain], purchaseType: 'registration' }),
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!response.ok) throw new ProviderConfigurationError(`Name.com returned HTTP ${response.status}.`);
+      const payload = await response.json() as { results?: Array<Record<string, unknown>> };
+      const result = payload.results?.find((item) => item.domainName === domain) ?? payload.results?.[0];
+      const registrationPrice = Number(result?.purchasePrice);
+      const renewalPrice = Number(result?.renewalPrice);
+      if (!result || typeof result.purchasable !== 'boolean' || !Number.isFinite(registrationPrice) || !Number.isFinite(renewalPrice)) throw new ProviderConfigurationError('Name.com response is missing availability or pricing.');
+      return { domain, available: result.purchasable, registrationPrice, renewalPrice, premium: result.premium === true, registrar: 'Name.com', checkedAt: new Date().toISOString(), stale: false };
+    },
+  };
+}
+
 function liveProvider(endpoint?: string, apiKey?: string): AvailabilityProvider {
   return {
     mode: 'live',
@@ -73,21 +97,21 @@ function liveProvider(endpoint?: string, apiKey?: string): AvailabilityProvider 
   };
 }
 
-export function getAvailabilityProvider(mode = process.env.DOMAIN_PROVIDER, endpoint?: string, apiKey?: string): AvailabilityProvider {
+export function getAvailabilityProvider(mode = process.env.DOMAIN_PROVIDER, endpoint?: string, apiKey?: string, adapter: 'generic' | 'namecom' = 'generic'): AvailabilityProvider {
   const providerMode = normalizeProviderMode(mode);
-  if (providerMode === 'live') return liveProvider(endpoint, apiKey);
+  if (providerMode === 'live') return adapter === 'namecom' ? nameComProvider(endpoint, apiKey) : liveProvider(endpoint, apiKey);
   return deterministicProvider(providerMode);
 }
 
-export function getAvailabilityProviderStatus(mode = process.env.DOMAIN_PROVIDER, endpoint?: string, apiKey?: string): {
+export function getAvailabilityProviderStatus(mode = process.env.DOMAIN_PROVIDER, endpoint?: string, apiKey?: string, adapter: 'generic' | 'namecom' = 'generic'): {
   mode: AvailabilityProviderMode;
   label: string;
   liveReady: boolean;
 } {
-  const provider = getAvailabilityProvider(mode, endpoint, apiKey);
+  const provider = getAvailabilityProvider(mode, endpoint, apiKey, adapter);
   return {
     mode: provider.mode,
     label: provider.label,
-    liveReady: provider.mode !== 'live' ? true : Boolean((endpoint || process.env.REGISTRAR_API_URL) && (apiKey || process.env.REGISTRAR_API_KEY)),
+    liveReady: provider.mode !== 'live' ? true : adapter === 'namecom' ? Boolean(apiKey || process.env.REGISTRAR_API_KEY) : Boolean((endpoint || process.env.REGISTRAR_API_URL) && (apiKey || process.env.REGISTRAR_API_KEY)),
   };
 }

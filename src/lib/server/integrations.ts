@@ -3,6 +3,7 @@ import { getAvailabilityProviderStatus } from '@/lib/providers/availability';
 import { getComparableSalesProviderStatus } from '@/lib/providers/comparable-sales';
 import { getHistoryProviderStatus } from '@/lib/providers/history';
 import { getTrademarkProviderStatus } from '@/lib/providers/trademark';
+import { getPublicBusinessProviderStatus } from '@/lib/providers/public-business';
 import { getAppConfig } from './app-config';
 import { MANAGED_PROVIDER_CREDENTIALS, resolveProviderCredential } from './provider-credentials';
 import { requireWorkspaceContext } from './workspace-context';
@@ -91,6 +92,7 @@ export async function getProviderCredentialViews() {
       return {
         key: provider.key,
         label: provider.label,
+        hint: provider.hint,
         source: stored ? 'database' as const : process.env[provider.envName] ? 'environment' as const : 'missing' as const,
         updatedAt: stored?.updatedAt ?? null,
       };
@@ -111,10 +113,11 @@ export async function getProviderRuntimeStatuses() {
     resolveProviderCredential(context.workspaceId, 'stripe_webhook_secret'),
   ]);
   return [
-    { key: 'registrar', ...getAvailabilityProviderStatus(config.availabilityProvider, config.providerEndpoints.registrar, registrarKey) },
+    { key: 'registrar', ...getAvailabilityProviderStatus(config.availabilityProvider, config.providerEndpoints.registrar, registrarKey, config.registrarAdapter) },
     { key: 'trademark', ...getTrademarkProviderStatus(config.trademarkProvider, config.providerEndpoints.trademark, trademarkKey) },
     { key: 'comparableSales', ...getComparableSalesProviderStatus(config.comparableSalesProvider, config.providerEndpoints.comparableSales, salesKey) },
     { key: 'history', ...getHistoryProviderStatus(config.historyProvider, config.providerEndpoints.history, historyKey) },
+    { key: 'publicBusiness', ...getPublicBusinessProviderStatus(config.publicBusinessProvider, config.providerEndpoints.publicBusiness, config.publicBusinessContact) },
     {
       key: 'transactionalEmail',
       label: 'Transactional email',

@@ -5,10 +5,14 @@ describe('app config parsing', () => {
   it('uses safe defaults for missing runtime settings', () => {
     expect(parseAppConfig(undefined)).toEqual({
       availabilityProvider: 'mock',
+      registrarAdapter: 'generic',
       trademarkProvider: 'mock',
       comparableSalesProvider: 'mock',
       historyProvider: 'mock',
-      providerEndpoints: { registrar: '', trademark: '', comparableSales: '', history: '' },
+      publicBusinessProvider: 'mock',
+      providerEndpoints: { registrar: '', trademark: '', comparableSales: '', history: '', publicBusiness: '' },
+      publicBusinessContact: '',
+      providerPolicy: { cacheTtlMinutes: 30, staleTtlHours: 24, dailyQuota: 500, minimumIntervalMs: 250 },
       authDiagnosticsEnabled: false,
       transactionalEmail: {
         enabled: false,
@@ -100,15 +104,20 @@ describe('app config parsing', () => {
       }),
     ).toEqual({
       availabilityProvider: 'live',
+      registrarAdapter: 'generic',
       trademarkProvider: 'deterministic',
       comparableSalesProvider: 'live',
       historyProvider: 'mock',
+      publicBusinessProvider: 'mock',
       providerEndpoints: {
         registrar: 'https://providers.example/registrar',
         trademark: '',
         comparableSales: 'https://providers.example/sales',
         history: '',
+        publicBusiness: '',
       },
+      publicBusinessContact: '',
+      providerPolicy: { cacheTtlMinutes: 30, staleTtlHours: 24, dailyQuota: 500, minimumIntervalMs: 250 },
       authDiagnosticsEnabled: true,
       transactionalEmail: {
         enabled: true,

@@ -74,14 +74,24 @@ export async function updateRuntimeSettings(formData: FormData): Promise<void> {
 
   const config = await updateAppConfig({
     availabilityProvider: availabilityProvider === 'deterministic' || availabilityProvider === 'mock' || availabilityProvider === 'live' ? availabilityProvider : 'mock',
+    registrarAdapter: String(formData.get('registrarAdapter')) === 'namecom' ? 'namecom' : 'generic',
     trademarkProvider: readProvider('trademarkProvider'),
     comparableSalesProvider: readProvider('comparableSalesProvider'),
     historyProvider: readProvider('historyProvider'),
+    publicBusinessProvider: readProvider('publicBusinessProvider'),
     providerEndpoints: {
       registrar: String(formData.get('registrarEndpoint') ?? ''),
       trademark: String(formData.get('trademarkEndpoint') ?? ''),
       comparableSales: String(formData.get('comparableSalesEndpoint') ?? ''),
       history: String(formData.get('historyEndpoint') ?? ''),
+      publicBusiness: String(formData.get('publicBusinessEndpoint') ?? ''),
+    },
+    publicBusinessContact: String(formData.get('publicBusinessContact') ?? ''),
+    providerPolicy: {
+      cacheTtlMinutes: Number(formData.get('providerCacheTtlMinutes')),
+      staleTtlHours: Number(formData.get('providerStaleTtlHours')),
+      dailyQuota: Number(formData.get('providerDailyQuota')),
+      minimumIntervalMs: Number(formData.get('providerMinimumIntervalMs')),
     },
     workerJobLimit,
     workerLeaseMs,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createCsv, reviewDomainCsv } from '../src/lib/csv-mobility';
+import { createCsv, reviewComparableSalesCsv, reviewDomainCsv } from '../src/lib/csv-mobility';
 import { nextDiscoveryRun } from '../src/lib/discovery-cadence';
 
 describe('CSV mobility', () => {
@@ -13,6 +13,12 @@ describe('CSV mobility', () => {
 
   it('neutralizes spreadsheet formulas in exports', () => {
     expect(createCsv(['domain'], [['=HYPERLINK("bad")']])).toContain("'=HYPERLINK");
+  });
+
+  it('reviews comparable-sale CSV rows and reports duplicates and unsafe cells', () => {
+    const csv = 'subject_domain,domain,price,sale_date,marketplace,evidence_url\nworkflowpilot.ai,workflowlabs.ai,2500,2026-01-10,Example Market,https://example.com/sale\nworkflowpilot.ai,workflowlabs.ai,2500,2026-01-10,Example Market,https://example.com/sale\nworkflowpilot.ai,bad.com,10,2026-01-10,=CMD(),';
+    const rows = reviewComparableSalesCsv(csv, []);
+    expect(rows.map((row) => row.status)).toEqual(['VALID', 'DUPLICATE', 'ERROR']);
   });
 });
 

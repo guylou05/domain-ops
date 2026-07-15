@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { removeProviderCredential, saveProviderCredential, toggleIntegrationStatus } from './actions';
+import { removeProviderCredential, saveProviderCredential, testProviderConnection, toggleIntegrationStatus } from './actions';
 import { getIntegrations, getProviderCredentialViews, getProviderRuntimeStatuses } from '@/lib/server/integrations';
 
 export const dynamic = 'force-dynamic';
@@ -39,6 +39,7 @@ export default async function IntegrationsPage() {
             <p className={provider.liveReady ? 'mt-2 text-xs font-semibold text-emerald-300' : 'mt-2 text-xs font-semibold text-amber-200'}>
               {provider.liveReady ? 'Ready' : provider.mode === 'off' ? 'Disabled' : 'Configuration incomplete'}
             </p>
+            {provider.mode === 'live' && provider.liveReady && credentialVault.canManage ? <form action={testProviderConnection} className="mt-2"><input name="provider" type="hidden" value={provider.key} /><button className="text-xs font-semibold text-brand">Run smoke check</button></form> : null}
           </div>
         ))}
       </section>
@@ -56,6 +57,7 @@ export default async function IntegrationsPage() {
             <div className="grid gap-3 py-4 lg:grid-cols-[220px_1fr_auto] lg:items-end" key={provider.key}>
               <div>
                 <h3 className="font-semibold">{provider.label}</h3>
+                <p className="mt-1 text-xs text-slate-500">{provider.hint}</p>
                 <p className="mt-1 text-xs text-slate-400">
                   {provider.source === 'database' ? `Stored ${formatDate(provider.updatedAt)}` : provider.source === 'environment' ? 'Using Railway variable' : 'No key configured'}
                 </p>

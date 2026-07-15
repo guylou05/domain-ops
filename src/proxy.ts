@@ -19,6 +19,7 @@ const protectedRoutes = [
   '/overview',
   '/portfolio',
   '/reports',
+  '/research',
   '/renewals',
   '/settings',
   '/watchlists',

@@ -144,6 +144,51 @@ test.describe('seeded workspace workflows', () => {
     await expect(page.getByText('private.csv')).not.toBeVisible();
   });
 
+  test('research manages comparable sales, provider sync, consent, and workspace isolation', async ({ page }) => {
+    const suffix = Date.now();
+    const comparable = `research${suffix}.com`;
+    const workspace = await prisma.workspace.findUniqueOrThrow({ where: { slug: 'demo-domain-portfolio' }, select: { id: true } });
+    const foreignWorkspace = await prisma.workspace.create({ data: { name: 'Foreign Research Workspace', slug: `foreign-research-${suffix}` } });
+    await prisma.comparableSale.create({ data: { workspaceId: foreignWorkspace.id, subjectDomain: 'workflowpilot.ai', domain: 'private-research-only.com', tld: '.com', price: 9999, saleDate: new Date('2026-01-02'), marketplace: 'Private Market' } });
+
+    await login(page);
+    await page.goto('/research');
+    await expect(page.getByRole('heading', { name: 'Research', exact: true })).toBeVisible();
+    const manual = page.locator('form').filter({ has: page.getByRole('heading', { name: 'Record comparable sale' }) });
+    await manual.locator('select[name="subjectDomain"]').selectOption('workflowpilot.ai');
+    await manual.locator('input[name="domain"]').fill(comparable);
+    await manual.locator('input[name="price"]').fill('4200');
+    await manual.locator('input[name="saleDate"]').fill('2026-02-14');
+    await manual.locator('input[name="marketplace"]').fill('Playwright Market');
+    await manual.getByRole('button', { name: 'Save sale' }).click();
+    await expect(page.getByText(comparable, { exact: true })).toBeVisible();
+
+    await page.locator('input[type="file"]').setInputFiles({ name: 'sales.csv', mimeType: 'text/csv', buffer: Buffer.from(`subject_domain,domain,price,sale_date,marketplace\nworkflowpilot.ai,csv${suffix}.net,1800,2026-03-01,CSV Market\nworkflowpilot.ai,${comparable},4200,2026-02-14,Playwright Market`) });
+    await page.getByRole('button', { name: 'Review CSV' }).click();
+    await expect(page.getByText('1 valid')).toBeVisible();
+    await expect(page.getByText(/1 duplicates/)).toBeVisible();
+    await page.getByRole('button', { name: 'Import valid rows' }).click();
+    await expect(page).toHaveURL(/\/research\?imported=1/);
+    await expect(page.getByText(`csv${suffix}.net`, { exact: true })).toBeVisible();
+
+    const sync = page.locator('form').filter({ has: page.getByRole('button', { name: 'Sync comparable sales' }) });
+    await sync.locator('select[name="subjectDomain"]').selectOption('workflowpilot.ai');
+    await sync.getByRole('button', { name: 'Sync comparable sales' }).click();
+    await expect(page.getByText('PROVIDER').first()).toBeVisible();
+    await sync.locator('select[name="subjectDomain"]').selectOption('workflowpilot.ai');
+    await sync.getByRole('button', { name: 'Sync comparable sales' }).click();
+    await expect(page.getByText(/1 cache hits/).first()).toBeVisible();
+    await page.getByRole('button', { name: 'Accept public-data policy' }).click();
+    await expect(page.getByText('Public-data policy accepted')).toBeVisible();
+    const publicSearch = page.locator('form').filter({ has: page.getByRole('button', { name: 'Search public records' }) });
+    await publicSearch.locator('select[name="subjectDomain"]').selectOption('workflowpilot.ai');
+    await publicSearch.getByRole('button', { name: 'Search public records' }).click();
+    await expect(page.getByRole('heading', { name: 'Provider usage today' })).toBeVisible();
+    await expect(page.getByText('public_business', { exact: true })).toBeVisible();
+    await expect(page.getByText('private-research-only.com')).not.toBeVisible();
+    await expect(prisma.comparableSale.count({ where: { workspaceId: workspace.id, subjectDomain: 'workflowpilot.ai' } })).resolves.toBeGreaterThan(1);
+  });
+
   test('admin can queue background jobs', async ({ page }) => {
     await login(page);
     await page.goto('/admin');

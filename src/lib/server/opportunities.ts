@@ -189,7 +189,7 @@ export async function getOpportunityDetail(domainName: string): Promise<Opportun
   const latestTrademark = opportunity.domain.trademarkChecks[0];
   const latestHistory = opportunity.domain.historyChecks[0];
   const comparableSales = await prisma.comparableSale.findMany({
-    where: { subjectDomain: normalizedName },
+    where: { workspaceId: context.workspaceId, subjectDomain: normalizedName },
     orderBy: { saleDate: 'desc' },
     take: 5,
   });

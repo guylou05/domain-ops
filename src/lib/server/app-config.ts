@@ -4,14 +4,24 @@ import type { AvailabilityProviderMode } from '../providers/availability';
 
 export type AppConfig = {
   availabilityProvider: AvailabilityProviderMode;
+  registrarAdapter: 'generic' | 'namecom';
   trademarkProvider: AvailabilityProviderMode;
   comparableSalesProvider: AvailabilityProviderMode;
   historyProvider: AvailabilityProviderMode;
+  publicBusinessProvider: AvailabilityProviderMode;
   providerEndpoints: {
     registrar: string;
     trademark: string;
     comparableSales: string;
     history: string;
+    publicBusiness: string;
+  };
+  publicBusinessContact: string;
+  providerPolicy: {
+    cacheTtlMinutes: number;
+    staleTtlHours: number;
+    dailyQuota: number;
+    minimumIntervalMs: number;
   };
   authDiagnosticsEnabled: boolean;
   transactionalEmail: {
@@ -65,10 +75,14 @@ export type JobScheduleConfig = {
 const CONFIG_KEY = 'runtime';
 const DEFAULT_CONFIG: AppConfig = {
   availabilityProvider: 'mock',
+  registrarAdapter: 'generic',
   trademarkProvider: 'mock',
   comparableSalesProvider: 'mock',
   historyProvider: 'mock',
-  providerEndpoints: { registrar: '', trademark: '', comparableSales: '', history: '' },
+  publicBusinessProvider: 'mock',
+  providerEndpoints: { registrar: '', trademark: '', comparableSales: '', history: '', publicBusiness: '' },
+  publicBusinessContact: '',
+  providerPolicy: { cacheTtlMinutes: 30, staleTtlHours: 24, dailyQuota: 500, minimumIntervalMs: 250 },
   authDiagnosticsEnabled: false,
   transactionalEmail: {
     enabled: false,
@@ -177,20 +191,31 @@ export function parseAppConfig(value: unknown): AppConfig {
   const object = readObject(value);
   const schedules = readObject(object.jobSchedules);
   const endpoints = readObject(object.providerEndpoints);
+  const providerPolicy = readObject(object.providerPolicy);
   const transactionalEmail = readObject(object.transactionalEmail);
   const billing = readObject(object.billing);
   const observability = readObject(object.observability);
   const abuseProtection = readObject(object.abuseProtection);
   return {
     availabilityProvider: readProvider(object.availabilityProvider),
+    registrarAdapter: object.registrarAdapter === 'namecom' ? 'namecom' : 'generic',
     trademarkProvider: readProvider(object.trademarkProvider),
     comparableSalesProvider: readProvider(object.comparableSalesProvider),
     historyProvider: readProvider(object.historyProvider),
+    publicBusinessProvider: readProvider(object.publicBusinessProvider),
     providerEndpoints: {
       registrar: readEndpoint(endpoints.registrar),
       trademark: readEndpoint(endpoints.trademark),
       comparableSales: readEndpoint(endpoints.comparableSales),
       history: readEndpoint(endpoints.history),
+      publicBusiness: readEndpoint(endpoints.publicBusiness),
+    },
+    publicBusinessContact: readEmailSender(object.publicBusinessContact),
+    providerPolicy: {
+      cacheTtlMinutes: readPositiveInteger(providerPolicy.cacheTtlMinutes, DEFAULT_CONFIG.providerPolicy.cacheTtlMinutes, 1, 1440),
+      staleTtlHours: readPositiveInteger(providerPolicy.staleTtlHours, DEFAULT_CONFIG.providerPolicy.staleTtlHours, 1, 720),
+      dailyQuota: readPositiveInteger(providerPolicy.dailyQuota, DEFAULT_CONFIG.providerPolicy.dailyQuota, 1, 100000),
+      minimumIntervalMs: readPositiveInteger(providerPolicy.minimumIntervalMs, DEFAULT_CONFIG.providerPolicy.minimumIntervalMs, 0, 60000),
     },
     authDiagnosticsEnabled: object.authDiagnosticsEnabled === true,
     transactionalEmail: {

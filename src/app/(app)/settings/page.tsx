@@ -167,6 +167,7 @@ export default async function SettingsPage({
                 { label: 'Trademark screening', modeName: 'trademarkProvider', endpointName: 'trademarkEndpoint', mode: settings.appConfig.trademarkProvider, endpoint: settings.appConfig.providerEndpoints.trademark },
                 { label: 'Comparable sales', modeName: 'comparableSalesProvider', endpointName: 'comparableSalesEndpoint', mode: settings.appConfig.comparableSalesProvider, endpoint: settings.appConfig.providerEndpoints.comparableSales },
                 { label: 'Domain history', modeName: 'historyProvider', endpointName: 'historyEndpoint', mode: settings.appConfig.historyProvider, endpoint: settings.appConfig.providerEndpoints.history },
+                { label: 'Public business data', modeName: 'publicBusinessProvider', endpointName: 'publicBusinessEndpoint', mode: settings.appConfig.publicBusinessProvider, endpoint: settings.appConfig.providerEndpoints.publicBusiness },
               ].map((provider) => (
                 <div className="grid gap-3 border-l-2 border-white/10 pl-3" key={provider.modeName}>
                   <label className="grid gap-2 text-sm">
@@ -183,6 +184,26 @@ export default async function SettingsPage({
                   </label>
                 </div>
               ))}
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <label className="grid gap-2 text-sm text-slate-300">Registrar contract
+                <select className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" defaultValue={settings.appConfig.registrarAdapter} name="registrarAdapter"><option value="generic">Generic JSON</option><option value="namecom">Name.com Core</option></select>
+              </label>
+              <label className="grid gap-2 text-sm text-slate-300">Public-data contact
+                <input className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" defaultValue={settings.appConfig.publicBusinessContact} name="publicBusinessContact" placeholder="research@example.com" type="email" />
+              </label>
+              <label className="grid gap-2 text-sm text-slate-300">Fresh cache minutes
+                <input className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" defaultValue={settings.appConfig.providerPolicy.cacheTtlMinutes} min="1" name="providerCacheTtlMinutes" type="number" />
+              </label>
+              <label className="grid gap-2 text-sm text-slate-300">Stale fallback hours
+                <input className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" defaultValue={settings.appConfig.providerPolicy.staleTtlHours} min="1" name="providerStaleTtlHours" type="number" />
+              </label>
+              <label className="grid gap-2 text-sm text-slate-300">Daily provider quota
+                <input className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" defaultValue={settings.appConfig.providerPolicy.dailyQuota} min="1" name="providerDailyQuota" type="number" />
+              </label>
+              <label className="grid gap-2 text-sm text-slate-300">Minimum interval ms
+                <input className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" defaultValue={settings.appConfig.providerPolicy.minimumIntervalMs} min="0" name="providerMinimumIntervalMs" type="number" />
+              </label>
             </div>
           </fieldset>
           <label className="grid gap-2 text-sm">

@@ -3,11 +3,13 @@ import { prisma } from '@/lib/prisma';
 import { getComparableSalesProvider } from '@/lib/providers/comparable-sales';
 import { getHistoryProvider } from '@/lib/providers/history';
 import { getTrademarkProvider } from '@/lib/providers/trademark';
+import { getPublicBusinessProvider, PUBLIC_BUSINESS_POLICY_VERSION } from '@/lib/providers/public-business';
 import { getAppConfig } from './app-config';
 import { withEntitlementUsage } from './entitlements';
 import { resolveProviderCredential } from './provider-credentials';
 import { assertWorkspaceWriter, type WorkspaceContext } from './workspace-context';
 import { observeOperationalCall } from './observability';
+import { runGovernedProviderCall } from './provider-governance';
 
 function riskLevel(value: 'LOW' | 'MODERATE' | 'HIGH' | 'PROHIBITED'): RiskLevel {
   return RiskLevel[value];
@@ -34,53 +36,24 @@ async function executeDomainDueDiligence(context: WorkspaceContext, domainName: 
   const trademarkProvider = getTrademarkProvider(config.trademarkProvider, config.providerEndpoints.trademark, trademarkKey);
   const salesProvider = getComparableSalesProvider(config.comparableSalesProvider, config.providerEndpoints.comparableSales, salesKey);
   const historyProvider = getHistoryProvider(config.historyProvider, config.providerEndpoints.history, historyKey);
-  const [trademark, comparableSales, history] = await Promise.all([
-    observeOperationalCall({ workspaceId: context.workspaceId, source: 'provider', event: 'provider.trademark', correlationId: domain.id, metadata: { mode: trademarkProvider.mode } }, () => trademarkProvider.check(domain.name)),
-    observeOperationalCall({ workspaceId: context.workspaceId, source: 'provider', event: 'provider.comparable_sales', correlationId: domain.id, metadata: { mode: salesProvider.mode } }, () => salesProvider.search(domain.name)),
-    observeOperationalCall({ workspaceId: context.workspaceId, source: 'provider', event: 'provider.history', correlationId: domain.id, metadata: { mode: historyProvider.mode } }, () => historyProvider.check(domain.name, domain.opportunity?.score)),
+  const publicProvider = getPublicBusinessProvider(config.publicBusinessProvider, config.providerEndpoints.publicBusiness, config.publicBusinessContact);
+  const publicConsent = config.publicBusinessProvider !== 'live' || Boolean(await prisma.researchConsent.findFirst({ where: { workspaceId: context.workspaceId, provider: 'sec_edgar', policyVersion: PUBLIC_BUSINESS_POLICY_VERSION, revokedAt: null } }));
+  const [trademarkCall, salesCall, historyCall, publicCall] = await Promise.allSettled([
+    observeOperationalCall({ workspaceId: context.workspaceId, source: 'provider', event: 'provider.trademark', correlationId: domain.id, metadata: { mode: trademarkProvider.mode } }, () => runGovernedProviderCall({ workspaceId: context.workspaceId, provider: 'trademark', cacheKey: domain.name, policy: config.providerPolicy, execute: () => trademarkProvider.check(domain.name), markStale: (value) => ({ ...value, stale: true }) })),
+    observeOperationalCall({ workspaceId: context.workspaceId, source: 'provider', event: 'provider.comparable_sales', correlationId: domain.id, metadata: { mode: salesProvider.mode } }, () => runGovernedProviderCall({ workspaceId: context.workspaceId, provider: 'comparable_sales', cacheKey: domain.name, policy: config.providerPolicy, execute: () => salesProvider.search(domain.name), markStale: (value) => ({ ...value, stale: true }) })),
+    observeOperationalCall({ workspaceId: context.workspaceId, source: 'provider', event: 'provider.history', correlationId: domain.id, metadata: { mode: historyProvider.mode } }, () => runGovernedProviderCall({ workspaceId: context.workspaceId, provider: 'domain_history', cacheKey: domain.name, policy: config.providerPolicy, execute: () => historyProvider.check(domain.name, domain.opportunity?.score), markStale: (value) => ({ ...value, stale: true }) })),
+    publicConsent ? observeOperationalCall({ workspaceId: context.workspaceId, source: 'provider', event: 'provider.public_business', correlationId: domain.id, metadata: { mode: publicProvider.mode } }, () => runGovernedProviderCall({ workspaceId: context.workspaceId, provider: 'public_business', cacheKey: domain.name, policy: config.providerPolicy, execute: () => publicProvider.search(domain.name), markStale: (value) => ({ ...value, stale: true }) })) : Promise.reject(new Error('Public-data consent required.')),
   ]);
+  if ([trademarkCall, salesCall, historyCall].every((call) => call.status === 'rejected')) throw new Error('All due-diligence providers failed. Review provider health and credentials.');
 
-  await prisma.$transaction([
-    prisma.trademarkCheck.create({
-      data: {
-        domainId: domain.id,
-        riskLevel: riskLevel(trademark.riskLevel),
-        matches: trademark.matches as unknown as Prisma.InputJsonValue,
-        disclaimer: `${trademark.disclaimer} Provider: ${trademarkProvider.label}${trademark.stale ? ' (stale cache)' : ''}.`,
-      },
-    }),
-    prisma.domainHistoryCheck.create({
-      data: {
-        domainId: domain.id,
-        riskLevel: riskLevel(history.riskLevel),
-        flags: history.flags,
-        evidence: [...history.evidence, `Provider: ${historyProvider.label}${history.stale ? ' (stale cache)' : ''}.`],
-        checkedAt: new Date(history.checkedAt),
-      },
-    }),
-    ...comparableSales.sales.map((sale) =>
-      prisma.comparableSale.upsert({
-        where: { subjectDomain_domain_price_saleDate: { subjectDomain: domain.name, domain: sale.domain, price: new Prisma.Decimal(sale.price), saleDate: new Date(sale.saleDate) } },
-        update: {
-          marketplace: sale.marketplace,
-          industry: sale.industry,
-          metadata: { subjectDomain: domain.name, provider: salesProvider.label, stale: comparableSales.stale },
-        },
-        create: {
-          subjectDomain: domain.name,
-          domain: sale.domain,
-          tld: sale.tld,
-          price: new Prisma.Decimal(sale.price),
-          saleDate: new Date(sale.saleDate),
-          marketplace: sale.marketplace,
-          industry: sale.industry,
-          metadata: { subjectDomain: domain.name, provider: salesProvider.label, stale: comparableSales.stale },
-        },
-      }),
-    ),
-  ]);
+  await prisma.$transaction(async (tx) => {
+    if (trademarkCall.status === 'fulfilled') await tx.trademarkCheck.create({ data: { domainId: domain.id, riskLevel: riskLevel(trademarkCall.value.riskLevel), matches: trademarkCall.value.matches as unknown as Prisma.InputJsonValue, disclaimer: `${trademarkCall.value.disclaimer} Provider: ${trademarkProvider.label}${trademarkCall.value.stale ? ' (stale cache)' : ''}.` } });
+    if (historyCall.status === 'fulfilled') await tx.domainHistoryCheck.create({ data: { domainId: domain.id, riskLevel: riskLevel(historyCall.value.riskLevel), flags: historyCall.value.flags, evidence: [...historyCall.value.evidence, `Provider: ${historyProvider.label}${historyCall.value.stale ? ' (stale cache)' : ''}.`], checkedAt: new Date(historyCall.value.checkedAt) } });
+    if (salesCall.status === 'fulfilled') for (const sale of salesCall.value.sales) await tx.comparableSale.upsert({ where: { workspaceId_subjectDomain_domain_price_saleDate: { workspaceId: context.workspaceId, subjectDomain: domain.name, domain: sale.domain, price: new Prisma.Decimal(sale.price), saleDate: new Date(sale.saleDate) } }, update: { marketplace: sale.marketplace, industry: sale.industry, source: 'PROVIDER', checkedAt: new Date(salesCall.value.checkedAt), metadata: { provider: salesProvider.label, stale: salesCall.value.stale } }, create: { workspaceId: context.workspaceId, createdById: context.userId, subjectDomain: domain.name, domain: sale.domain, tld: sale.tld, price: new Prisma.Decimal(sale.price), saleDate: new Date(sale.saleDate), marketplace: sale.marketplace, industry: sale.industry, source: 'PROVIDER', checkedAt: new Date(salesCall.value.checkedAt), metadata: { provider: salesProvider.label, stale: salesCall.value.stale } } });
+    if (publicCall.status === 'fulfilled') for (const match of publicCall.value.matches) await tx.publicBusinessEvidence.upsert({ where: { workspaceId_subjectDomain_provider_companyName_sourceUrl: { workspaceId: context.workspaceId, subjectDomain: domain.name, provider: publicProvider.label, companyName: match.companyName, sourceUrl: match.sourceUrl } }, update: { jurisdiction: match.jurisdiction, identifier: match.identifier, fetchedAt: new Date(publicCall.value.checkedAt), stale: publicCall.value.stale }, create: { workspaceId: context.workspaceId, subjectDomain: domain.name, provider: publicProvider.label, companyName: match.companyName, jurisdiction: match.jurisdiction, identifier: match.identifier, sourceUrl: match.sourceUrl, fetchedAt: new Date(publicCall.value.checkedAt), stale: publicCall.value.stale, metadata: { legalNotice: publicCall.value.legalNotice } } });
+  });
 
-  return { trademarkMatches: trademark.matches.length, comparableSales: comparableSales.sales.length, historyRisk: history.riskLevel };
+  return { trademarkMatches: trademarkCall.status === 'fulfilled' ? trademarkCall.value.matches.length : 0, comparableSales: salesCall.status === 'fulfilled' ? salesCall.value.sales.length : 0, historyRisk: historyCall.status === 'fulfilled' ? historyCall.value.riskLevel : 'UNKNOWN', providerFailures: [trademarkCall, salesCall, historyCall, publicCall].filter((call) => call.status === 'rejected').length };
 }
 
 export async function runWorkspaceHistoryChecks(context: WorkspaceContext, limit = 8): Promise<number> {
@@ -99,10 +72,11 @@ async function executeWorkspaceHistoryChecks(context: WorkspaceContext, limit: n
     select: { score: true, domain: { select: { id: true, name: true } } },
   });
 
-  const results = await observeOperationalCall({ workspaceId: context.workspaceId, source: 'provider', event: 'provider.history_batch', metadata: { mode: provider.mode, count: opportunities.length } }, () => Promise.all(opportunities.map(async (opportunity) => ({
+  const settled = await observeOperationalCall({ workspaceId: context.workspaceId, source: 'provider', event: 'provider.history_batch', metadata: { mode: provider.mode, count: opportunities.length } }, () => Promise.allSettled(opportunities.map(async (opportunity) => ({
     domainId: opportunity.domain.id,
-    result: await provider.check(opportunity.domain.name, opportunity.score),
+    result: await runGovernedProviderCall({ workspaceId: context.workspaceId, provider: 'domain_history', cacheKey: opportunity.domain.name, policy: config.providerPolicy, execute: () => provider.check(opportunity.domain.name, opportunity.score), markStale: (value) => ({ ...value, stale: true }) }),
   }))));
+  const results = settled.filter((item): item is PromiseFulfilledResult<{ domainId: string; result: Awaited<ReturnType<typeof provider.check>> }> => item.status === 'fulfilled').map((item) => item.value);
   await prisma.$transaction(results.map(({ domainId, result }) => prisma.domainHistoryCheck.create({
     data: {
       domainId,

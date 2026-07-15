@@ -4,6 +4,7 @@ import { getComparableSalesProvider } from '../src/lib/providers/comparable-sale
 import { fetchLiveProviderJson, ProviderRequestError } from '../src/lib/providers/core';
 import { getHistoryProvider } from '../src/lib/providers/history';
 import { getTrademarkProvider } from '../src/lib/providers/trademark';
+import { getPublicBusinessProvider } from '../src/lib/providers/public-business';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -34,6 +35,31 @@ describe('research provider adapters', () => {
 
     const result = await getAvailabilityProvider('live', 'https://provider.example/availability').check('workflowpilot.ai');
     expect(result).toMatchObject({ available: true, registrationPrice: 19, registrar: 'ProviderRegistrar', stale: false });
+  });
+
+  it('implements the Name.com availability and pricing contract', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ results: [{ domainName: 'workflowpilot.ai', purchasable: true, purchasePrice: 39, renewalPrice: 79, premium: false }] }), { status: 200 }));
+    const result = await getAvailabilityProvider('live', 'https://api.name.com/core/v1/domains:checkAvailability', 'reseller:token', 'namecom').check('workflowpilot.ai');
+    expect(result).toMatchObject({ available: true, registrationPrice: 39, renewalPrice: 79, registrar: 'Name.com' });
+    expect(fetchMock).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ method: 'POST', headers: expect.objectContaining({ Authorization: expect.stringMatching(/^Basic /) }) }));
+  });
+
+  it('normalizes SEC public-company evidence with an identifying contact', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ 0: { cik_str: 1234, ticker: 'FLOW', title: 'Workflowpilot Holdings' } }), { status: 200 }));
+    const result = await getPublicBusinessProvider('live', 'https://www.sec.gov/files/company_tickers.json', 'research@example.com').search('workflowpilot.ai');
+    expect(result.matches[0]).toMatchObject({ companyName: 'Workflowpilot Holdings', jurisdiction: 'US-SEC', identifier: '0000001234' });
+  });
+
+  it('enforces normalized live contracts for trademark, sales, and history adapters', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.includes('/trademark')) return new Response(JSON.stringify({ riskLevel: 'moderate', matches: [{ mark: 'Workflow Pilot', owner: 'Example Inc.' }], disclaimer: 'Screening only.' }), { status: 200 });
+      if (url.includes('/sales')) return new Response(JSON.stringify({ sales: [{ domain: 'workflowlabs.ai', tld: '.ai', price: 3200, saleDate: '2026-01-10T00:00:00.000Z', marketplace: 'Contract Market' }] }), { status: 200 });
+      return new Response(JSON.stringify({ riskLevel: 'low', flags: [], evidence: ['Archive snapshot reviewed.'] }), { status: 200 });
+    });
+    await expect(getTrademarkProvider('live', 'https://provider.example/trademark', 'key').check('workflowpilot.ai')).resolves.toMatchObject({ riskLevel: 'MODERATE', stale: false });
+    await expect(getComparableSalesProvider('live', 'https://provider.example/sales', 'key').search('workflowpilot.ai')).resolves.toMatchObject({ sales: [expect.objectContaining({ price: 3200 })] });
+    await expect(getHistoryProvider('live', 'https://provider.example/history', 'key').check('workflowpilot.ai')).resolves.toMatchObject({ riskLevel: 'LOW', evidence: ['Archive snapshot reviewed.'] });
   });
 
   it('returns stale cached data after a retryable provider failure', async () => {

@@ -1,12 +1,14 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { parseDomainLines } from '@/lib/domain-parsing';
-import { analyzeDomainsWithProviderMode, generateDomainIdeas, generationSchema, type DomainAnalysis, type GenerationInput } from '@/lib/domain-engine';
+import { generateDomainIdeas, generationSchema, scoreDomain, type DomainAnalysis, type GenerationInput } from '@/lib/domain-engine';
+import { getAvailabilityProvider } from '@/lib/providers/availability';
 import { assertWorkspaceWriter, type WorkspaceContext } from './workspace-context';
 import { getAppConfig } from './app-config';
 import { withEntitlementUsage } from './entitlements';
 import { resolveProviderCredential } from './provider-credentials';
 import { observeOperationalCall } from './observability';
+import { runGovernedProviderCall } from './provider-governance';
 
 export type PersistedOpportunity = {
   domainId: string;
@@ -134,7 +136,8 @@ export async function generateAnalyzeAndPersist(context: WorkspaceContext, input
   const apiKey = await resolveProviderCredential(context.workspaceId, 'registrar');
   const domains = generateDomainIdeas(parsed);
   return withEntitlementUsage(context.workspaceId, 'domain_checks', domains.length, async () => {
-    const analyses = await observeOperationalCall({ workspaceId: context.workspaceId, source: 'provider', event: 'provider.registrar_batch', metadata: { mode: config.availabilityProvider, count: domains.length } }, () => analyzeDomainsWithProviderMode(domains, parsed.industry, config.availabilityProvider, config.providerEndpoints.registrar, apiKey));
+    const provider = getAvailabilityProvider(config.availabilityProvider, config.providerEndpoints.registrar, apiKey, config.registrarAdapter);
+    const analyses = await observeOperationalCall({ workspaceId: context.workspaceId, source: 'provider', event: 'provider.registrar_batch', metadata: { mode: config.availabilityProvider, adapter: config.registrarAdapter, count: domains.length } }, () => Promise.all(domains.map(async (domain) => scoreDomain(await runGovernedProviderCall({ workspaceId: context.workspaceId, provider: 'registrar', cacheKey: domain, policy: config.providerPolicy, execute: () => provider.check(domain), markStale: (result) => ({ ...result, stale: true }) }), parsed.industry))));
     return persistAnalyzedOpportunities(context, analyses, source);
   }, (results) => results.length);
 }
@@ -145,7 +148,8 @@ export async function importAnalyzeAndPersist(context: WorkspaceContext, rawDoma
   const config = await getAppConfig();
   const apiKey = await resolveProviderCredential(context.workspaceId, 'registrar');
   return withEntitlementUsage(context.workspaceId, 'domain_checks', domains.length, async () => {
-    const analyses = await observeOperationalCall({ workspaceId: context.workspaceId, source: 'provider', event: 'provider.registrar_batch', metadata: { mode: config.availabilityProvider, count: domains.length } }, () => analyzeDomainsWithProviderMode(domains, industry || 'general', config.availabilityProvider, config.providerEndpoints.registrar, apiKey));
+    const provider = getAvailabilityProvider(config.availabilityProvider, config.providerEndpoints.registrar, apiKey, config.registrarAdapter);
+    const analyses = await observeOperationalCall({ workspaceId: context.workspaceId, source: 'provider', event: 'provider.registrar_batch', metadata: { mode: config.availabilityProvider, adapter: config.registrarAdapter, count: domains.length } }, () => Promise.all(domains.map(async (domain) => scoreDomain(await runGovernedProviderCall({ workspaceId: context.workspaceId, provider: 'registrar', cacheKey: domain, policy: config.providerPolicy, execute: () => provider.check(domain), markStale: (result) => ({ ...result, stale: true }) }), industry || 'general'))));
     return persistAnalyzedOpportunities(context, analyses, source);
   }, (results) => results.length);
 }

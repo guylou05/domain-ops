@@ -359,17 +359,101 @@ model Valuation {
 }
 
 model ComparableSale {
-  id          String   @id @default(cuid())
+  id            String   @id @default(cuid())
+  workspaceId   String
+  createdById   String?
   subjectDomain String
-  domain      String
-  tld         String
-  price       Decimal
-  saleDate    DateTime
-  marketplace String
-  industry    String?
-  metadata    Json     @default("{}")
+  domain        String
+  tld           String
+  price         Decimal
+  saleDate      DateTime
+  marketplace   String
+  industry      String?
+  source        String   @default("MANUAL")
+  evidenceUrl   String?
+  checkedAt     DateTime @default(now())
+  createdAt     DateTime @default(now())
+  metadata      Json     @default("{}")
 
-  @@unique([subjectDomain, domain, price, saleDate])
+  @@unique([workspaceId, subjectDomain, domain, price, saleDate])
+  @@index([workspaceId, subjectDomain, saleDate])
+}
+
+model ComparableSaleImportBatch {
+  id            String    @id @default(cuid())
+  workspaceId   String
+  createdById   String
+  filename      String
+  status        String    @default("REVIEW")
+  totalRows     Int
+  validRows     Int
+  duplicateRows Int
+  errorRows     Int
+  rows          Json
+  importedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([workspaceId, status, createdAt])
+}
+
+model ProviderCache {
+  id          String   @id @default(cuid())
+  workspaceId String
+  provider    String
+  cacheKey    String
+  payload     Json
+  fetchedAt   DateTime @default(now())
+  expiresAt   DateTime
+  staleAt     DateTime
+
+  @@unique([workspaceId, provider, cacheKey])
+  @@index([workspaceId, provider, expiresAt])
+}
+
+model ProviderUsage {
+  id            String    @id @default(cuid())
+  workspaceId   String
+  provider      String
+  periodStart   DateTime
+  requestCount  Int       @default(0)
+  cacheHits     Int       @default(0)
+  failures      Int       @default(0)
+  lastRequestAt DateTime?
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([workspaceId, provider, periodStart])
+  @@index([workspaceId, periodStart])
+}
+
+model ResearchConsent {
+  id            String    @id @default(cuid())
+  workspaceId   String
+  provider      String
+  acceptedById  String
+  policyVersion String
+  acceptedAt    DateTime  @default(now())
+  revokedAt     DateTime?
+
+  @@unique([workspaceId, provider, policyVersion])
+  @@index([workspaceId, provider, revokedAt])
+}
+
+model PublicBusinessEvidence {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  subjectDomain String
+  provider      String
+  companyName   String
+  jurisdiction  String?
+  identifier    String?
+  sourceUrl     String
+  fetchedAt     DateTime
+  stale         Boolean  @default(false)
+  metadata      Json     @default("{}")
+  createdAt     DateTime @default(now())
+
+  @@unique([workspaceId, subjectDomain, provider, companyName, sourceUrl])
+  @@index([workspaceId, subjectDomain, fetchedAt])
 }
 
 model TrademarkCheck {
@@ -394,21 +478,21 @@ model DomainHistoryCheck {
 }
 
 model DiscoveryJob {
-  id          String    @id @default(cuid())
-  workspaceId String
-  createdById String
-  status      JobStatus @default(QUEUED)
-  source      String
+  id            String    @id @default(cuid())
+  workspaceId   String
+  createdById   String
+  status        JobStatus @default(QUEUED)
+  source        String
   savedSearchId String?
-  criteria    Json
-  progress    Int       @default(0)
-  resultCount Int       @default(0)
-  error       String?
-  startedAt   DateTime?
-  completedAt DateTime?
-  cancelledAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  criteria      Json
+  progress      Int       @default(0)
+  resultCount   Int       @default(0)
+  error         String?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  cancelledAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@index([workspaceId, status, createdAt])
   @@index([savedSearchId, createdAt])
@@ -425,36 +509,36 @@ model DiscoverySource {
 }
 
 model SavedSearch {
-  id          String @id @default(cuid())
+  id          String    @id @default(cuid())
   workspaceId String
   createdById String
   name        String
   source      String
   schedule    String
   criteria    Json
-  status      Status @default(ACTIVE)
+  status      Status    @default(ACTIVE)
   lastRunAt   DateTime?
   nextRunAt   DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([workspaceId, status, nextRunAt])
 }
 
 model ImportBatch {
-  id             String   @id @default(cuid())
-  workspaceId    String
-  createdById    String
-  filename       String
-  industry       String
-  status         String   @default("REVIEW")
-  totalRows      Int
-  validRows      Int
-  duplicateRows  Int
-  errorRows      Int
-  rows           Json
-  importedAt     DateTime?
-  createdAt      DateTime @default(now())
+  id            String    @id @default(cuid())
+  workspaceId   String
+  createdById   String
+  filename      String
+  industry      String
+  status        String    @default("REVIEW")
+  totalRows     Int
+  validRows     Int
+  duplicateRows Int
+  errorRows     Int
+  rows          Json
+  importedAt    DateTime?
+  createdAt     DateTime  @default(now())
 
   @@index([workspaceId, status, createdAt])
 }
@@ -571,7 +655,7 @@ model OutreachMessage {
 }
 
 model Offer {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   workspaceId String
   domainId    String
   amount      Decimal
@@ -579,10 +663,10 @@ model Offer {
   buyerName   String?
   buyerEmail  String?
   notes       String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
   respondedAt DateTime?
-  updatedAt   DateTime @updatedAt
-  domain      Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  updatedAt   DateTime  @updatedAt
+  domain      Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId, status, createdAt])
   @@index([domainId])
@@ -606,7 +690,7 @@ model Sale {
 }
 
 model Renewal {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   workspaceId    String
   domainId       String
   dueDate        DateTime
@@ -616,9 +700,9 @@ model Renewal {
   decision       String?
   notes          String?
   decidedAt      DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  domain         Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  domain         Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
 
   @@unique([workspaceId, domainId, dueDate])
   @@index([workspaceId, status, dueDate])
