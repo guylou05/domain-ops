@@ -32,7 +32,9 @@
     "smoke:production": "node scripts/production-smoke.mjs",
     "supply-chain:check": "node scripts/check-supply-chain.mjs",
     "security:audit": "node scripts/check-vulnerabilities.mjs",
-    "security:sbom": "npm sbom --sbom-format cyclonedx"
+    "security:sbom": "npm sbom --sbom-format cyclonedx",
+    "canary:provision": "node scripts/provision-production-canary.mjs",
+    "canary:production": "node scripts/production-canary.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "5.4.0",

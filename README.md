@@ -47,6 +47,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 - [x] Responsive and keyboard-accessible navigation, security headers, performance gates, recovery runbooks, and scheduled production smoke checks.
 - [x] Redis-backed abuse protection for credential auth, registration, recovery, and verification delivery with UI-managed limits.
 - [x] Exact dependency and infrastructure pins, automated advisory policy, Dependabot cadence, SBOM artifacts, and upgrade rollback evidence.
+- [x] Least-privilege authenticated production canaries with session revocation and deduplicated failure alerts.
 - [x] Seed script with demo users, workspace, opportunities, watchlists, portfolio, reports, notifications, integrations, and admin data.
 - [x] Docker Compose for PostgreSQL, Redis, and the web app.
 - [x] Unit tests for generation, scoring, and domain import parsing.
@@ -146,6 +147,10 @@ This phase added atomic Redis fixed-window limits around login preflight, direct
 ## Supply Chain Maintenance Phase
 
 This phase replaced floating dependencies with exact reviewed versions, pinned Docker images to SHA-256 manifests and GitHub Actions to commit SHAs, and added Dependabot review cadence. CI now rejects manifest/lockfile drift, non-registry packages, missing SHA-512 integrity, unpinned execution inputs, high/critical advisories, and moderate advisories without an unexpired reviewed exception. Every supply-chain run publishes a CycloneDX SBOM, while `docs/DEPENDENCY-MAINTENANCE.md` defines framework upgrade and rollback evidence.
+
+## Authenticated Production Canary Phase
+
+This phase added Railway-managed rotation for a dedicated single-workspace `VIEWER` identity and an external GitHub Actions probe that exercises credential login, read-only dashboard rendering, logout, and session revocation every six hours. Canary diagnostics omit credentials, cookies, tokens, and response bodies; failures update one GitHub issue and recoveries close it automatically. Configuration and rotation procedures live in `docs/PRODUCTION-CANARY.md`.
 
 ## Local Setup
 

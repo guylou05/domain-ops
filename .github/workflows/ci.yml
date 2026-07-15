@@ -86,6 +86,8 @@ jobs:
       NEXTAUTH_URL: http://127.0.0.1:3000
       E2E_WORKFLOWS: "1"
       ENCRYPTION_KEY: ci-provider-credential-encryption-key-32-chars
+      CANARY_PASSWORD: ci-production-canary-password-12345
+      CANARY_BASE_URL: http://127.0.0.1:3000
     steps:
       - name: Check out repository
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
@@ -113,6 +115,27 @@ jobs:
 
       - name: Verify seeded auth
         run: npm run doctor:auth
+
+      - name: Provision least-privilege canary
+        run: npm run canary:provision
+
+      - name: Verify authenticated canary scripts
+        shell: bash
+        run: |
+          npm run dev -- --hostname 127.0.0.1 > /tmp/domainscout-canary-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "${server_pid}" 2>/dev/null || true' EXIT
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:3000/api/health > /dev/null; then
+              break
+            fi
+            if [ "${attempt}" -eq 30 ]; then
+              echo 'Canary test server did not become ready.'
+              exit 1
+            fi
+            sleep 2
+          done
+          npm run canary:production
 
       - name: Profile critical database queries
         run: npm run perf:queries

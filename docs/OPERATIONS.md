@@ -63,4 +63,4 @@ npm run perf:queries
 npm run smoke:production
 ```
 
-GitHub runs static/build, browser workflow, query profile, and asset-budget gates. The separate Production smoke workflow runs daily and can be started manually after a deployment.
+GitHub runs static/build, browser workflow, query profile, and asset-budget gates. The public Production smoke workflow runs daily. The authenticated production canary runs every six hours with a secret-backed `VIEWER` account, manages a single failure issue, and can be started manually after a deployment. See `docs/PRODUCTION-CANARY.md` for rotation and incident handling.

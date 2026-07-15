@@ -1,0 +1,79 @@
+name: Authenticated production canary
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '37 */6 * * *'
+
+jobs:
+  canary:
+    name: Railway authenticated workflows
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+      issues: write
+    env:
+      CANARY_BASE_URL: https://domain-ops-production.up.railway.app
+      CANARY_EMAIL: ${{ vars.PRODUCTION_CANARY_EMAIL }}
+      CANARY_PASSWORD: ${{ secrets.PRODUCTION_CANARY_PASSWORD }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - name: Use pinned npm
+        run: npm install --global npm@11.4.2
+
+      - name: Run authenticated canary
+        id: canary
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run canary:production 2>&1 | tee production-canary.log
+
+      - name: Upload sanitized failure diagnostics
+        if: steps.canary.outcome == 'failure'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: authenticated-production-canary-failure
+          path: production-canary.log
+          retention-days: 7
+
+      - name: Open or update failure alert
+        if: steps.canary.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          title='[Production canary] Authenticated workflow failing'
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          issue_number="$(gh issue list --state open --search "${title} in:title" --json number --jq '.[0].number // empty')"
+          body="The scheduled authenticated production canary failed at $(date -u +'%Y-%m-%dT%H:%M:%SZ'). Diagnostics are attached to the workflow run: ${run_url}"
+          if [ -n "${issue_number}" ]; then
+            gh issue comment "${issue_number}" --body "${body}"
+          else
+            gh issue create --title "${title}" --body "${body}"
+          fi
+
+      - name: Close recovered failure alert
+        if: steps.canary.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          title='[Production canary] Authenticated workflow failing'
+          issue_number="$(gh issue list --state open --search "${title} in:title" --json number --jq '.[0].number // empty')"
+          if [ -n "${issue_number}" ]; then
+            gh issue close "${issue_number}" --comment "Authenticated production workflows recovered at $(date -u +'%Y-%m-%dT%H:%M:%SZ')."
+          fi
+
+      - name: Enforce canary result
+        if: steps.canary.outcome == 'failure'
+        run: exit 1

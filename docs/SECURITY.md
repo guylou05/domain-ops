@@ -17,6 +17,7 @@ The review covers browser-to-Next.js requests, Auth.js sessions, workspace autho
 - Responses set CSP, frame denial, MIME sniffing prevention, restrictive browser permissions, referrer policy, and HSTS headers.
 - CI enforces lint, type safety, unit tests, migrations, production builds, asset budgets, query profiles, and seeded browser workflows.
 - Production health and public/auth boundaries are checked daily by a separate smoke workflow.
+- Secret-backed production canaries authenticate as a single-workspace `VIEWER`, exercise read-only dashboard routes, revoke their session, and alert through a deduplicated GitHub issue.
 - Credential callbacks, login preflight, registration, recovery, and verification delivery use privacy-safe fixed-window limits backed by Redis, with UI-managed thresholds and process-local fallback.
 - Exact npm versions, SHA-512 lockfile integrity, digest-pinned containers, SHA-pinned Actions, expiring advisory exceptions, Dependabot review PRs, and CycloneDX SBOM artifacts protect the software supply chain.
 
@@ -36,7 +37,7 @@ The review covers browser-to-Next.js requests, Auth.js sessions, workspace autho
 
 - Content Security Policy allows inline script and style execution for the current Next.js runtime. A nonce-based policy is a future defense-in-depth improvement.
 - Provider correctness and availability remain third-party dependencies. Timeouts, stale fallback, failure telemetry, quotas, and operator alerts reduce impact but cannot remove it.
-- Daily smoke checks verify public and auth boundaries without production credentials. Authenticated production workflows are covered in seeded CI and should also be exercised manually after high-risk releases.
+- Production canary credentials remain operational secrets shared by Railway and GitHub Actions. Rotation is required after suspected exposure; sanitized diagnostics intentionally omit identity, cookies, tokens, and response bodies.
 
 ## Incident Handling
 

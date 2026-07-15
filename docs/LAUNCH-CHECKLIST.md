@@ -9,6 +9,7 @@
 - Playwright covers public pages, authentication boundaries, mobile navigation, workspace workflows, billing controls, MFA, provider research, and Operations incident handling.
 - `npm run smoke:production` verifies Railway health, latency, public routes, auth redirect, and browser security headers.
 - Supply-chain policy, vulnerability exceptions, digest/SHA pins, and CycloneDX SBOM generation pass.
+- The secret-backed authenticated production canary passes as `VIEWER`, signs out, and leaves no open canary failure issue.
 
 ## Responsive And Accessibility Audit
 
@@ -22,7 +23,7 @@
 
 1. Confirm both GitHub CI jobs are green for the release commit.
 2. Confirm Railway applied migrations and reports a healthy deployment.
-3. Run the Production smoke workflow manually and verify the daily schedule is enabled.
+3. Run the public Production smoke and authenticated production canary workflows manually and verify both schedules are enabled.
 4. Confirm current database backup age is within the 24-hour RPO.
 5. Confirm transactional alert recipients and provider readiness on Operations and Integrations.
 6. Record the release commit, deployment time, smoke result, and rollback owner.

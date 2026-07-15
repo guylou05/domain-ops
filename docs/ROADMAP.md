@@ -35,7 +35,7 @@ This file defines the development order after the implemented milestones in `REA
 7. [x] Supply Chain Maintenance
    - Automated dependency review and vulnerability policy
    - Controlled framework upgrade cadence and rollback evidence
-8. [ ] Authenticated Production Canaries
+8. [x] Authenticated Production Canaries
    - Least-privilege synthetic account and scheduled authenticated workflows
    - Alerted canary failures without production credential exposure
 
