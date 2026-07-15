@@ -1,7 +1,8 @@
 'use client';
 
 import { useActionState } from 'react';
-import { generateDomainOpportunities, importDomainOpportunities, initialActionState } from './actions';
+import { generateDomainOpportunities, importDomainOpportunities } from './actions';
+import { initialActionState } from './action-state';
 
 function ResultSummary({ message, ok }: { message: string; ok: boolean }) {
   if (!message) return null;

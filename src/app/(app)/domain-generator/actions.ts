@@ -1,14 +1,9 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { generateAnalyzeAndPersist, importAnalyzeAndPersist, type PersistedOpportunity } from '@/lib/server/domain-workflows';
+import { generateAnalyzeAndPersist, importAnalyzeAndPersist } from '@/lib/server/domain-workflows';
 import { requireWorkspaceContext } from '@/lib/server/workspace-context';
-
-type ActionState = {
-  ok: boolean;
-  message: string;
-  results: PersistedOpportunity[];
-};
+import type { ActionState } from './action-state';
 
 function readKeywords(value: FormDataEntryValue | null): string[] {
   return String(value ?? '')
@@ -70,5 +65,3 @@ export async function importDomainOpportunities(_previousState: ActionState, for
     return { ok: false, message: error instanceof Error ? error.message : 'Unable to import opportunities.', results: [] };
   }
 }
-
-export const initialActionState: ActionState = { ok: false, message: '', results: [] };

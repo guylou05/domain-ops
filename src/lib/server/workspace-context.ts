@@ -1,5 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { selectWorkspaceMembership, WORKSPACE_COOKIE_NAME } from '@/lib/workspace-selection';
@@ -13,15 +14,16 @@ export type WorkspaceContext = {
 export async function requireWorkspaceContext(): Promise<WorkspaceContext> {
   const session = await getServerSession(authOptions);
   const userId = session?.user?.id;
-  const userEmail = session?.user?.email ?? process.env.DEMO_USER_EMAIL ?? 'investor@domainscout.demo';
+  const userEmail = session?.user?.email;
+  if (!userId || !userEmail) {
+    redirect('/login');
+  }
   const cookieStore = await cookies();
   const preferredWorkspaceId = cookieStore.get(WORKSPACE_COOKIE_NAME)?.value;
   const preferredWorkspaceSlug = process.env.DEMO_WORKSPACE_SLUG;
 
   const memberships = await prisma.workspaceMember.findMany({
-    where: userId
-      ? { userId, workspace: { status: 'ACTIVE' } }
-      : { user: { email: userEmail }, workspace: { status: 'ACTIVE' } },
+    where: { userId, workspace: { status: 'ACTIVE' } },
     select: {
       role: true,
       userId: true,

@@ -15,9 +15,10 @@ function formatAvailability(value: boolean | null): string {
   return value ? 'Available' : 'Taken';
 }
 
-export default async function Detail({ params, searchParams }: { params: { domain: string }; searchParams?: Promise<{ error?: string; notice?: string }> }) {
+export default async function Detail({ params, searchParams }: { params: Promise<{ domain: string }>; searchParams?: Promise<{ error?: string; notice?: string }> }) {
+  const { domain } = await params;
   const feedback = await searchParams;
-  const opportunity = await getOpportunityDetail(params.domain);
+  const opportunity = await getOpportunityDetail(domain);
   if (!opportunity) notFound();
 
   return (
