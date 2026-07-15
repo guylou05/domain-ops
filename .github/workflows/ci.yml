@@ -41,6 +41,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Enforce client performance budgets
+        run: npm run perf:budget
+
   seeded-e2e:
     name: Seeded Playwright workflows
     runs-on: ubuntu-latest
@@ -88,6 +91,9 @@ jobs:
 
       - name: Verify seeded auth
         run: npm run doctor:auth
+
+      - name: Profile critical database queries
+        run: npm run perf:queries
 
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium

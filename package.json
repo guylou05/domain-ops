@@ -22,7 +22,10 @@
     "docker:down": "docker compose down",
     "doctor:registry": "node scripts/doctor-registry.mjs",
     "doctor:db": "node scripts/doctor-db.mjs",
-    "doctor:auth": "node scripts/doctor-auth.mjs"
+    "doctor:auth": "node scripts/doctor-auth.mjs",
+    "perf:budget": "node scripts/check-performance-budget.mjs",
+    "perf:queries": "node scripts/profile-queries.mjs",
+    "smoke:production": "node scripts/production-smoke.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "latest",

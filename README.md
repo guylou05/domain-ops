@@ -44,6 +44,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 - [x] Single-use email verification with self-service resend, administrative visibility, and high-risk action gates.
 - [x] TOTP multi-factor authentication, one-use recovery codes, tracked session revocation, and time-limited step-up access.
 - [x] Structured operational telemetry, source health, incident resolution, email alert routing, and retention controls.
+- [x] Responsive and keyboard-accessible navigation, security headers, performance gates, recovery runbooks, and scheduled production smoke checks.
 - [x] Seed script with demo users, workspace, opportunities, watchlists, portfolio, reports, notifications, integrations, and admin data.
 - [x] Docker Compose for PostgreSQL, Redis, and the web app.
 - [x] Unit tests for generation, scoring, and domain import parsing.
@@ -132,6 +133,10 @@ This phase added interoperable TOTP enrollment with QR setup, encrypted authenti
 
 This phase added structured PostgreSQL-backed telemetry for requests, workers, scheduler cycles, research providers, and Stripe webhooks. The Operations page exposes source health, searchable event history, incident resolution, UI-managed email alert thresholds and cooldowns, and configurable retention with automatic scheduler pruning.
 
+## Launch Hardening Phase
+
+This phase added mobile application navigation, keyboard skip/focus behavior, browser security headers, client asset budgets, timed PostgreSQL query profiles, daily production smoke automation, and documented backup, restore, security, and release procedures. The enforceable launch criteria live in `docs/LAUNCH-CHECKLIST.md`.
+
 ## Local Setup
 
 ```bash
@@ -190,6 +195,9 @@ npm install
 - `npm run docker:up` / `npm run docker:down` - local infrastructure.
 - `npm run doctor:db` - validate schema and checked-in migration readiness.
 - `npm run doctor:auth` - verify seeded demo users and demo password hashes.
+- `npm run perf:budget` - enforce production client JavaScript and CSS budgets after a build.
+- `npm run perf:queries` - run timed PostgreSQL execution plans for critical query paths.
+- `npm run smoke:production` - verify production health, routes, latency, auth redirect, and security headers.
 
 The Settings page stores runtime-tunable app configuration in the database, including research provider modes and endpoint URLs, subscription billing mode and currency, worker limits, lease duration, recurring task cadence, scheduler polling, and auth diagnostic visibility. Provider and Stripe credentials are encrypted through Integrations. Bootstrapping secrets and infrastructure connection values such as `DATABASE_URL`, `REDIS_URL`, `NEXTAUTH_URL`, and `NEXTAUTH_SECRET` still belong in the deployment environment.
 
@@ -211,6 +219,8 @@ Valid risk levels are `LOW`, `MODERATE`, `HIGH`, and `PROHIBITED`. Deterministic
 Deploy the Next.js app to Railway, Render, Fly.io, AWS, or a VPS with managed PostgreSQL and Redis. Set `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `REDIS_URL`, and an `ENCRYPTION_KEY` of at least 32 characters. Run `npm run doctor:db`, then `npm run db:deploy`, before routing production traffic. After the app is online, use Settings for runtime provider and worker configuration.
 
 Keep `ENCRYPTION_KEY` stable. Changing it makes previously stored provider credentials unreadable; after an intentional rotation, re-enter each provider key from Integrations.
+
+Production backup, restore, release, and incident procedures are defined in `docs/OPERATIONS.md`; the current threat review and accepted residual risks are recorded in `docs/SECURITY.md`.
 
 For Google OAuth, also set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. The callback URL should be `${NEXTAUTH_URL}/api/auth/callback/google`.
 

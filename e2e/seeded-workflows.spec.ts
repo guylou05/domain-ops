@@ -92,6 +92,18 @@ test.describe('seeded workspace workflows', () => {
     await expect.poll(async () => (await prisma.operationalEvent.findUniqueOrThrow({ where: { id: failure.id } })).resolvedAt).not.toBeNull();
   });
 
+  test('application navigation remains usable on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await login(page);
+    await expect(page.getByRole('button', { name: 'Open navigation' })).toBeVisible();
+    await page.getByRole('button', { name: 'Open navigation' }).click();
+    await expect(page.getByRole('navigation', { name: 'Mobile navigation' })).toBeVisible();
+    await page.getByRole('link', { name: 'Operations', exact: true }).click();
+    await expect(page).toHaveURL(/\/operations/);
+    await expect(page.getByRole('heading', { name: 'Operations' })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  });
+
   test('admin can store a provider credential from the UI', async ({ page }) => {
     await login(page);
     await page.goto('/integrations');

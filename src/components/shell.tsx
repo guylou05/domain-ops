@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowRightLeft } from 'lucide-react';
 import { LogoutButton } from './logout-button';
+import { MobileNavigation } from './mobile-navigation';
 import { switchWorkspace } from '@/app/(app)/workspace-actions';
 import type { WorkspaceNavigation } from '@/lib/server/workspace-context';
 
@@ -11,7 +12,8 @@ export function AppShell({ children, workspaceNavigation }: { children: React.Re
 
   return (
     <div className="min-h-screen md:grid md:grid-cols-[280px_1fr]">
-      <aside className="flex min-h-screen flex-col border-r border-white/10 bg-slate-950/80 p-5">
+      <MobileNavigation items={nav} workspaceNavigation={workspaceNavigation} />
+      <aside className="hidden min-h-screen flex-col border-r border-white/10 bg-slate-950/80 p-5 md:flex">
         <Link href="/" className="text-xl font-bold">DomainScout AI</Link>
         <div className="mt-6 border-y border-white/10 py-4">
           <p className="text-xs font-semibold uppercase text-slate-500">Workspace</p>
@@ -40,7 +42,7 @@ export function AppShell({ children, workspaceNavigation }: { children: React.Re
           )}
           <p className="mt-1 text-xs text-slate-500">{current?.role ?? 'MEMBER'}</p>
         </div>
-        <nav className="mt-6 grid gap-2">
+        <nav aria-label="Primary navigation" className="mt-6 grid gap-2">
           {nav.map((name) => (
             <Link key={name} className="rounded-xl px-3 py-2 text-sm text-slate-300 hover:bg-white/10" href={`/${name.toLowerCase().replaceAll(' ', '-')}`}>
               {name}

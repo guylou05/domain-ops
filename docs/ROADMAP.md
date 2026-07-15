@@ -21,7 +21,7 @@ This file defines the development order after the implemented milestones in `REA
    - Structured request, worker, scheduler, provider, and webhook telemetry
    - UI-visible operational health and failure history
    - Alert routing and retention controls
-5. [ ] Launch Hardening
+5. [x] Launch Hardening
    - Accessibility and responsive workflow audit
    - Performance budgets and query profiling
    - Backup/restore runbook, security review, and production smoke checks

@@ -15,6 +15,7 @@ DomainScout AI uses a Next.js App Router web app, Prisma/PostgreSQL persistence,
 - `tests`: unit coverage for deterministic domain logic and workflow parsing.
 - `e2e`: Playwright smoke tests and opt-in seeded workflow specs.
 - `docs`: architecture and integration notes.
+- `scripts`: deployment doctors, performance gates, query profiles, and production smoke checks.
 
 ## Request Flow
 
@@ -30,6 +31,7 @@ DomainScout AI uses a Next.js App Router web app, Prisma/PostgreSQL persistence,
 10. Workspace invitation links retain only SHA-256 token hashes, expire after seven days, and create or attach members in serializable transactions after password verification.
 11. Password recovery uses one-hour SHA-256 token hashes and Resend-compatible HTTP delivery configured through Settings and the encrypted workspace credential vault.
 12. Request, worker, scheduler, provider, and webhook operations emit structured events to PostgreSQL; the Operations page summarizes source health, incident history, alert routing, and retention.
+13. Release CI enforces client asset budgets and seeded PostgreSQL query timing, while a scheduled production workflow verifies health, authentication boundaries, latency, and security headers.
 
 ## Provider Strategy
 
