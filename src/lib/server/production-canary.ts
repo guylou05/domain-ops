@@ -8,8 +8,8 @@ const CANARY_WORKSPACE = 'demo-domain-portfolio';
 
 export async function rotateProductionCanary(password: string): Promise<void> {
   if (password.length < 24) throw new Error('Canary password is too short.');
-  const email = (process.env.CANARY_EMAIL ?? CANARY_EMAIL).trim().toLowerCase();
-  const workspaceSlug = (process.env.CANARY_WORKSPACE_SLUG ?? process.env.DEMO_WORKSPACE_SLUG ?? CANARY_WORKSPACE).trim();
+  const email = (process.env.CANARY_EMAIL || CANARY_EMAIL).trim().toLowerCase();
+  const workspaceSlug = (process.env.CANARY_WORKSPACE_SLUG || process.env.DEMO_WORKSPACE_SLUG || CANARY_WORKSPACE).trim();
   const workspace = await prisma.workspace.findUnique({ where: { slug: workspaceSlug }, select: { id: true, status: true } });
   if (!workspace || workspace.status !== 'ACTIVE') throw new Error('Active canary workspace was not found.');
 

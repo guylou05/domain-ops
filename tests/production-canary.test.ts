@@ -15,6 +15,7 @@ describe('production canary policy', () => {
       email: DEFAULT_CANARY_EMAIL,
       workspaceSlug: 'demo-domain-portfolio',
     });
+    expect(readCanaryIdentity({ CANARY_EMAIL: '', CANARY_PASSWORD: 'a-secure-production-canary-secret' }).email).toBe(DEFAULT_CANARY_EMAIL);
     expect(() => readCanaryIdentity({ CANARY_PASSWORD: 'short' })).toThrow(/24 characters/);
   });
 

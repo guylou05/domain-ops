@@ -122,9 +122,9 @@ jobs:
       - name: Verify authenticated canary scripts
         shell: bash
         run: |
-          npm run dev -- --hostname 127.0.0.1 > /tmp/domainscout-canary-server.log 2>&1 &
+          setsid npm run dev -- --hostname 127.0.0.1 > /tmp/domainscout-canary-server.log 2>&1 &
           server_pid=$!
-          trap 'kill "${server_pid}" 2>/dev/null || true' EXIT
+          trap 'kill -- "-${server_pid}" 2>/dev/null || true' EXIT
           for attempt in {1..30}; do
             if curl --fail --silent http://127.0.0.1:3000/api/health > /dev/null; then
               break

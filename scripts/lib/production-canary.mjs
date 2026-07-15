@@ -3,9 +3,9 @@ export const DEFAULT_CANARY_EMAIL = 'production-canary@domainscout.invalid';
 export const DEFAULT_CANARY_WORKSPACE_SLUG = 'demo-domain-portfolio';
 
 export function readCanaryIdentity(env = process.env) {
-  const email = (env.CANARY_EMAIL ?? DEFAULT_CANARY_EMAIL).trim().toLowerCase();
+  const email = (env.CANARY_EMAIL || DEFAULT_CANARY_EMAIL).trim().toLowerCase();
   const password = env.CANARY_PASSWORD ?? '';
-  const workspaceSlug = (env.CANARY_WORKSPACE_SLUG ?? env.DEMO_WORKSPACE_SLUG ?? DEFAULT_CANARY_WORKSPACE_SLUG).trim();
+  const workspaceSlug = (env.CANARY_WORKSPACE_SLUG || env.DEMO_WORKSPACE_SLUG || DEFAULT_CANARY_WORKSPACE_SLUG).trim();
 
   if (!email || !email.includes('@')) throw new Error('CANARY_EMAIL must be a valid email address.');
   if (password.length < 24) throw new Error('CANARY_PASSWORD must contain at least 24 characters.');
