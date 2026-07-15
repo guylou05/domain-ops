@@ -2,7 +2,7 @@ import { compare } from 'bcryptjs';
 import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
-import { isGoogleOAuthConfigured } from '@/lib/auth-providers';
+import { googleProfileEmailIsVerified, isGoogleOAuthConfigured } from '@/lib/auth-providers';
 import { prisma } from '@/lib/prisma';
 import { isAuthDiagnosticsEnabled } from '@/lib/server/app-config';
 
@@ -88,6 +88,24 @@ export const authOptions: NextAuthOptions = {
     },
   },
   callbacks: {
+    async signIn({ user, account, profile }) {
+      if (account?.provider !== 'google') return true;
+      const email = user.email?.trim().toLowerCase();
+      if (!email || !googleProfileEmailIsVerified(profile)) return false;
+
+      const existing = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true, name: true, role: true, emailVerified: true },
+      });
+      if (!existing) return false;
+      if (!existing.emailVerified) {
+        await prisma.user.update({ where: { id: existing.id }, data: { emailVerified: new Date() } });
+      }
+      user.id = existing.id;
+      user.name = existing.name ?? user.name;
+      user.role = existing.role;
+      return true;
+    },
     jwt({ token, user }) {
       if (user) {
         token.id = user.id ?? token.sub;

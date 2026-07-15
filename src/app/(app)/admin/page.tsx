@@ -127,6 +127,9 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
                     <td className="py-3 pr-4">
                       <p className="font-medium">{member.name ?? member.email}</p>
                       {member.name ? <p className="text-xs text-slate-500">{member.email}</p> : null}
+                      <p className={member.emailVerified ? 'mt-1 text-xs font-semibold text-emerald-300' : 'mt-1 text-xs font-semibold text-amber-200'}>
+                        {member.emailVerified ? 'Email verified' : 'Email unverified'}
+                      </p>
                     </td>
                     <td className="pr-4 text-slate-400">{formatDate(member.createdAt)}</td>
                     <td className="pr-4">

@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation';
 import { createCheckoutForWorkspace, createPortalForWorkspace } from '@/lib/server/billing';
 import { recordAuditEvent } from '@/lib/server/audit';
-import { assertWorkspaceAdmin, requireWorkspaceContext } from '@/lib/server/workspace-context';
+import { assertVerifiedUser, assertWorkspaceAdmin, requireWorkspaceContext } from '@/lib/server/workspace-context';
 
 function billingFailure(error: unknown): never {
   const message = error instanceof Error ? error.message : 'Billing is temporarily unavailable.';
@@ -13,6 +13,7 @@ function billingFailure(error: unknown): never {
 export async function startSubscriptionCheckout(): Promise<void> {
   const context = await requireWorkspaceContext();
   assertWorkspaceAdmin(context);
+  assertVerifiedUser(context);
   let url: string;
   try {
     url = await createCheckoutForWorkspace(context);
@@ -26,6 +27,7 @@ export async function startSubscriptionCheckout(): Promise<void> {
 export async function openBillingPortal(): Promise<void> {
   const context = await requireWorkspaceContext();
   assertWorkspaceAdmin(context);
+  assertVerifiedUser(context);
   let url: string;
   try {
     url = await createPortalForWorkspace(context);

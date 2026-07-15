@@ -9,7 +9,7 @@ import {
   removeProviderCredential as removeStoredProviderCredential,
   saveProviderCredential as saveStoredProviderCredential,
 } from '@/lib/server/provider-credentials';
-import { assertWorkspaceAdmin, assertWorkspaceWriter, requireWorkspaceContext } from '@/lib/server/workspace-context';
+import { assertVerifiedUser, assertWorkspaceAdmin, assertWorkspaceWriter, requireWorkspaceContext } from '@/lib/server/workspace-context';
 
 function readIntegrationId(formData: FormData): string {
   const id = String(formData.get('integrationId') ?? '').trim();
@@ -20,6 +20,7 @@ function readIntegrationId(formData: FormData): string {
 export async function toggleIntegrationStatus(formData: FormData): Promise<void> {
   const context = await requireWorkspaceContext();
   assertWorkspaceWriter(context);
+  assertVerifiedUser(context);
 
   const integrationId = readIntegrationId(formData);
   const integration = await prisma.integration.findFirst({
@@ -63,6 +64,7 @@ function readProvider(formData: FormData) {
 export async function saveProviderCredential(formData: FormData): Promise<void> {
   const context = await requireWorkspaceContext();
   assertWorkspaceAdmin(context);
+  assertVerifiedUser(context);
   const provider = readProvider(formData);
   const secret = String(formData.get('secret') ?? '').trim();
   if (secret.length < 8) throw new Error('Provider API keys must contain at least 8 characters.');
@@ -80,6 +82,7 @@ export async function saveProviderCredential(formData: FormData): Promise<void> 
 export async function removeProviderCredential(formData: FormData): Promise<void> {
   const context = await requireWorkspaceContext();
   assertWorkspaceAdmin(context);
+  assertVerifiedUser(context);
   const provider = readProvider(formData);
   await removeStoredProviderCredential(context.workspaceId, provider);
   await recordAuditEvent(context, {

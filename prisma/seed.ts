@@ -8,14 +8,14 @@ async function main() {
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@domainscout.demo' },
-    update: { name: 'Demo Admin', passwordHash, role: Role.ADMIN },
-    create: { email: 'admin@domainscout.demo', name: 'Demo Admin', passwordHash, role: Role.ADMIN },
+    update: { name: 'Demo Admin', passwordHash, role: Role.ADMIN, emailVerified: new Date() },
+    create: { email: 'admin@domainscout.demo', name: 'Demo Admin', passwordHash, role: Role.ADMIN, emailVerified: new Date() },
   });
 
   const user = await prisma.user.upsert({
     where: { email: 'investor@domainscout.demo' },
-    update: { name: 'Demo Investor', passwordHash, role: Role.OWNER },
-    create: { email: 'investor@domainscout.demo', name: 'Demo Investor', passwordHash, role: Role.OWNER },
+    update: { name: 'Demo Investor', passwordHash, role: Role.OWNER, emailVerified: new Date() },
+    create: { email: 'investor@domainscout.demo', name: 'Demo Investor', passwordHash, role: Role.OWNER, emailVerified: new Date() },
   });
 
   const workspace = await prisma.workspace.upsert({

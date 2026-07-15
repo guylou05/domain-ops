@@ -119,7 +119,7 @@ export async function consumePasswordResetToken(token: string, passwordHash: str
         });
         if (!reset || !passwordResetIsUsable(reset)) return false;
         const now = new Date();
-        await tx.user.update({ where: { id: reset.userId }, data: { passwordHash } });
+        await tx.user.update({ where: { id: reset.userId }, data: { passwordHash, emailVerified: now } });
         await tx.passwordResetToken.updateMany({ where: { userId: reset.userId, usedAt: null }, data: { usedAt: now } });
         return true;
       },

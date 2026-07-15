@@ -9,7 +9,7 @@ This file defines the development order after the implemented milestones in `REA
    - UI-managed mode, currency, and encrypted credentials
    - Signed, replay-resistant, idempotent subscription webhooks
    - Subscription lifecycle state connected to existing entitlements
-2. [ ] Email Verification
+2. [x] Email Verification
    - Single-use verification tokens and transactional delivery
    - Verification status in account settings and administrative visibility
    - Protected high-risk workflows for unverified accounts

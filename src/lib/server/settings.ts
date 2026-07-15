@@ -17,6 +17,7 @@ export type SettingsView = {
     email: string;
     name: string | null;
     role: string;
+    emailVerified: Date | null;
   };
   members: Array<{
     email: string;
@@ -78,7 +79,7 @@ export async function getSettingsView(): Promise<SettingsView> {
       where: { workspaceId_userId: { workspaceId: context.workspaceId, userId: context.userId } },
       select: {
         role: true,
-        user: { select: { email: true, name: true } },
+        user: { select: { email: true, name: true, emailVerified: true } },
       },
     }),
     prisma.subscription.findMany({
@@ -113,6 +114,7 @@ export async function getSettingsView(): Promise<SettingsView> {
       email: currentMember.user.email,
       name: currentMember.user.name,
       role: currentMember.role,
+      emailVerified: currentMember.user.emailVerified,
     },
     members: workspace.members.map((member) => ({
       email: member.user.email,

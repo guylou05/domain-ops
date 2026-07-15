@@ -79,6 +79,7 @@ test.describe('seeded workspace workflows', () => {
   test('billing setup is managed from Settings and Integrations', async ({ page }) => {
     await login(page);
     await page.goto('/settings');
+    await expect(page.getByText('Email verified', { exact: true })).toBeVisible();
     await expect(page.getByRole('group', { name: 'Subscription billing' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Start paid subscription' })).toBeDisabled();
     await page.goto('/integrations');
@@ -125,6 +126,8 @@ test.describe('seeded workspace workflows', () => {
 
     await expect(page).toHaveURL(/\/overview/);
     await page.goto('/settings');
+    await expect(page.getByText('Email unverified', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Send verification email' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Professional' })).toBeVisible();
     await expect(page.getByText(/Trialing/)).toBeVisible();
     await expect(page.getByText('0 / 5000')).toBeVisible();

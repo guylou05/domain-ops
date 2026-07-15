@@ -4,11 +4,19 @@ import { hash, compare } from 'bcryptjs';
 import { headers } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { OnboardingError, provisionTrialWorkspace } from '@/lib/server/onboarding';
+import { sendEmailVerification } from '@/lib/server/email-verification';
 import { sendPasswordResetEmail } from '@/lib/server/password-recovery';
 import type { AuthActionState } from './auth-state';
 
 function readString(formData: FormData, key: string): string {
   return String(formData.get(key) ?? '').trim();
+}
+
+async function requestBaseUrl(): Promise<string> {
+  const requestHeaders = await headers();
+  const host = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host');
+  const protocol = requestHeaders.get('x-forwarded-proto') ?? (process.env.NODE_ENV === 'production' ? 'https' : 'http');
+  return process.env.NEXTAUTH_URL ?? (host ? `${protocol}://${host}` : 'http://localhost:3000');
 }
 
 export async function verifyCredentials(_previousState: AuthActionState, formData: FormData): Promise<AuthActionState> {
@@ -42,7 +50,11 @@ export async function registerWorkspaceUser(_previousState: AuthActionState, for
   const passwordHash = await hash(password, 10);
 
   try {
-    await provisionTrialWorkspace({ email, name: name || null, passwordHash, planName });
+    const provisioned = await provisionTrialWorkspace({ email, name: name || null, passwordHash, planName });
+    const baseUrl = await requestBaseUrl();
+    await sendEmailVerification(provisioned.userId, provisioned.workspaceId, baseUrl).catch((error) => {
+      console.error('[email-verification] registration delivery failed', error);
+    });
   } catch (error) {
     if (error instanceof OnboardingError) return { ok: false, message: error.message };
     return { ok: false, message: 'The account could not be created. Please try again.' };
@@ -55,10 +67,7 @@ export async function requestPasswordReset(_previousState: AuthActionState, form
   const email = readString(formData, 'email').toLowerCase();
   if (!email) return { ok: false, message: 'Email is required.' };
 
-  const requestHeaders = await headers();
-  const host = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host');
-  const protocol = requestHeaders.get('x-forwarded-proto') ?? (process.env.NODE_ENV === 'production' ? 'https' : 'http');
-  const baseUrl = process.env.NEXTAUTH_URL ?? (host ? `${protocol}://${host}` : 'http://localhost:3000');
+  const baseUrl = await requestBaseUrl();
   await sendPasswordResetEmail(email, baseUrl).catch((error) => console.error('[password-reset] delivery failed', error));
   return { ok: true, message: 'If that account exists and recovery email is configured, a reset link has been sent.' };
 }

@@ -33,6 +33,7 @@ export type AdminDashboard = {
     userId: string;
     name: string | null;
     email: string;
+    emailVerified: Date | null;
     role: string;
     createdAt: Date;
   }>;
@@ -104,7 +105,7 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
         userId: true,
         role: true,
         createdAt: true,
-        user: { select: { name: true, email: true } },
+        user: { select: { name: true, email: true, emailVerified: true } },
       },
     }),
     prisma.workspaceInvitation.findMany({
@@ -131,6 +132,7 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
       userId: member.userId,
       name: member.user.name,
       email: member.user.email,
+      emailVerified: member.user.emailVerified,
       role: member.role,
       createdAt: member.createdAt,
     })),

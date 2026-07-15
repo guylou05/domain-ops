@@ -2,6 +2,7 @@ import { updateRuntimeSettings, updateWorkspaceName } from './actions';
 import { getSettingsView } from '@/lib/server/settings';
 import { PasswordChangeForm } from '@/components/password-change-form';
 import { openBillingPortal, startSubscriptionCheckout } from './billing-actions';
+import { resendEmailVerification } from './verification-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +21,11 @@ function formatLabel(value: string): string {
     .join(' ');
 }
 
-export default async function SettingsPage({ searchParams }: { searchParams?: Promise<{ billing?: string; billingError?: string }> }) {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ billing?: string; billingError?: string; verification?: string; verificationError?: string }>;
+}) {
   const feedback = await searchParams;
   const settings = await getSettingsView();
   const canManageRuntime = settings.currentUser.role === 'OWNER' || settings.currentUser.role === 'ADMIN';
@@ -42,6 +47,21 @@ export default async function SettingsPage({ searchParams }: { searchParams?: Pr
       ) : null}
       {feedback?.billingError ? (
         <p className="mt-5 rounded-lg border border-rose-400/30 bg-rose-400/5 px-3 py-2 text-sm text-rose-200">{feedback.billingError}</p>
+      ) : null}
+      {feedback?.verification === 'sent' ? (
+        <p className="mt-5 rounded-lg border border-emerald-400/30 bg-emerald-400/5 px-3 py-2 text-sm text-emerald-200">Verification email sent. The link expires in 24 hours.</p>
+      ) : null}
+      {feedback?.verification === 'already-verified' ? (
+        <p className="mt-5 rounded-lg border border-emerald-400/30 bg-emerald-400/5 px-3 py-2 text-sm text-emerald-200">Your email is already verified.</p>
+      ) : null}
+      {feedback?.verification === 'not-configured' ? (
+        <p className="mt-5 rounded-lg border border-amber-400/30 bg-amber-400/5 px-3 py-2 text-sm text-amber-200">Transactional email is not configured for this workspace.</p>
+      ) : null}
+      {feedback?.verification === 'rate-limited' ? (
+        <p className="mt-5 rounded-lg border border-amber-400/30 bg-amber-400/5 px-3 py-2 text-sm text-amber-200">A verification email was sent recently. Try again in one minute.</p>
+      ) : null}
+      {feedback?.verificationError ? (
+        <p className="mt-5 rounded-lg border border-rose-400/30 bg-rose-400/5 px-3 py-2 text-sm text-rose-200">{feedback.verificationError}</p>
       ) : null}
 
       <section className="mt-6 grid gap-4 lg:grid-cols-3">
@@ -81,6 +101,16 @@ export default async function SettingsPage({ searchParams }: { searchParams?: Pr
           <p className="mt-4 font-medium">{settings.currentUser.name ?? settings.currentUser.email}</p>
           <p className="mt-1 text-sm text-slate-400">{settings.currentUser.email}</p>
           <p className="mt-3 rounded-lg bg-white/5 px-3 py-2 text-sm text-slate-300">Role: {settings.currentUser.role}</p>
+          <div className="mt-3 rounded-lg border border-white/10 px-3 py-2">
+            <p className={settings.currentUser.emailVerified ? 'text-sm font-semibold text-emerald-300' : 'text-sm font-semibold text-amber-200'}>
+              {settings.currentUser.emailVerified ? 'Email verified' : 'Email unverified'}
+            </p>
+            {!settings.currentUser.emailVerified ? (
+              <form action={resendEmailVerification} className="mt-2">
+                <button className="text-sm font-semibold text-brand">Send verification email</button>
+              </form>
+            ) : null}
+          </div>
           <PasswordChangeForm />
         </div>
       </section>
@@ -145,7 +175,7 @@ export default async function SettingsPage({ searchParams }: { searchParams?: Pr
             <legend className="pr-3 text-sm font-semibold text-slate-200">Transactional email</legend>
             <label className="flex items-center gap-3 text-sm">
               <input defaultChecked={settings.appConfig.transactionalEmail.enabled} name="transactionalEmailEnabled" type="checkbox" />
-              <span>Enable password recovery email</span>
+              <span>Enable account security email</span>
             </label>
             <div className="grid gap-4 md:grid-cols-2">
               <label className="grid gap-2 text-sm text-slate-300">

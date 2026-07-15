@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { recordAuditEvent } from '@/lib/server/audit';
 import { updateAppConfig } from '@/lib/server/app-config';
-import { assertWorkspaceAdmin, assertWorkspaceWriter, requireWorkspaceContext } from '@/lib/server/workspace-context';
+import { assertVerifiedUser, assertWorkspaceAdmin, assertWorkspaceWriter, requireWorkspaceContext } from '@/lib/server/workspace-context';
 import type { AuthActionState } from '@/app/(auth)/auth-state';
 
 export async function changeCurrentPassword(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
@@ -55,6 +55,7 @@ export async function updateWorkspaceName(formData: FormData): Promise<void> {
 export async function updateRuntimeSettings(formData: FormData): Promise<void> {
   const context = await requireWorkspaceContext();
   assertWorkspaceAdmin(context);
+  assertVerifiedUser(context);
 
   const availabilityProvider = String(formData.get('availabilityProvider') ?? 'mock');
   const readProvider = (name: string) => {

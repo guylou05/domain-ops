@@ -41,6 +41,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 - [x] Validated multi-workspace switching from the application sidebar.
 - [x] One-time password recovery, UI-configured transactional email, and authenticated password changes.
 - [x] Stripe subscription checkout, customer portal access, encrypted billing credentials, and signed webhook reconciliation.
+- [x] Single-use email verification with self-service resend, administrative visibility, and high-risk action gates.
 - [x] Seed script with demo users, workspace, opportunities, watchlists, portfolio, reports, notifications, integrations, and admin data.
 - [x] Docker Compose for PostgreSQL, Redis, and the web app.
 - [x] Unit tests for generation, scoring, and domain import parsing.
@@ -116,6 +117,10 @@ This phase replaced the placeholder forgot-password flow with one-hour, single-u
 ## Subscription Billing Phase
 
 This phase connected the existing plan, trial, and entitlement models to Stripe Checkout and the Stripe customer portal. Billing mode and currency are managed from Settings, Stripe credentials are encrypted in the Integrations vault, and signed webhook events update subscription access transactionally with replay protection and idempotency. The ordered post-billing plan is tracked in `docs/ROADMAP.md`.
+
+## Email Verification Phase
+
+This phase added 24-hour, single-use email verification tokens stored only as SHA-256 hashes, automatic registration delivery, and self-service resend from Settings. Verification status is visible to users and workspace administrators, trusted Google OAuth claims verify matching existing accounts, and unverified users are blocked from billing, provider credentials, runtime configuration, feature flags, and team administration. Existing accounts are backfilled as verified during migration to preserve deployed access; new accounts must prove email ownership. Transactional delivery uses the same UI-managed Resend-compatible configuration and encrypted credential vault as password recovery.
 
 ## Local Setup
 

@@ -37,19 +37,21 @@ enum JobStatus {
 }
 
 model User {
-  id              String                @id @default(cuid())
-  email           String                @unique
-  name            String?
-  passwordHash    String?
-  role            Role                  @default(MEMBER)
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
-  memberships     WorkspaceMember[]
-  accounts        Account[]
-  sessions        Session[]
-  createdDomains  Domain[]
-  sentInvitations WorkspaceInvitation[] @relation("InvitationSender")
-  passwordResets  PasswordResetToken[]
+  id                 String                   @id @default(cuid())
+  email              String                   @unique
+  name               String?
+  passwordHash       String?
+  emailVerified      DateTime?
+  role               Role                     @default(MEMBER)
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  memberships        WorkspaceMember[]
+  accounts           Account[]
+  sessions           Session[]
+  createdDomains     Domain[]
+  sentInvitations    WorkspaceInvitation[]    @relation("InvitationSender")
+  passwordResets     PasswordResetToken[]
+  emailVerifications EmailVerificationToken[]
 }
 
 model Account {
@@ -98,22 +100,38 @@ model PasswordResetToken {
   @@index([userId, usedAt, expiresAt])
 }
 
+model EmailVerificationToken {
+  id          String    @id @default(cuid())
+  userId      String
+  workspaceId String
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([userId, usedAt, expiresAt])
+  @@index([workspaceId, createdAt])
+}
+
 model Workspace {
-  id            String                @id @default(cuid())
-  name          String
-  slug          String                @unique
-  status        Status                @default(ACTIVE)
-  metadata      Json                  @default("{}")
-  createdAt     DateTime              @default(now())
-  updatedAt     DateTime              @updatedAt
-  members       WorkspaceMember[]
-  domains       Domain[]
-  watchlists    Watchlist[]
-  portfolio     PortfolioItem[]
-  jobs          BackgroundJob[]
-  invitations   WorkspaceInvitation[]
-  subscriptions Subscription[]
-  billingEvents BillingEvent[]
+  id                      String                   @id @default(cuid())
+  name                    String
+  slug                    String                   @unique
+  status                  Status                   @default(ACTIVE)
+  metadata                Json                     @default("{}")
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  members                 WorkspaceMember[]
+  domains                 Domain[]
+  watchlists              Watchlist[]
+  portfolio               PortfolioItem[]
+  jobs                    BackgroundJob[]
+  invitations             WorkspaceInvitation[]
+  subscriptions           Subscription[]
+  billingEvents           BillingEvent[]
+  emailVerificationTokens EmailVerificationToken[]
 }
 
 model WorkspaceMember {

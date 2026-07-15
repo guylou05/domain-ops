@@ -9,6 +9,7 @@ export type WorkspaceContext = {
   userId: string;
   workspaceId: string;
   role: 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
+  emailVerified: boolean;
 };
 
 export async function requireWorkspaceContext(): Promise<WorkspaceContext> {
@@ -29,6 +30,7 @@ export async function requireWorkspaceContext(): Promise<WorkspaceContext> {
       userId: true,
       workspaceId: true,
       workspace: { select: { slug: true } },
+      user: { select: { emailVerified: true } },
     },
     orderBy: { createdAt: 'asc' },
   });
@@ -43,6 +45,7 @@ export async function requireWorkspaceContext(): Promise<WorkspaceContext> {
     userId: membership.userId,
     workspaceId: membership.workspaceId,
     role: membership.role,
+    emailVerified: Boolean(membership.user.emailVerified),
   };
 }
 
@@ -87,5 +90,11 @@ export async function getWorkspaceNavigation(): Promise<WorkspaceNavigation> {
 export function assertWorkspaceAdmin(context: WorkspaceContext): void {
   if (context.role !== 'OWNER' && context.role !== 'ADMIN') {
     throw new Error('Admin actions require OWNER or ADMIN access.');
+  }
+}
+
+export function assertVerifiedUser(context: WorkspaceContext): void {
+  if (!context.emailVerified) {
+    throw new Error('Verify your email before performing this security-sensitive action.');
   }
 }
