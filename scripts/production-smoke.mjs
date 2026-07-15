@@ -27,7 +27,7 @@ for (const path of ['/', '/login', '/pricing']) {
 const protectedRoute = await request('/overview');
 if (![302, 303, 307, 308].includes(protectedRoute.response.status)) throw new Error(`/overview did not redirect unauthenticated traffic (${protectedRoute.response.status}).`);
 const location = protectedRoute.response.headers.get('location') ?? '';
-if (!location.includes('/login')) throw new Error(`/overview redirected to an unexpected location: ${location || 'missing'}.`);
+if (!location.includes('/login') && !location.includes('/api/auth/signin')) throw new Error(`/overview redirected to an unexpected location: ${location || 'missing'}.`);
 console.log(`/overview: protected redirect in ${protectedRoute.durationMs} ms`);
 
 const headers = health.response.headers;
