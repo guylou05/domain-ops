@@ -117,6 +117,17 @@ test.describe('seeded workspace workflows', () => {
     await expect(page.getByRole('heading', { name: 'Professional' })).toBeVisible();
     await expect(page.getByText(/Trialing/)).toBeVisible();
     await expect(page.getByText('0 / 5000')).toBeVisible();
+
+    await page.getByPlaceholder('Current password').fill('playwright-password');
+    await page.getByPlaceholder('New password').fill('playwright-password-updated');
+    await page.getByPlaceholder('Confirm new password').fill('playwright-password-updated');
+    await page.getByRole('button', { name: 'Change password' }).click();
+    await expect(page.getByText('Password changed successfully.')).toBeVisible();
+    await page.getByRole('button', { name: 'Log out' }).click();
+    await page.getByPlaceholder('email@example.com').fill(email);
+    await page.getByPlaceholder('Password').fill('playwright-password-updated');
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    await expect(page).toHaveURL(/\/overview/);
   });
 
   test('member can switch between authorized workspaces', async ({ page }) => {

@@ -1,10 +1,32 @@
 'use server';
 
+import { compare, hash } from 'bcryptjs';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { recordAuditEvent } from '@/lib/server/audit';
 import { updateAppConfig } from '@/lib/server/app-config';
 import { assertWorkspaceAdmin, assertWorkspaceWriter, requireWorkspaceContext } from '@/lib/server/workspace-context';
+import type { AuthActionState } from '@/app/(auth)/auth-state';
+
+export async function changeCurrentPassword(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  const context = await requireWorkspaceContext();
+  const currentPassword = String(formData.get('currentPassword') ?? '');
+  const newPassword = String(formData.get('newPassword') ?? '');
+  const confirmation = String(formData.get('confirmation') ?? '');
+  if (newPassword.length < 8) return { ok: false, message: 'New password must be at least 8 characters.' };
+  if (newPassword !== confirmation) return { ok: false, message: 'New passwords do not match.' };
+  if (currentPassword === newPassword) return { ok: false, message: 'Choose a different password.' };
+
+  const user = await prisma.user.findUnique({ where: { id: context.userId }, select: { passwordHash: true } });
+  if (!user?.passwordHash || !(await compare(currentPassword, user.passwordHash))) {
+    return { ok: false, message: 'Current password is incorrect.' };
+  }
+
+  await prisma.user.update({ where: { id: context.userId }, data: { passwordHash: await hash(newPassword, 10) } });
+  await prisma.passwordResetToken.updateMany({ where: { userId: context.userId, usedAt: null }, data: { usedAt: new Date() } });
+  await recordAuditEvent(context, { action: 'account.password_changed', targetType: 'User', targetId: context.userId });
+  return { ok: true, message: 'Password changed successfully.' };
+}
 
 export async function updateWorkspaceName(formData: FormData): Promise<void> {
   const context = await requireWorkspaceContext();
@@ -59,6 +81,11 @@ export async function updateRuntimeSettings(formData: FormData): Promise<void> {
     workerJobLimit,
     workerLeaseMs,
     authDiagnosticsEnabled,
+    transactionalEmail: {
+      enabled: formData.get('transactionalEmailEnabled') === 'on',
+      sender: String(formData.get('transactionalEmailSender') ?? ''),
+      endpoint: String(formData.get('transactionalEmailEndpoint') ?? ''),
+    },
     schedulerEnabled,
     schedulerPollMs,
     jobSchedules: {

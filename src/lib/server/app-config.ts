@@ -14,6 +14,11 @@ export type AppConfig = {
     history: string;
   };
   authDiagnosticsEnabled: boolean;
+  transactionalEmail: {
+    enabled: boolean;
+    sender: string;
+    endpoint: string;
+  };
   workerJobLimit: number;
   workerLeaseMs: number;
   schedulerEnabled: boolean;
@@ -38,6 +43,11 @@ const DEFAULT_CONFIG: AppConfig = {
   historyProvider: 'mock',
   providerEndpoints: { registrar: '', trademark: '', comparableSales: '', history: '' },
   authDiagnosticsEnabled: false,
+  transactionalEmail: {
+    enabled: false,
+    sender: '',
+    endpoint: 'https://api.resend.com/emails',
+  },
   workerJobLimit: 5,
   workerLeaseMs: 300000,
   schedulerEnabled: false,
@@ -68,6 +78,12 @@ function readEndpoint(value: unknown): string {
   }
 }
 
+function readEmailSender(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  const sender = value.trim();
+  return /\S+@\S+\.\S+/.test(sender) ? sender.slice(0, 320) : '';
+}
+
 function readPositiveInteger(value: unknown, fallback: number, minimum: number, maximum: number): number {
   const numeric = Number(value);
   if (!Number.isFinite(numeric) || numeric <= 0) return fallback;
@@ -86,6 +102,7 @@ export function parseAppConfig(value: unknown): AppConfig {
   const object = readObject(value);
   const schedules = readObject(object.jobSchedules);
   const endpoints = readObject(object.providerEndpoints);
+  const transactionalEmail = readObject(object.transactionalEmail);
   return {
     availabilityProvider: readProvider(object.availabilityProvider),
     trademarkProvider: readProvider(object.trademarkProvider),
@@ -98,6 +115,11 @@ export function parseAppConfig(value: unknown): AppConfig {
       history: readEndpoint(endpoints.history),
     },
     authDiagnosticsEnabled: object.authDiagnosticsEnabled === true,
+    transactionalEmail: {
+      enabled: transactionalEmail.enabled === true,
+      sender: readEmailSender(transactionalEmail.sender),
+      endpoint: readEndpoint(transactionalEmail.endpoint) || DEFAULT_CONFIG.transactionalEmail.endpoint,
+    },
     workerJobLimit: readPositiveInteger(object.workerJobLimit, DEFAULT_CONFIG.workerJobLimit, 1, 50),
     workerLeaseMs: readPositiveInteger(object.workerLeaseMs, DEFAULT_CONFIG.workerLeaseMs, 10000, 3600000),
     schedulerEnabled: object.schedulerEnabled === true,

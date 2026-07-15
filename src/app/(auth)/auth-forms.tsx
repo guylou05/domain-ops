@@ -68,11 +68,11 @@ export function ForgotPasswordForm() {
     <form action={action} className="card grid gap-4">
       <div>
         <h1 className="text-3xl font-bold">Forgot password</h1>
-        <p className="mt-3 text-slate-300">Validate account presence while email delivery is prepared.</p>
+        <p className="mt-3 text-slate-300">Request a one-time recovery link. Links expire after one hour.</p>
       </div>
       <input className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2" name="email" placeholder="email@example.com" type="email" required />
       <button className="rounded-xl bg-brand px-4 py-2 font-semibold disabled:opacity-60" disabled={pending}>
-        {pending ? 'Checking...' : 'Request reset'}
+        {pending ? 'Sending...' : 'Send recovery link'}
       </button>
       <ActionMessage ok={state.ok} message={state.message} />
     </form>

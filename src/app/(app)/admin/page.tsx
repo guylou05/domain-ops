@@ -1,6 +1,7 @@
-import { Trash2, UserPlus, X } from 'lucide-react';
+import { Mail, Trash2, UserPlus, X } from 'lucide-react';
 import {
   createWorkspaceInvitation,
+  sendMemberRecoveryEmail,
   queueBackgroundJob,
   removeWorkspaceMember,
   revokeWorkspaceInvitation,
@@ -29,7 +30,7 @@ function formatLabel(value: string): string {
     .join(' ');
 }
 
-export default async function AdminPage({ searchParams }: { searchParams?: Promise<{ invite?: string }> }) {
+export default async function AdminPage({ searchParams }: { searchParams?: Promise<{ invite?: string; recoveryNotice?: string; recoveryError?: string }> }) {
   const feedback = await searchParams;
   const dashboard = await getAdminDashboard();
   const workerTasks = getRegisteredWorkerTasks();
@@ -103,6 +104,8 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
             <InvitationLink token={feedback.invite} />
           </div>
         ) : null}
+        {feedback?.recoveryNotice ? <p className="mt-4 rounded-lg bg-emerald-400/10 px-3 py-2 text-sm text-emerald-200">{feedback.recoveryNotice}</p> : null}
+        {feedback?.recoveryError ? <p className="mt-4 rounded-lg bg-rose-400/10 px-3 py-2 text-sm text-rose-200">{feedback.recoveryError}</p> : null}
 
         <div className="mt-5 overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -143,16 +146,20 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
                     </td>
                     <td className="text-right">
                       {canManage ? (
-                        <form action={removeWorkspaceMember}>
-                          <input name="membershipId" type="hidden" value={member.id} />
-                          <button
-                            aria-label={`Remove ${member.email}`}
-                            className="ml-auto grid size-8 place-items-center rounded-lg text-slate-400 hover:bg-rose-400/10 hover:text-rose-200"
-                            title="Remove member"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </form>
+                        <div className="flex justify-end gap-1">
+                          <form action={sendMemberRecoveryEmail}>
+                            <input name="membershipId" type="hidden" value={member.id} />
+                            <button aria-label={`Send recovery email to ${member.email}`} className="grid size-8 place-items-center rounded-lg text-slate-400 hover:bg-white/10 hover:text-slate-100" title="Send recovery email">
+                              <Mail size={16} />
+                            </button>
+                          </form>
+                          <form action={removeWorkspaceMember}>
+                            <input name="membershipId" type="hidden" value={member.id} />
+                            <button aria-label={`Remove ${member.email}`} className="grid size-8 place-items-center rounded-lg text-slate-400 hover:bg-rose-400/10 hover:text-rose-200" title="Remove member">
+                              <Trash2 size={16} />
+                            </button>
+                          </form>
+                        </div>
                       ) : null}
                     </td>
                   </tr>

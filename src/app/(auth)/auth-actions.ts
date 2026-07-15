@@ -1,8 +1,10 @@
 'use server';
 
 import { hash, compare } from 'bcryptjs';
+import { headers } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { OnboardingError, provisionTrialWorkspace } from '@/lib/server/onboarding';
+import { sendPasswordResetEmail } from '@/lib/server/password-recovery';
 import type { AuthActionState } from './auth-state';
 
 function readString(formData: FormData, key: string): string {
@@ -53,6 +55,10 @@ export async function requestPasswordReset(_previousState: AuthActionState, form
   const email = readString(formData, 'email').toLowerCase();
   if (!email) return { ok: false, message: 'Email is required.' };
 
-  await prisma.user.findUnique({ where: { email }, select: { id: true } });
-  return { ok: true, message: 'If that account exists, a reset flow would be started once email delivery is configured.' };
+  const requestHeaders = await headers();
+  const host = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host');
+  const protocol = requestHeaders.get('x-forwarded-proto') ?? (process.env.NODE_ENV === 'production' ? 'https' : 'http');
+  const baseUrl = process.env.NEXTAUTH_URL ?? (host ? `${protocol}://${host}` : 'http://localhost:3000');
+  await sendPasswordResetEmail(email, baseUrl).catch((error) => console.error('[password-reset] delivery failed', error));
+  return { ok: true, message: 'If that account exists and recovery email is configured, a reset link has been sent.' };
 }

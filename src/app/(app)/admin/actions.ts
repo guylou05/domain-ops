@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import {
   createInvitationToken,
@@ -13,6 +14,7 @@ import {
 import { recordAuditEvent } from '@/lib/server/audit';
 import { assertWorkspaceAdmin, requireWorkspaceContext } from '@/lib/server/workspace-context';
 import { isWorkerTaskType } from '@/worker/task-registry';
+import { sendPasswordResetEmail } from '@/lib/server/password-recovery';
 
 export async function toggleFeatureFlag(formData: FormData): Promise<void> {
   const context = await requireWorkspaceContext();
@@ -188,4 +190,28 @@ export async function removeWorkspaceMember(formData: FormData): Promise<void> {
     metadata: { role: member.role },
   });
   revalidatePath('/admin');
+}
+
+export async function sendMemberRecoveryEmail(formData: FormData): Promise<void> {
+  const context = await requireWorkspaceContext();
+  assertWorkspaceAdmin(context);
+  const membershipId = String(formData.get('membershipId') ?? '');
+  const member = await prisma.workspaceMember.findFirst({
+    where: { id: membershipId, workspaceId: context.workspaceId },
+    select: { userId: true, role: true, user: { select: { email: true } } },
+  });
+  if (!member) throw new Error('Workspace member was not found.');
+  const requestHeaders = await headers();
+  const host = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host');
+  const protocol = requestHeaders.get('x-forwarded-proto') ?? (process.env.NODE_ENV === 'production' ? 'https' : 'http');
+  const baseUrl = process.env.NEXTAUTH_URL ?? (host ? `${protocol}://${host}` : 'http://localhost:3000');
+  const sent = await sendPasswordResetEmail(member.user.email, baseUrl).catch(() => false);
+  if (!sent) redirect('/admin?recoveryError=Transactional+email+is+not+configured+for+this+member.');
+  await recordAuditEvent(context, {
+    action: 'password_reset.email_requested_by_admin',
+    targetType: 'User',
+    targetId: member.userId,
+    metadata: { email: member.user.email },
+  });
+  redirect(`/admin?recoveryNotice=${encodeURIComponent(`Recovery email sent to ${member.user.email}.`)}`);
 }

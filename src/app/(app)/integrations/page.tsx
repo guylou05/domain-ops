@@ -23,7 +23,7 @@ export default async function IntegrationsPage() {
         <div>
           <h1 className="text-3xl font-bold">Integrations</h1>
           <p className="mt-2 max-w-2xl text-sm text-slate-400">
-            Provider readiness for availability, buyer research, trademark review, and report automation.
+            Provider readiness for research, reporting, and account recovery automation.
           </p>
         </div>
         <div className="rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300">
@@ -31,7 +31,7 @@ export default async function IntegrationsPage() {
         </div>
       </div>
 
-      <section className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {providerStatuses.map((provider) => (
           <div className="border-l-2 border-white/10 pl-3" key={provider.key}>
             <h2 className="font-semibold">{provider.label}</h2>

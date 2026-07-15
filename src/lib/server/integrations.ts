@@ -101,16 +101,23 @@ export async function getProviderCredentialViews() {
 export async function getProviderRuntimeStatuses() {
   const context = await requireWorkspaceContext();
   const config = await getAppConfig();
-  const [registrarKey, trademarkKey, salesKey, historyKey] = await Promise.all([
+  const [registrarKey, trademarkKey, salesKey, historyKey, emailKey] = await Promise.all([
     resolveProviderCredential(context.workspaceId, 'registrar'),
     resolveProviderCredential(context.workspaceId, 'trademark'),
     resolveProviderCredential(context.workspaceId, 'comparable_sales'),
     resolveProviderCredential(context.workspaceId, 'domain_history'),
+    resolveProviderCredential(context.workspaceId, 'transactional_email'),
   ]);
   return [
     { key: 'registrar', ...getAvailabilityProviderStatus(config.availabilityProvider, config.providerEndpoints.registrar, registrarKey) },
     { key: 'trademark', ...getTrademarkProviderStatus(config.trademarkProvider, config.providerEndpoints.trademark, trademarkKey) },
     { key: 'comparableSales', ...getComparableSalesProviderStatus(config.comparableSalesProvider, config.providerEndpoints.comparableSales, salesKey) },
     { key: 'history', ...getHistoryProviderStatus(config.historyProvider, config.providerEndpoints.history, historyKey) },
+    {
+      key: 'transactionalEmail',
+      label: 'Transactional email',
+      mode: config.transactionalEmail.enabled ? 'live' : 'off',
+      liveReady: config.transactionalEmail.enabled && Boolean(config.transactionalEmail.sender && emailKey),
+    },
   ];
 }

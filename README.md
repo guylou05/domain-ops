@@ -39,6 +39,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 - [x] Workspace team administration with hashed invitation links, role changes, revocation, and member removal.
 - [x] Self-service workspace registration with automatic sign-in and 14-day subscription provisioning.
 - [x] Validated multi-workspace switching from the application sidebar.
+- [x] One-time password recovery, UI-configured transactional email, and authenticated password changes.
 - [x] Seed script with demo users, workspace, opportunities, watchlists, portfolio, reports, notifications, integrations, and admin data.
 - [x] Docker Compose for PostgreSQL, Redis, and the web app.
 - [x] Unit tests for generation, scoring, and domain import parsing.
@@ -106,6 +107,10 @@ This phase made public registration operational for metered workflows. Productio
 ## Multi-Workspace Phase
 
 This phase made multiple workspace memberships usable. The selected workspace is stored in an HTTP-only cookie, revalidated against the signed-in user's active memberships on every context resolution, and exposed through a compact sidebar switcher. Unauthorized or stale cookie values fall back to an accessible workspace, and successful switches create audit events in the destination workspace.
+
+## Account Recovery Phase
+
+This phase replaced the placeholder forgot-password flow with one-hour, single-use recovery tokens stored only as SHA-256 hashes. Resend-compatible delivery is enabled from Runtime Settings with its API key stored in the encrypted Integrations vault, while admins can trigger recovery delivery without seeing the bearer token. Signed-in users can change their password from Settings after verifying the current password, and all credential changes are audited.
 
 ## Local Setup
 

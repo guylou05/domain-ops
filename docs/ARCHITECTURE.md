@@ -28,6 +28,7 @@ DomainScout AI uses a Next.js App Router web app, Prisma/PostgreSQL persistence,
 8. Admin users can queue supported `BackgroundJob` records from the admin page.
 9. The worker entry point processes queued jobs through registered task handlers and updates status, progress, attempts, and errors.
 10. Workspace invitation links retain only SHA-256 token hashes, expire after seven days, and create or attach members in serializable transactions after password verification.
+11. Password recovery uses one-hour SHA-256 token hashes and Resend-compatible HTTP delivery configured through Settings and the encrypted workspace credential vault.
 
 ## Provider Strategy
 

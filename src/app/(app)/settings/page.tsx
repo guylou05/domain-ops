@@ -1,5 +1,6 @@
 import { updateRuntimeSettings, updateWorkspaceName } from './actions';
 import { getSettingsView } from '@/lib/server/settings';
+import { PasswordChangeForm } from '@/components/password-change-form';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,6 +69,7 @@ export default async function SettingsPage() {
           <p className="mt-4 font-medium">{settings.currentUser.name ?? settings.currentUser.email}</p>
           <p className="mt-1 text-sm text-slate-400">{settings.currentUser.email}</p>
           <p className="mt-3 rounded-lg bg-white/5 px-3 py-2 text-sm text-slate-300">Role: {settings.currentUser.role}</p>
+          <PasswordChangeForm />
         </div>
       </section>
 
@@ -127,6 +129,33 @@ export default async function SettingsPage() {
             <input defaultChecked={settings.appConfig.authDiagnosticsEnabled} name="authDiagnosticsEnabled" type="checkbox" />
             <span>Enable auth diagnostics endpoint</span>
           </label>
+          <fieldset className="grid gap-4 border-y border-white/10 py-4 lg:col-span-2">
+            <legend className="pr-3 text-sm font-semibold text-slate-200">Transactional email</legend>
+            <label className="flex items-center gap-3 text-sm">
+              <input defaultChecked={settings.appConfig.transactionalEmail.enabled} name="transactionalEmailEnabled" type="checkbox" />
+              <span>Enable password recovery email</span>
+            </label>
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="grid gap-2 text-sm text-slate-300">
+                Sender
+                <input
+                  className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-white"
+                  defaultValue={settings.appConfig.transactionalEmail.sender}
+                  name="transactionalEmailSender"
+                  placeholder="DomainScout AI <account@example.com>"
+                />
+              </label>
+              <label className="grid gap-2 text-sm text-slate-300">
+                Resend endpoint
+                <input
+                  className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-white"
+                  defaultValue={settings.appConfig.transactionalEmail.endpoint}
+                  name="transactionalEmailEndpoint"
+                  type="url"
+                />
+              </label>
+            </div>
+          </fieldset>
           <label className="flex items-center gap-3 rounded-lg border border-white/10 px-3 py-2 text-sm">
             <input defaultChecked={settings.appConfig.schedulerEnabled} name="schedulerEnabled" type="checkbox" />
             <span>Enable recurring background jobs</span>
