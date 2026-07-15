@@ -45,7 +45,7 @@ This file is the canonical development sequence for DomainScout AI. A phase is c
 
 ## Product Completion Sequence
 
-10. [ ] Deal Lifecycle and Renewal Intelligence
+10. [x] Deal Lifecycle and Renewal Intelligence
    - Editable portfolio holdings with dedicated detail, cost, valuation, listing, and activity views
    - Offers, negotiations, completed sales, fees, net profit, ROI, and holding-period workflows
    - Renewal calendar, carrying-cost analysis, keep/review/drop recommendations, decision history, and configurable reminders
