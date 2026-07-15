@@ -48,9 +48,9 @@ test.describe('seeded workspace workflows', () => {
 
     await page.locator('select[name="type"]').selectOption('portfolio_snapshot');
     await page.getByRole('button', { name: 'Queue job' }).click();
-    const queuedJob = page.locator('tbody tr').filter({ hasText: 'Portfolio Snapshot' }).first();
-    await expect(queuedJob).toBeVisible();
-    await expect(queuedJob.getByText(/QUEUED|RUNNING|COMPLETED/)).toBeVisible();
+    const queuedJobHeading = page.getByRole('heading', { name: 'Portfolio Snapshot', exact: true }).first();
+    await expect(queuedJobHeading).toBeVisible();
+    await expect(queuedJobHeading.locator('xpath=ancestor::div[contains(@class,"rounded-lg")][1]').getByText(/QUEUED|RUNNING|COMPLETED/)).toBeVisible();
   });
 
   test('opportunity due diligence persists provider results', async ({ page }) => {
@@ -162,11 +162,8 @@ test.describe('seeded workspace workflows', () => {
     await expect(page).toHaveURL(/\/overview/);
 
     await page.getByLabel('Current workspace').selectOption({ label: 'Demo Domain Portfolio' });
-    await Promise.all([
-      page.waitForResponse((response) => response.request().method() === 'POST' && response.ok()),
-      page.getByRole('button', { name: 'Switch workspace' }).click(),
-    ]);
-    await expect(page.getByLabel('Current workspace')).toHaveValue(/.+/);
+    await page.getByRole('button', { name: 'Switch workspace' }).click();
+    await expect(page.locator('aside').getByText('VIEWER', { exact: true })).toBeVisible();
     await page.goto('/settings');
     await expect(page.locator('input[name="name"]')).toHaveValue('Demo Domain Portfolio');
     await expect(page.getByText('Role: VIEWER')).toBeVisible();
