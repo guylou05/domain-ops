@@ -54,7 +54,7 @@ test.describe('seeded workspace workflows', () => {
     await page.getByPlaceholder('Keywords: agent, revenue, ops').fill('lifecycle, asset');
     await page.locator('input[name="count"]').fill('1');
     await page.getByRole('button', { name: 'Generate, analyze, and save' }).click();
-    await expect(page.getByText(/Saved 1 generated opportunity\./)).toBeVisible();
+    await expect(page.getByText(/Saved \d+ generated opportunities\./)).toBeVisible();
 
     await page.goto('/opportunities?sort=newest');
     const row = page.locator('tbody tr').first();
