@@ -1,6 +1,7 @@
 import { updateRuntimeSettings, updateWorkspaceName } from './actions';
 import { getSettingsView } from '@/lib/server/settings';
 import { PasswordChangeForm } from '@/components/password-change-form';
+import { openBillingPortal, startSubscriptionCheckout } from './billing-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +20,8 @@ function formatLabel(value: string): string {
     .join(' ');
 }
 
-export default async function SettingsPage() {
+export default async function SettingsPage({ searchParams }: { searchParams?: Promise<{ billing?: string; billingError?: string }> }) {
+  const feedback = await searchParams;
   const settings = await getSettingsView();
   const canManageRuntime = settings.currentUser.role === 'OWNER' || settings.currentUser.role === 'ADMIN';
 
@@ -31,6 +33,16 @@ export default async function SettingsPage() {
           Workspace configuration, membership, plan entitlements, and feature readiness.
         </p>
       </div>
+
+      {feedback?.billing === 'checkout-complete' ? (
+        <p className="mt-5 rounded-lg border border-emerald-400/30 bg-emerald-400/5 px-3 py-2 text-sm text-emerald-200">Checkout completed. Billing status will refresh when the signed webhook is processed.</p>
+      ) : null}
+      {feedback?.billing === 'checkout-cancelled' ? (
+        <p className="mt-5 rounded-lg border border-amber-400/30 bg-amber-400/5 px-3 py-2 text-sm text-amber-200">Checkout was cancelled. Your current plan remains unchanged.</p>
+      ) : null}
+      {feedback?.billingError ? (
+        <p className="mt-5 rounded-lg border border-rose-400/30 bg-rose-400/5 px-3 py-2 text-sm text-rose-200">{feedback.billingError}</p>
+      ) : null}
 
       <section className="mt-6 grid gap-4 lg:grid-cols-3">
         <div className="card lg:col-span-2">
@@ -156,6 +168,24 @@ export default async function SettingsPage() {
               </label>
             </div>
           </fieldset>
+          <fieldset className="grid gap-4 border-b border-white/10 pb-5 lg:col-span-2">
+            <legend className="pr-3 text-sm font-semibold text-slate-200">Subscription billing</legend>
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="grid gap-2 text-sm text-slate-300">
+                Stripe mode
+                <select className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" defaultValue={settings.appConfig.billing.mode} name="billingMode">
+                  <option value="off">Off</option>
+                  <option value="test">Test</option>
+                  <option value="live">Live</option>
+                </select>
+              </label>
+              <label className="grid gap-2 text-sm text-slate-300">
+                Billing currency
+                <input className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" defaultValue={settings.appConfig.billing.currency.toUpperCase()} maxLength={3} minLength={3} name="billingCurrency" />
+              </label>
+            </div>
+            <p className="text-xs text-slate-400">Checkout requires the Stripe secret key. Subscription activation also requires the webhook secret in Integrations.</p>
+          </fieldset>
           <label className="flex items-center gap-3 rounded-lg border border-white/10 px-3 py-2 text-sm">
             <input defaultChecked={settings.appConfig.schedulerEnabled} name="schedulerEnabled" type="checkbox" />
             <span>Enable recurring background jobs</span>
@@ -252,14 +282,19 @@ export default async function SettingsPage() {
           ) : (
             <div className="mt-4 space-y-4">
               {settings.subscriptions.map((subscription) => (
-                <div className="rounded-lg bg-white/5 p-4" key={`${subscription.plan.name}-${subscription.status}`}>
+                <div className="rounded-lg bg-white/5 p-4" key={subscription.id}>
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <h3 className="font-semibold">{subscription.plan.name}</h3>
+                      <p className="mt-1 text-xs text-slate-500">Provider: {formatLabel(subscription.provider)}</p>
                       <p className="mt-1 text-sm text-slate-400">{formatCurrency(subscription.plan.priceCents)}/mo · {formatLabel(subscription.status)}</p>
                     </div>
                     <p className="text-sm text-slate-500">
-                      {subscription.trialEndsAt ? `Trial ends ${formatDate(subscription.trialEndsAt)}` : `Usage resets ${formatDate(settings.monthlyUsage.periodEnd)}`}
+                      {subscription.trialEndsAt
+                        ? `Trial ends ${formatDate(subscription.trialEndsAt)}`
+                        : subscription.currentPeriodEnd
+                          ? `${subscription.cancelAtPeriodEnd ? 'Cancels' : 'Renews'} ${formatDate(subscription.currentPeriodEnd)}`
+                          : `Usage resets ${formatDate(settings.monthlyUsage.periodEnd)}`}
                     </p>
                   </div>
                   <div className="mt-4 grid gap-2 text-sm">
@@ -282,6 +317,22 @@ export default async function SettingsPage() {
                       );
                     })}
                   </div>
+                  {canManageRuntime ? (
+                    <div className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-4">
+                      {subscription.externalCustomerId ? (
+                        <form action={openBillingPortal}>
+                          <button className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">Manage billing</button>
+                        </form>
+                      ) : (
+                        <form action={startSubscriptionCheckout}>
+                          <button className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={!settings.billing.checkoutReady}>Start paid subscription</button>
+                        </form>
+                      )}
+                      <span className={settings.billing.checkoutReady && settings.billing.webhookReady ? 'self-center text-xs font-semibold text-emerald-300' : 'self-center text-xs font-semibold text-amber-200'}>
+                        {settings.billing.checkoutReady && settings.billing.webhookReady ? 'Billing ready' : 'Complete billing setup in Runtime settings and Integrations'}
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
               ))}
             </div>

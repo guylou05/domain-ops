@@ -40,6 +40,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 - [x] Self-service workspace registration with automatic sign-in and 14-day subscription provisioning.
 - [x] Validated multi-workspace switching from the application sidebar.
 - [x] One-time password recovery, UI-configured transactional email, and authenticated password changes.
+- [x] Stripe subscription checkout, customer portal access, encrypted billing credentials, and signed webhook reconciliation.
 - [x] Seed script with demo users, workspace, opportunities, watchlists, portfolio, reports, notifications, integrations, and admin data.
 - [x] Docker Compose for PostgreSQL, Redis, and the web app.
 - [x] Unit tests for generation, scoring, and domain import parsing.
@@ -112,6 +113,10 @@ This phase made multiple workspace memberships usable. The selected workspace is
 
 This phase replaced the placeholder forgot-password flow with one-hour, single-use recovery tokens stored only as SHA-256 hashes. Resend-compatible delivery is enabled from Runtime Settings with its API key stored in the encrypted Integrations vault, while admins can trigger recovery delivery without seeing the bearer token. Signed-in users can change their password from Settings after verifying the current password, and all credential changes are audited.
 
+## Subscription Billing Phase
+
+This phase connected the existing plan, trial, and entitlement models to Stripe Checkout and the Stripe customer portal. Billing mode and currency are managed from Settings, Stripe credentials are encrypted in the Integrations vault, and signed webhook events update subscription access transactionally with replay protection and idempotency. The ordered post-billing plan is tracked in `docs/ROADMAP.md`.
+
 ## Local Setup
 
 ```bash
@@ -171,7 +176,7 @@ npm install
 - `npm run doctor:db` - validate schema and checked-in migration readiness.
 - `npm run doctor:auth` - verify seeded demo users and demo password hashes.
 
-The Settings page stores runtime-tunable app configuration in the database, including research provider modes and endpoint URLs, worker limits, lease duration, recurring task cadence, scheduler polling, and auth diagnostic visibility. Bootstrapping secrets and infrastructure connection values such as `DATABASE_URL`, `REDIS_URL`, `NEXTAUTH_URL`, and `NEXTAUTH_SECRET` still belong in the deployment environment.
+The Settings page stores runtime-tunable app configuration in the database, including research provider modes and endpoint URLs, subscription billing mode and currency, worker limits, lease duration, recurring task cadence, scheduler polling, and auth diagnostic visibility. Provider and Stripe credentials are encrypted through Integrations. Bootstrapping secrets and infrastructure connection values such as `DATABASE_URL`, `REDIS_URL`, `NEXTAUTH_URL`, and `NEXTAUTH_SECRET` still belong in the deployment environment.
 
 ## Provider Integration Guide
 
@@ -195,6 +200,8 @@ Keep `ENCRYPTION_KEY` stable. Changing it makes previously stored provider crede
 For Google OAuth, also set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. The callback URL should be `${NEXTAUTH_URL}/api/auth/callback/google`.
 
 For live research providers, save keys from Integrations. Endpoint URLs and provider modes are managed from Settings. Railway API-key variables are optional fallbacks.
+
+For Stripe billing, set Test or Live mode and currency in Settings, then save the Stripe secret key and webhook secret in Integrations. Configure Stripe to send `checkout.session.completed` and `customer.subscription.created`, `customer.subscription.updated`, and `customer.subscription.deleted` events to `${NEXTAUTH_URL}/api/billing/stripe`. Deployment variables with the same secrets remain optional fallbacks.
 
 ## Railway GitHub Deployment
 

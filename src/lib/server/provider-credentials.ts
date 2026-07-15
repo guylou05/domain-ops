@@ -7,6 +7,8 @@ export const MANAGED_PROVIDER_CREDENTIALS = [
   { key: 'comparable_sales', label: 'Comparable sales', envName: 'COMPARABLE_SALES_API_KEY' },
   { key: 'domain_history', label: 'Domain history', envName: 'DOMAIN_HISTORY_API_KEY' },
   { key: 'transactional_email', label: 'Transactional email', envName: 'EMAIL_API_KEY' },
+  { key: 'stripe_secret_key', label: 'Stripe secret key', envName: 'STRIPE_SECRET_KEY' },
+  { key: 'stripe_webhook_secret', label: 'Stripe webhook secret', envName: 'STRIPE_WEBHOOK_SECRET' },
 ] as const;
 
 export type ManagedProviderKey = (typeof MANAGED_PROVIDER_CREDENTIALS)[number]['key'];

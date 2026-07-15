@@ -19,6 +19,10 @@ export type AppConfig = {
     sender: string;
     endpoint: string;
   };
+  billing: {
+    mode: 'off' | 'test' | 'live';
+    currency: string;
+  };
   workerJobLimit: number;
   workerLeaseMs: number;
   schedulerEnabled: boolean;
@@ -47,6 +51,10 @@ const DEFAULT_CONFIG: AppConfig = {
     enabled: false,
     sender: '',
     endpoint: 'https://api.resend.com/emails',
+  },
+  billing: {
+    mode: 'off',
+    currency: 'usd',
   },
   workerJobLimit: 5,
   workerLeaseMs: 300000,
@@ -84,6 +92,16 @@ function readEmailSender(value: unknown): string {
   return /\S+@\S+\.\S+/.test(sender) ? sender.slice(0, 320) : '';
 }
 
+function readBillingMode(value: unknown): AppConfig['billing']['mode'] {
+  return value === 'test' || value === 'live' ? value : 'off';
+}
+
+function readCurrency(value: unknown): string {
+  if (typeof value !== 'string') return DEFAULT_CONFIG.billing.currency;
+  const currency = value.trim().toLowerCase();
+  return /^[a-z]{3}$/.test(currency) ? currency : DEFAULT_CONFIG.billing.currency;
+}
+
 function readPositiveInteger(value: unknown, fallback: number, minimum: number, maximum: number): number {
   const numeric = Number(value);
   if (!Number.isFinite(numeric) || numeric <= 0) return fallback;
@@ -103,6 +121,7 @@ export function parseAppConfig(value: unknown): AppConfig {
   const schedules = readObject(object.jobSchedules);
   const endpoints = readObject(object.providerEndpoints);
   const transactionalEmail = readObject(object.transactionalEmail);
+  const billing = readObject(object.billing);
   return {
     availabilityProvider: readProvider(object.availabilityProvider),
     trademarkProvider: readProvider(object.trademarkProvider),
@@ -119,6 +138,10 @@ export function parseAppConfig(value: unknown): AppConfig {
       enabled: transactionalEmail.enabled === true,
       sender: readEmailSender(transactionalEmail.sender),
       endpoint: readEndpoint(transactionalEmail.endpoint) || DEFAULT_CONFIG.transactionalEmail.endpoint,
+    },
+    billing: {
+      mode: readBillingMode(billing.mode),
+      currency: readCurrency(billing.currency),
     },
     workerJobLimit: readPositiveInteger(object.workerJobLimit, DEFAULT_CONFIG.workerJobLimit, 1, 50),
     workerLeaseMs: readPositiveInteger(object.workerLeaseMs, DEFAULT_CONFIG.workerLeaseMs, 10000, 3600000),

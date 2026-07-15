@@ -86,6 +86,13 @@ export async function updateRuntimeSettings(formData: FormData): Promise<void> {
       sender: String(formData.get('transactionalEmailSender') ?? ''),
       endpoint: String(formData.get('transactionalEmailEndpoint') ?? ''),
     },
+    billing: {
+      mode: (() => {
+        const value = String(formData.get('billingMode') ?? 'off');
+        return value === 'test' || value === 'live' ? value : 'off';
+      })(),
+      currency: String(formData.get('billingCurrency') ?? 'usd'),
+    },
     schedulerEnabled,
     schedulerPollMs,
     jobSchedules: {

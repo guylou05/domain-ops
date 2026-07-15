@@ -101,12 +101,14 @@ export async function getProviderCredentialViews() {
 export async function getProviderRuntimeStatuses() {
   const context = await requireWorkspaceContext();
   const config = await getAppConfig();
-  const [registrarKey, trademarkKey, salesKey, historyKey, emailKey] = await Promise.all([
+  const [registrarKey, trademarkKey, salesKey, historyKey, emailKey, stripeKey, stripeWebhookKey] = await Promise.all([
     resolveProviderCredential(context.workspaceId, 'registrar'),
     resolveProviderCredential(context.workspaceId, 'trademark'),
     resolveProviderCredential(context.workspaceId, 'comparable_sales'),
     resolveProviderCredential(context.workspaceId, 'domain_history'),
     resolveProviderCredential(context.workspaceId, 'transactional_email'),
+    resolveProviderCredential(context.workspaceId, 'stripe_secret_key'),
+    resolveProviderCredential(context.workspaceId, 'stripe_webhook_secret'),
   ]);
   return [
     { key: 'registrar', ...getAvailabilityProviderStatus(config.availabilityProvider, config.providerEndpoints.registrar, registrarKey) },
@@ -118,6 +120,12 @@ export async function getProviderRuntimeStatuses() {
       label: 'Transactional email',
       mode: config.transactionalEmail.enabled ? 'live' : 'off',
       liveReady: config.transactionalEmail.enabled && Boolean(config.transactionalEmail.sender && emailKey),
+    },
+    {
+      key: 'stripeBilling',
+      label: 'Stripe billing',
+      mode: config.billing.mode,
+      liveReady: config.billing.mode !== 'off' && Boolean(stripeKey && stripeWebhookKey),
     },
   ];
 }

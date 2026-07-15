@@ -76,6 +76,16 @@ test.describe('seeded workspace workflows', () => {
     await expect(page.getByText(/Stored .+/).first()).toBeVisible();
   });
 
+  test('billing setup is managed from Settings and Integrations', async ({ page }) => {
+    await login(page);
+    await page.goto('/settings');
+    await expect(page.getByRole('group', { name: 'Subscription billing' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Start paid subscription' })).toBeDisabled();
+    await page.goto('/integrations');
+    await expect(page.getByLabel('Stripe secret key API key')).toBeVisible();
+    await expect(page.getByLabel('Stripe webhook secret API key')).toBeVisible();
+  });
+
   test('owner can invite a teammate who joins the workspace', async ({ page }) => {
     await login(page);
     await page.goto('/admin');

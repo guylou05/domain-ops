@@ -23,7 +23,7 @@ export default async function IntegrationsPage() {
         <div>
           <h1 className="text-3xl font-bold">Integrations</h1>
           <p className="mt-2 max-w-2xl text-sm text-slate-400">
-            Provider readiness for research, reporting, and account recovery automation.
+            Provider readiness for research, reporting, account recovery, and subscription billing.
           </p>
         </div>
         <div className="rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300">
@@ -31,13 +31,13 @@ export default async function IntegrationsPage() {
         </div>
       </div>
 
-      <section className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <section className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
         {providerStatuses.map((provider) => (
           <div className="border-l-2 border-white/10 pl-3" key={provider.key}>
             <h2 className="font-semibold">{provider.label}</h2>
             <p className="mt-1 text-sm text-slate-400">Mode: {provider.mode}</p>
             <p className={provider.liveReady ? 'mt-2 text-xs font-semibold text-emerald-300' : 'mt-2 text-xs font-semibold text-amber-200'}>
-              {provider.liveReady ? 'Ready' : 'Endpoint or API key missing'}
+              {provider.liveReady ? 'Ready' : provider.mode === 'off' ? 'Disabled' : 'Configuration incomplete'}
             </p>
           </div>
         ))}

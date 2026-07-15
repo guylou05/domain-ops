@@ -3,6 +3,7 @@ import { getAppConfig, type AppConfig } from './app-config';
 import { getMonthlyEntitlementUsage } from './entitlements';
 import { subscriptionDisplayStatus } from '@/lib/onboarding-policy';
 import { requireWorkspaceContext } from './workspace-context';
+import { getBillingReadiness } from './billing';
 
 export type SettingsView = {
   workspace: {
@@ -24,7 +25,12 @@ export type SettingsView = {
     joinedAt: Date;
   }>;
   subscriptions: Array<{
+    id: string;
     status: string;
+    provider: string;
+    externalCustomerId: string | null;
+    currentPeriodEnd: Date | null;
+    cancelAtPeriodEnd: boolean;
     trialEndsAt: Date | null;
     plan: {
       name: string;
@@ -43,12 +49,13 @@ export type SettingsView = {
   }>;
   appConfig: AppConfig;
   monthlyUsage: Awaited<ReturnType<typeof getMonthlyEntitlementUsage>>;
+  billing: Awaited<ReturnType<typeof getBillingReadiness>>;
 };
 
 export async function getSettingsView(): Promise<SettingsView> {
   const context = await requireWorkspaceContext();
 
-  const [workspace, currentMember, subscriptions, featureFlags, appConfig, monthlyUsage] = await Promise.all([
+  const [workspace, currentMember, subscriptions, featureFlags, appConfig, monthlyUsage, billing] = await Promise.all([
     prisma.workspace.findUniqueOrThrow({
       where: { id: context.workspaceId },
       select: {
@@ -91,6 +98,7 @@ export async function getSettingsView(): Promise<SettingsView> {
     }),
     getAppConfig(),
     getMonthlyEntitlementUsage(context.workspaceId),
+    getBillingReadiness(context.workspaceId),
   ]);
 
   return {
@@ -113,7 +121,12 @@ export async function getSettingsView(): Promise<SettingsView> {
       joinedAt: member.createdAt,
     })),
     subscriptions: subscriptions.map((subscription) => ({
+      id: subscription.id,
       status: subscriptionDisplayStatus(subscription.status, subscription.trialEndsAt),
+      provider: subscription.provider,
+      externalCustomerId: subscription.externalCustomerId,
+      currentPeriodEnd: subscription.currentPeriodEnd,
+      cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
       trialEndsAt: subscription.trialEndsAt,
       plan: {
         name: subscription.plan.name,
@@ -128,5 +141,6 @@ export async function getSettingsView(): Promise<SettingsView> {
     featureFlags,
     appConfig,
     monthlyUsage,
+    billing,
   };
 }
