@@ -40,10 +40,12 @@ describe('app config parsing', () => {
       workerLeaseMs: 300000,
       schedulerEnabled: false,
       schedulerPollMs: 60000,
+      renewalReminderDays: [90, 60, 30, 14, 7, 1],
       jobSchedules: {
         dailyOpportunityDigest: { enabled: true, intervalMinutes: 1440 },
         buyerResearchRefresh: { enabled: true, intervalMinutes: 360 },
         portfolioSnapshot: { enabled: true, intervalMinutes: 1440 },
+        renewalReminders: { enabled: true, intervalMinutes: 1440 },
       },
     });
   });
@@ -137,10 +139,12 @@ describe('app config parsing', () => {
       workerLeaseMs: 10000,
       schedulerEnabled: true,
       schedulerPollMs: 10000,
+      renewalReminderDays: [90, 60, 30, 14, 7, 1],
       jobSchedules: {
         dailyOpportunityDigest: { enabled: false, intervalMinutes: 5 },
         buyerResearchRefresh: { enabled: true, intervalMinutes: 360 },
         portfolioSnapshot: { enabled: true, intervalMinutes: 1440 },
+        renewalReminders: { enabled: true, intervalMinutes: 1440 },
       },
     });
   });

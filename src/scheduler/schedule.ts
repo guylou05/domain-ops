@@ -19,6 +19,7 @@ function recurringTasks(config: AppConfig): RecurringTask[] {
     { type: 'daily_opportunity_digest', schedule: config.jobSchedules.dailyOpportunityDigest },
     { type: 'buyer_research_refresh', schedule: config.jobSchedules.buyerResearchRefresh },
     { type: 'portfolio_snapshot', schedule: config.jobSchedules.portfolioSnapshot },
+    { type: 'renewal_reminders', schedule: config.jobSchedules.renewalReminders },
   ];
   return tasks.filter((task) => task.schedule.enabled);
 }

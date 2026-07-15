@@ -9,6 +9,14 @@ export type DashboardSummary = {
   portfolioValue: number;
   renewalExposure: number;
   watchlistCount: number;
+  revenue: number;
+  netProfit: number;
+  domainsSold: number;
+  activeOffers: number;
+  sellThroughRate: number;
+  roi: number;
+  averageHoldingDays: number;
+  upcomingRenewals: number;
   riskBreakdown: Array<{ riskLevel: string; count: number }>;
   topOpportunities: Array<{
     domain: string;
@@ -29,7 +37,7 @@ function decimalToNumber(value: { toNumber(): number } | number | null | undefin
 export async function getDashboardSummary(): Promise<DashboardSummary> {
   const context = await requireWorkspaceContext();
 
-  const [domainCount, opportunityStats, qualifiedOpportunities, portfolioStats, watchlistCount, riskGroups, topOpportunities] = await Promise.all([
+  const [domainCount, opportunityStats, qualifiedOpportunities, portfolioStats, watchlistCount, riskGroups, topOpportunities, sales, activeOffers, upcomingRenewals, activeHoldings] = await Promise.all([
     prisma.domain.count({ where: { workspaceId: context.workspaceId, status: 'ACTIVE' } }),
     prisma.domainOpportunity.aggregate({
       where: { workspaceId: context.workspaceId, status: 'ACTIVE' },
@@ -65,7 +73,16 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
         },
       },
     }),
+    prisma.sale.findMany({ where: { workspaceId: context.workspaceId }, include: { domain: { include: { portfolioItems: { where: { workspaceId: context.workspaceId }, take: 1 } } } } }),
+    prisma.offer.count({ where: { workspaceId: context.workspaceId, status: { in: ['RECEIVED', 'COUNTERED'] } } }),
+    prisma.portfolioItem.count({ where: { workspaceId: context.workspaceId, status: 'ACTIVE', expirationDate: { lte: new Date(Date.now() + 90 * 86400000) } } }),
+    prisma.portfolioItem.count({ where: { workspaceId: context.workspaceId, status: 'ACTIVE' } }),
   ]);
+
+  const revenue = sales.reduce((sum, sale) => sum + sale.salePrice.toNumber(), 0);
+  const netProfit = sales.reduce((sum, sale) => sum + sale.netProfit.toNumber(), 0);
+  const invested = sales.reduce((sum, sale) => sum + (sale.domain.portfolioItems[0]?.purchaseCost.toNumber() ?? 0), 0);
+  const holdingDayTotal = sales.reduce((sum, sale) => sum + Math.max(0, Math.floor((sale.saleDate.getTime() - (sale.domain.portfolioItems[0]?.purchaseDate.getTime() ?? sale.saleDate.getTime())) / 86400000)), 0);
 
   return {
     analyzedDomains: domainCount,
@@ -75,6 +92,14 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     portfolioValue: decimalToNumber(portfolioStats._sum.currentValuation),
     renewalExposure: decimalToNumber(portfolioStats._sum.renewalCost),
     watchlistCount,
+    revenue,
+    netProfit,
+    domainsSold: sales.length,
+    activeOffers,
+    sellThroughRate: sales.length + activeHoldings > 0 ? (sales.length / (sales.length + activeHoldings)) * 100 : 0,
+    roi: invested > 0 ? (netProfit / invested) * 100 : 0,
+    averageHoldingDays: sales.length ? Math.round(holdingDayTotal / sales.length) : 0,
+    upcomingRenewals,
     riskBreakdown: riskGroups.map((group) => ({
       riskLevel: group.riskLevel,
       count: group._count.riskLevel,

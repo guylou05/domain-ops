@@ -279,6 +279,9 @@ model Domain {
   watchlistItems  WatchlistItem[]
   portfolioItems  PortfolioItem[]
   buyers          Buyer[]
+  offers          Offer[]
+  sales           Sale[]
+  renewals        Renewal[]
 
   @@unique([workspaceId, name])
   @@index([workspaceId, status])
@@ -453,9 +456,19 @@ model PortfolioItem {
   autoRenew        Boolean   @default(false)
   currentValuation Decimal
   buyNowPrice      Decimal?
+  minSalePrice     Decimal?
+  purchaseSource   String?
+  nameservers      String[]  @default([])
+  notes            String?
+  category         String?
+  tags             String[]  @default([])
   status           Status    @default(ACTIVE)
+  updatedAt        DateTime  @updatedAt
   workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   domain           Domain    @relation(fields: [domainId], references: [id])
+
+  @@index([workspaceId, status, expirationDate])
+  @@index([workspaceId, domainId])
 }
 
 model RegistrarAccount {
@@ -524,7 +537,16 @@ model Offer {
   domainId    String
   amount      Decimal
   status      String
+  buyerName   String?
+  buyerEmail  String?
+  notes       String?
   createdAt   DateTime @default(now())
+  respondedAt DateTime?
+  updatedAt   DateTime @updatedAt
+  domain      Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status, createdAt])
+  @@index([domainId])
 }
 
 model Sale {
@@ -535,6 +557,13 @@ model Sale {
   fees        Decimal
   netProfit   Decimal
   saleDate    DateTime
+  source      String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  domain      Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, saleDate])
+  @@index([domainId])
 }
 
 model Renewal {
@@ -545,6 +574,15 @@ model Renewal {
   cost           Decimal
   recommendation String
   status         String
+  decision       String?
+  notes          String?
+  decidedAt      DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  domain         Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, domainId, dueDate])
+  @@index([workspaceId, status, dueDate])
 }
 
 model Notification {

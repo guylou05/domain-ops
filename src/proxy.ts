@@ -18,6 +18,7 @@ const protectedRoutes = [
   '/overview',
   '/portfolio',
   '/reports',
+  '/renewals',
   '/settings',
   '/watchlists',
 ];

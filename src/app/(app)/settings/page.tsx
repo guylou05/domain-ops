@@ -302,7 +302,7 @@ export default async function SettingsPage({
           </label>
           <fieldset className="grid gap-3 border-t border-white/10 pt-4 lg:col-span-2">
             <legend className="pr-3 text-sm font-semibold text-slate-200">Recurring task cadence</legend>
-            <div className="grid gap-3 md:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-4">
               {[
                 {
                   key: 'dailyOpportunityDigest',
@@ -318,6 +318,11 @@ export default async function SettingsPage({
                   key: 'portfolioSnapshot',
                   label: 'Portfolio snapshot',
                   schedule: settings.appConfig.jobSchedules.portfolioSnapshot,
+                },
+                {
+                  key: 'renewalReminders',
+                  label: 'Renewal reminders',
+                  schedule: settings.appConfig.jobSchedules.renewalReminders,
                 },
               ].map((task) => (
                 <div className="grid gap-3 rounded-lg border border-white/10 p-3" key={task.key}>
@@ -339,6 +344,10 @@ export default async function SettingsPage({
                 </div>
               ))}
             </div>
+            <label className="grid gap-2 text-sm text-slate-300">
+              Renewal reminder days before expiration
+              <input className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" defaultValue={settings.appConfig.renewalReminderDays.join(', ')} name="renewalReminderDays" placeholder="90, 60, 30, 14, 7, 1" />
+            </label>
           </fieldset>
           <div className="lg:col-span-2">
             <button className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">Save runtime settings</button>

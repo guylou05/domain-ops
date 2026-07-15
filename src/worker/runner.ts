@@ -4,6 +4,7 @@ import {
   createDailyOpportunityDigestForWorkspace,
   createPortfolioSnapshotForWorkspace,
   generateBuyerTargetsForWorkspace,
+  createRenewalRemindersForWorkspace,
 } from '@/lib/server/workflow-generators';
 import { nextLeaseExpiry, readLeaseMs, readWorkerId } from './lease';
 import { isWorkerTaskType, type WorkerTaskType } from './task-registry';
@@ -37,6 +38,10 @@ async function executeTask(type: WorkerTaskType, workspaceId: string): Promise<s
     case 'portfolio_snapshot': {
       const reportId = await createPortfolioSnapshotForWorkspace(workspaceId);
       return `Created portfolio snapshot report ${reportId}.`;
+    }
+    case 'renewal_reminders': {
+      const notifications = await createRenewalRemindersForWorkspace(workspaceId);
+      return `Created ${notifications} renewal reminder notifications.`;
     }
   }
 }

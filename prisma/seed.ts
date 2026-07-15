@@ -49,10 +49,12 @@ async function main() {
         workerLeaseMs: 300000,
         schedulerEnabled: false,
         schedulerPollMs: 60000,
+        renewalReminderDays: [90, 60, 30, 14, 7, 1],
         jobSchedules: {
           dailyOpportunityDigest: { enabled: true, intervalMinutes: 1440 },
           buyerResearchRefresh: { enabled: true, intervalMinutes: 360 },
           portfolioSnapshot: { enabled: true, intervalMinutes: 1440 },
+          renewalReminders: { enabled: true, intervalMinutes: 1440 },
         },
       },
     },
@@ -187,6 +189,21 @@ async function main() {
         },
       });
     }
+  }
+
+  const offerDomain = domains[1];
+  const renewalDomain = domains[3];
+  if (offerDomain && !(await prisma.offer.findFirst({ where: { workspaceId: workspace.id, domainId: offerDomain.id } }))) {
+    await prisma.offer.create({ data: { workspaceId: workspace.id, domainId: offerDomain.id, amount: 3200, status: 'COUNTERED', buyerName: 'Northstar Automation', buyerEmail: 'acquisitions@example.com', notes: 'Buyer opened at $2,800; countered at $3,200.' } });
+  }
+  if (renewalDomain) {
+    const holding = await prisma.portfolioItem.findFirst({ where: { workspaceId: workspace.id, domainId: renewalDomain.id } });
+    if (holding) await prisma.renewal.upsert({ where: { workspaceId_domainId_dueDate: { workspaceId: workspace.id, domainId: renewalDomain.id, dueDate: holding.expirationDate } }, update: {}, create: { workspaceId: workspace.id, domainId: renewalDomain.id, dueDate: holding.expirationDate, cost: holding.renewalCost, recommendation: 'REVIEW', status: 'PENDING' } });
+  }
+  const soldDomain = domains[0];
+  if (soldDomain && !(await prisma.sale.findFirst({ where: { workspaceId: workspace.id, domainId: soldDomain.id } }))) {
+    const soldHolding = (await prisma.portfolioItem.findFirst({ where: { workspaceId: workspace.id, domainId: soldDomain.id } })) ?? await prisma.portfolioItem.create({ data: { workspaceId: workspace.id, domainId: soldDomain.id, registrar: 'MockRegistrar', purchaseDate: new Date(Date.UTC(2025, 8, 10)), purchaseCost: 120, renewalCost: 18, expirationDate: new Date(Date.UTC(2026, 8, 10)), currentValuation: 4800, buyNowPrice: 5200, status: 'ARCHIVED', purchaseSource: 'Private acquisition', tags: ['sold', 'ai'] } });
+    await prisma.sale.create({ data: { workspaceId: workspace.id, domainId: soldDomain.id, salePrice: 4800, fees: 720, netProfit: 3960, saleDate: new Date(Date.UTC(2026, 5, 20)), source: 'Afternic', notes: `Completed demo sale from holding ${soldHolding.id}.` } });
   }
 
   const listingSeeds = [

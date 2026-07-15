@@ -18,6 +18,14 @@ export default async function Dashboard() {
     ['Portfolio value', formatCurrency(summary.portfolioValue)],
     ['Annual renewals', formatCurrency(summary.renewalExposure)],
     ['Watchlists', summary.watchlistCount],
+    ['Sales revenue', formatCurrency(summary.revenue)],
+    ['Net profit', formatCurrency(summary.netProfit)],
+    ['Domains sold', summary.domainsSold],
+    ['Active offers', summary.activeOffers],
+    ['Sell-through', `${summary.sellThroughRate.toFixed(1)}%`],
+    ['Realized ROI', `${summary.roi.toFixed(1)}%`],
+    ['Average hold', `${summary.averageHoldingDays} days`],
+    ['Renewals in 90 days', summary.upcomingRenewals],
   ];
 
   return (

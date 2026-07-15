@@ -9,7 +9,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 - **Application logic:** `src/lib/domain-engine.ts` provides deterministic availability, generation, scoring, and valuation logic for local development.
 - **Database:** PostgreSQL via Prisma. The schema covers users, workspaces, RBAC, subscriptions, usage, domains, opportunities, scores, valuations, watchlists, portfolio records, buyers, outreach, jobs, reports, notifications, integrations, audit logs, AI usage, webhooks, and feature flags.
 - **Operations:** Server actions support generator persistence, watchlist saves, portfolio acquisition/archive/renewal controls, report snapshots, buyer research generation, history checks, marketplace listing publication, notification read state, integration toggles, workspace settings, feature flags, entitlement enforcement, and audit logging.
-- **Background jobs:** `BackgroundJob` records, PostgreSQL worker leases, and Redis-coordinated recurring scheduling for scalable task execution.
+- **Background jobs:** `BackgroundJob` records, PostgreSQL worker leases, and Redis-coordinated recurring scheduling for scalable task execution, including configurable renewal reminders.
 - **Analysis service:** `services/api/main.py` remains available as a FastAPI companion service for future external scoring or AI workflows.
 
 ## Implemented Milestones
@@ -22,6 +22,8 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 - [x] Opportunity list, detail view, scoring, valuation, and watchlist save actions.
 - [x] Watchlist remove/acquire actions.
 - [x] Portfolio views with auto-renew and archive controls.
+- [x] Portfolio detail, offer negotiation, completed-sale economics, renewal decisions, and renewal-calendar workflows.
+- [x] Executive deal metrics for revenue, profit, sales, offers, sell-through, ROI, holding period, and upcoming renewals.
 - [x] Reports with generated portfolio snapshots.
 - [x] Buyer research, history checks, and marketplace listing generation.
 - [x] Outreach approval and notification read-state workflows.

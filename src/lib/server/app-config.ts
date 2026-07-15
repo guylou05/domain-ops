@@ -47,10 +47,12 @@ export type AppConfig = {
   workerLeaseMs: number;
   schedulerEnabled: boolean;
   schedulerPollMs: number;
+  renewalReminderDays: number[];
   jobSchedules: {
     dailyOpportunityDigest: JobScheduleConfig;
     buyerResearchRefresh: JobScheduleConfig;
     portfolioSnapshot: JobScheduleConfig;
+    renewalReminders: JobScheduleConfig;
   };
 };
 
@@ -100,10 +102,12 @@ const DEFAULT_CONFIG: AppConfig = {
   workerLeaseMs: 300000,
   schedulerEnabled: false,
   schedulerPollMs: 60000,
+  renewalReminderDays: [90, 60, 30, 14, 7, 1],
   jobSchedules: {
     dailyOpportunityDigest: { enabled: true, intervalMinutes: 1440 },
     buyerResearchRefresh: { enabled: true, intervalMinutes: 360 },
     portfolioSnapshot: { enabled: true, intervalMinutes: 1440 },
+    renewalReminders: { enabled: true, intervalMinutes: 1440 },
   },
 };
 
@@ -161,6 +165,12 @@ function readJobSchedule(value: unknown, fallback: JobScheduleConfig): JobSchedu
   };
 }
 
+function readReminderDays(value: unknown): number[] {
+  if (!Array.isArray(value)) return DEFAULT_CONFIG.renewalReminderDays;
+  const days = [...new Set(value.map(Number).filter((day) => Number.isInteger(day) && day >= 1 && day <= 365))].sort((a, b) => b - a);
+  return days.length ? days.slice(0, 12) : DEFAULT_CONFIG.renewalReminderDays;
+}
+
 export function parseAppConfig(value: unknown): AppConfig {
   const object = readObject(value);
   const schedules = readObject(object.jobSchedules);
@@ -214,10 +224,12 @@ export function parseAppConfig(value: unknown): AppConfig {
     workerLeaseMs: readPositiveInteger(object.workerLeaseMs, DEFAULT_CONFIG.workerLeaseMs, 10000, 3600000),
     schedulerEnabled: object.schedulerEnabled === true,
     schedulerPollMs: readPositiveInteger(object.schedulerPollMs, DEFAULT_CONFIG.schedulerPollMs, 10000, 600000),
+    renewalReminderDays: readReminderDays(object.renewalReminderDays),
     jobSchedules: {
       dailyOpportunityDigest: readJobSchedule(schedules.dailyOpportunityDigest, DEFAULT_CONFIG.jobSchedules.dailyOpportunityDigest),
       buyerResearchRefresh: readJobSchedule(schedules.buyerResearchRefresh, DEFAULT_CONFIG.jobSchedules.buyerResearchRefresh),
       portfolioSnapshot: readJobSchedule(schedules.portfolioSnapshot, DEFAULT_CONFIG.jobSchedules.portfolioSnapshot),
+      renewalReminders: readJobSchedule(schedules.renewalReminders, DEFAULT_CONFIG.jobSchedules.renewalReminders),
     },
   };
 }

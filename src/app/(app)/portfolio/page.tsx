@@ -112,7 +112,7 @@ export default async function PortfolioPage({ searchParams }: { searchParams?: P
               {holdings.map((holding) => (
                 <tr className="border-t border-white/10" key={holding.id}>
                   <td className="py-3 pr-4">
-                    <Link className="font-medium text-brand" href={`/opportunities/${encodeURIComponent(holding.domain)}`}>
+                    <Link className="font-medium text-brand" href={`/portfolio/${holding.id}`}>
                       {holding.domain}
                     </Link>
                     <p className="mt-1 text-xs text-slate-500">

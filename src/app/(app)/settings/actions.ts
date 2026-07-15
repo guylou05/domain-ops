@@ -113,6 +113,7 @@ export async function updateRuntimeSettings(formData: FormData): Promise<void> {
     },
     schedulerEnabled,
     schedulerPollMs,
+    renewalReminderDays: String(formData.get('renewalReminderDays') ?? '').split(',').map((value) => Number(value.trim())),
     jobSchedules: {
       dailyOpportunityDigest: {
         enabled: formData.get('dailyOpportunityDigestEnabled') === 'on',
@@ -125,6 +126,10 @@ export async function updateRuntimeSettings(formData: FormData): Promise<void> {
       portfolioSnapshot: {
         enabled: formData.get('portfolioSnapshotEnabled') === 'on',
         intervalMinutes: Number(formData.get('portfolioSnapshotIntervalMinutes')),
+      },
+      renewalReminders: {
+        enabled: formData.get('renewalRemindersEnabled') === 'on',
+        intervalMinutes: Number(formData.get('renewalRemindersIntervalMinutes')),
       },
     },
   });

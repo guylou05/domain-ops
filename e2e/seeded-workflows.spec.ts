@@ -45,6 +45,47 @@ test.describe('seeded workspace workflows', () => {
     await expect(page.getByRole('heading', { name: 'Portfolio' })).toBeVisible();
   });
 
+  test('domain progresses from opportunity through acquisition, negotiation, renewal decision, and sale', async ({ page }) => {
+    await login(page);
+    await page.goto('/domain-generator');
+    const concept = `lifecycle ${Date.now()}`;
+    await page.getByPlaceholder('Business concept, e.g. workflow automation').fill(concept);
+    await page.getByPlaceholder('Industry, e.g. SaaS').fill('Domain investing');
+    await page.getByPlaceholder('Keywords: agent, revenue, ops').fill('lifecycle, asset');
+    await page.locator('input[name="count"]').fill('1');
+    await page.getByRole('button', { name: 'Generate, analyze, and save' }).click();
+    await expect(page.getByText(/Saved 1 generated opportunity\./)).toBeVisible();
+
+    await page.goto('/opportunities?sort=newest');
+    const row = page.locator('tbody tr').first();
+    const domain = (await row.locator('a').first().textContent())!.trim();
+    await row.getByRole('button', { name: 'Save' }).click();
+    await expect(page).toHaveURL(/\/watchlists/);
+    const watchlistItem = page.getByText(domain, { exact: true }).locator('xpath=ancestor::tr');
+    await watchlistItem.getByRole('button', { name: 'Acquire' }).click();
+    await expect(page).toHaveURL(/\/portfolio/);
+    await page.getByRole('link', { name: domain, exact: true }).click();
+
+    await page.getByPlaceholder('Amount').fill('2500');
+    await page.getByPlaceholder('Buyer name').fill('Playwright Buyer');
+    await page.getByRole('button', { name: 'Record offer' }).click();
+    await expect(page.getByText(/\$2,500/)).toBeVisible();
+
+    await page.locator('select[name="decision"]').selectOption('KEEP');
+    await page.getByPlaceholder('Decision rationale').fill('Active negotiation supports renewal.');
+    await page.getByRole('button', { name: 'Save decision' }).click();
+    await expect(page.getByText(/KEEP/).last()).toBeVisible();
+
+    await page.getByPlaceholder('Sale price').fill('3000');
+    await page.getByPlaceholder('Fees').fill('450');
+    await page.getByPlaceholder('Marketplace/source').fill('Playwright Market');
+    await page.getByRole('button', { name: 'Record completed sale' }).click();
+    await expect(page.getByRole('heading', { name: 'Completed sales' })).toBeVisible();
+    await expect(page.getByText(/\$3,000 sale/)).toBeVisible();
+    await page.goto('/overview');
+    await expect(page.getByText('Sales revenue', { exact: true })).toBeVisible();
+  });
+
   test('admin can queue background jobs', async ({ page }) => {
     await login(page);
     await page.goto('/admin');

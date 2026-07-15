@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { withEntitlementUsage } from './entitlements';
+import { getAppConfig } from './app-config';
+import { renewalRecommendation } from '@/lib/deal-lifecycle';
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
@@ -158,4 +160,34 @@ export async function createDailyOpportunityDigestForWorkspace(workspaceId: stri
   }
 
   return members.length;
+}
+
+export async function createRenewalRemindersForWorkspace(workspaceId: string, now = new Date()): Promise<number> {
+  const config = await getAppConfig();
+  const maxDays = Math.max(...config.renewalReminderDays);
+  const end = new Date(now.getTime() + (maxDays + 1) * 86400000);
+  const [holdings, members] = await Promise.all([
+    prisma.portfolioItem.findMany({
+      where: { workspaceId, status: 'ACTIVE', expirationDate: { gte: now, lte: end } },
+      include: { domain: { include: { opportunity: true, offers: { where: { status: { in: ['RECEIVED', 'COUNTERED'] } } } } } },
+    }),
+    prisma.workspaceMember.findMany({ where: { workspaceId }, select: { userId: true } }),
+  ]);
+  let created = 0;
+  for (const holding of holdings) {
+    const days = Math.ceil((holding.expirationDate.getTime() - now.getTime()) / 86400000);
+    if (!config.renewalReminderDays.includes(days)) continue;
+    const recommendation = renewalRecommendation({ score: holding.domain.opportunity?.score ?? null, valuation: holding.currentValuation.toNumber(), renewalCost: holding.renewalCost.toNumber(), openOffers: holding.domain.offers.length, riskLevel: holding.domain.opportunity?.riskLevel ?? null });
+    await prisma.renewal.upsert({
+      where: { workspaceId_domainId_dueDate: { workspaceId, domainId: holding.domainId, dueDate: holding.expirationDate } },
+      update: { recommendation },
+      create: { workspaceId, domainId: holding.domainId, dueDate: holding.expirationDate, cost: holding.renewalCost, recommendation, status: 'PENDING' },
+    });
+    const title = `Renewal in ${days} days: ${holding.domain.name}`;
+    for (const member of members) {
+      const exists = await prisma.notification.findFirst({ where: { workspaceId, userId: member.userId, title } });
+      if (!exists) { await prisma.notification.create({ data: { workspaceId, userId: member.userId, title, body: `${recommendation}: renewal costs $${holding.renewalCost.toNumber().toFixed(2)} against a $${holding.currentValuation.toNumber().toFixed(0)} valuation.` } }); created += 1; }
+    }
+  }
+  return created;
 }
