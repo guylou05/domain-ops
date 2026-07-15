@@ -46,6 +46,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 - [x] Structured operational telemetry, source health, incident resolution, email alert routing, and retention controls.
 - [x] Responsive and keyboard-accessible navigation, security headers, performance gates, recovery runbooks, and scheduled production smoke checks.
 - [x] Redis-backed abuse protection for credential auth, registration, recovery, and verification delivery with UI-managed limits.
+- [x] Exact dependency and infrastructure pins, automated advisory policy, Dependabot cadence, SBOM artifacts, and upgrade rollback evidence.
 - [x] Seed script with demo users, workspace, opportunities, watchlists, portfolio, reports, notifications, integrations, and admin data.
 - [x] Docker Compose for PostgreSQL, Redis, and the web app.
 - [x] Unit tests for generation, scoring, and domain import parsing.
@@ -142,6 +143,10 @@ This phase added mobile application navigation, keyboard skip/focus behavior, br
 
 This phase added atomic Redis fixed-window limits around login preflight, direct Auth.js credential callbacks, registration, password recovery, and email-verification resend. Runtime Settings controls IP/account thresholds and windows, keys contain only SHA-256 fingerprints, local development has a bounded process-local fallback, and blocked requests appear in Operations without exposing addresses or emails.
 
+## Supply Chain Maintenance Phase
+
+This phase replaced floating dependencies with exact reviewed versions, pinned Docker images to SHA-256 manifests and GitHub Actions to commit SHAs, and added Dependabot review cadence. CI now rejects manifest/lockfile drift, non-registry packages, missing SHA-512 integrity, unpinned execution inputs, high/critical advisories, and moderate advisories without an unexpired reviewed exception. Every supply-chain run publishes a CycloneDX SBOM, while `docs/DEPENDENCY-MAINTENANCE.md` defines framework upgrade and rollback evidence.
+
 ## Local Setup
 
 ```bash
@@ -203,6 +208,9 @@ npm install
 - `npm run perf:budget` - enforce production client JavaScript and CSS budgets after a build.
 - `npm run perf:queries` - run timed PostgreSQL execution plans for critical query paths.
 - `npm run smoke:production` - verify production health, routes, latency, auth redirect, and security headers.
+- `npm run supply-chain:check` - verify exact manifests, lockfile provenance, container digests, and Action SHAs.
+- `npm run security:audit` - enforce high/critical blocking and reviewed moderate-advisory exceptions.
+- `npm run security:sbom` - emit a CycloneDX software bill of materials.
 
 The Settings page stores runtime-tunable app configuration in the database, including research provider modes and endpoint URLs, subscription billing mode and currency, abuse-protection thresholds, worker limits, lease duration, recurring task cadence, scheduler polling, and auth diagnostic visibility. Provider and Stripe credentials are encrypted through Integrations. Bootstrapping secrets and infrastructure connection values such as `DATABASE_URL`, `REDIS_URL`, `NEXTAUTH_URL`, and `NEXTAUTH_SECRET` still belong in the deployment environment.
 

@@ -33,6 +33,7 @@ DomainScout AI uses a Next.js App Router web app, Prisma/PostgreSQL persistence,
 12. Request, worker, scheduler, provider, and webhook operations emit structured events to PostgreSQL; the Operations page summarizes source health, incident history, alert routing, and retention.
 13. Release CI enforces client asset budgets and seeded PostgreSQL query timing, while a scheduled production workflow verifies health, authentication boundaries, latency, and security headers.
 14. Public authentication and account-email actions consume hashed fixed-window counters through Redis; local environments fall back to an in-process store, and blocked requests become OperationalEvent records.
+15. Direct packages, container images, and CI actions are immutable inputs; Dependabot proposes reviewed updates while CI enforces provenance, vulnerability exceptions, and CycloneDX inventory generation.
 
 ## Provider Strategy
 

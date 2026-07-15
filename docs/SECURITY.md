@@ -18,6 +18,7 @@ The review covers browser-to-Next.js requests, Auth.js sessions, workspace autho
 - CI enforces lint, type safety, unit tests, migrations, production builds, asset budgets, query profiles, and seeded browser workflows.
 - Production health and public/auth boundaries are checked daily by a separate smoke workflow.
 - Credential callbacks, login preflight, registration, recovery, and verification delivery use privacy-safe fixed-window limits backed by Redis, with UI-managed thresholds and process-local fallback.
+- Exact npm versions, SHA-512 lockfile integrity, digest-pinned containers, SHA-pinned Actions, expiring advisory exceptions, Dependabot review PRs, and CycloneDX SBOM artifacts protect the software supply chain.
 
 ## Review Findings
 
@@ -28,7 +29,7 @@ The review covers browser-to-Next.js requests, Auth.js sessions, workspace autho
 | Forged or replayed billing events | Stripe signature verification, event persistence, and idempotent processing are implemented. |
 | Browser injection and clickjacking | CSP, `frame-ancestors 'none'`, `X-Frame-Options: DENY`, and output escaping are enabled. Inline styles/scripts remain permitted where required by Next.js. |
 | Destructive administrative actions | Role checks, verified-email gates, step-up authentication, and audit events are implemented. Database restore remains an operator-only procedure. |
-| Dependency and supply-chain drift | `package-lock.json` pins installs and CI uses `npm ci`. Dependency update review and vulnerability scanning remain recurring maintenance. |
+| Dependency and supply-chain drift | Exact direct versions, immutable image/action references, lockfile provenance checks, weekly advisory enforcement, and SBOM evidence are implemented. Major frameworks require dedicated upgrade and rollback evidence. |
 | Authentication and email abuse | Redis-backed IP and account counters protect direct Auth.js callbacks and public actions; blocked requests emit privacy-safe operational events. |
 
 ## Accepted Residual Risks

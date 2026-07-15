@@ -1,0 +1,68 @@
+name: Supply chain
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - package.json
+      - package-lock.json
+      - security/audit-exceptions.json
+      - Dockerfile
+      - docker-compose.yml
+      - .github/dependabot.yml
+      - .github/workflows/**
+      - scripts/check-supply-chain.mjs
+      - scripts/check-vulnerabilities.mjs
+  pull_request:
+    paths:
+      - package.json
+      - package-lock.json
+      - security/audit-exceptions.json
+      - Dockerfile
+      - docker-compose.yml
+      - .github/dependabot.yml
+      - .github/workflows/**
+      - scripts/check-supply-chain.mjs
+      - scripts/check-vulnerabilities.mjs
+  workflow_dispatch:
+  schedule:
+    - cron: '23 12 * * 1'
+
+jobs:
+  verify:
+    name: Dependency policy and SBOM
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Use pinned npm
+        run: npm install --global npm@11.4.2
+
+      - name: Verify manifest and lockfile policy
+        run: npm run supply-chain:check
+
+      - name: Enforce vulnerability policy
+        run: npm run security:audit
+
+      - name: Install reviewed dependency graph
+        run: npm ci --ignore-scripts
+
+      - name: Generate CycloneDX SBOM
+        run: npm run --silent security:sbom > domainscout-sbom.cdx.json
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: domainscout-cyclonedx-sbom
+          path: domainscout-sbom.cdx.json
+          retention-days: 14

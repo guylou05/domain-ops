@@ -52,6 +52,8 @@ Then start an isolated web instance with the restored database and verify login,
 npm ci
 npx prisma generate
 npm run db:validate
+npm run supply-chain:check
+npm run security:audit
 npm run lint
 npm run typecheck
 npm test

@@ -1,7 +1,7 @@
-FROM node:22-alpine AS base
+FROM node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2 AS base
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN apk add --no-cache openssl
+RUN npm install --global npm@11.4.2 && apk add --no-cache openssl
 
 FROM base AS deps
 COPY package*.json ./

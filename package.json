@@ -1,4 +1,8 @@
 {
+  "name": "domain-ops",
+  "version": "0.1.0",
+  "private": true,
+  "license": "UNLICENSED",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -25,49 +29,71 @@
     "doctor:auth": "node scripts/doctor-auth.mjs",
     "perf:budget": "node scripts/check-performance-budget.mjs",
     "perf:queries": "node scripts/profile-queries.mjs",
-    "smoke:production": "node scripts/production-smoke.mjs"
+    "smoke:production": "node scripts/production-smoke.mjs",
+    "supply-chain:check": "node scripts/check-supply-chain.mjs",
+    "security:audit": "node scripts/check-vulnerabilities.mjs",
+    "security:sbom": "npm sbom --sbom-format cyclonedx"
   },
   "dependencies": {
-    "@hookform/resolvers": "latest",
-    "@prisma/client": "^6.19.3",
-    "@tanstack/react-table": "latest",
-    "bcryptjs": "latest",
-    "class-variance-authority": "latest",
-    "clsx": "latest",
-    "lucide-react": "latest",
-    "next": "latest",
-    "next-auth": "latest",
-    "otpauth": "^9.5.1",
-    "papaparse": "latest",
-    "qrcode": "^1.5.4",
-    "react": "latest",
-    "react-dom": "latest",
-    "react-hook-form": "latest",
-    "recharts": "latest",
-    "redis": "^5.12.1",
-    "tailwind-merge": "latest",
-    "zod": "latest"
+    "@hookform/resolvers": "5.4.0",
+    "@prisma/client": "6.19.3",
+    "@tanstack/react-table": "8.21.3",
+    "bcryptjs": "3.0.3",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "lucide-react": "1.24.0",
+    "next": "16.2.10",
+    "next-auth": "4.24.14",
+    "otpauth": "9.5.1",
+    "papaparse": "5.5.4",
+    "qrcode": "1.5.4",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "react-hook-form": "7.81.0",
+    "recharts": "3.9.2",
+    "redis": "5.12.1",
+    "tailwind-merge": "3.6.0",
+    "zod": "4.4.3"
   },
   "devDependencies": {
-    "@playwright/test": "^1.61.1",
-    "@types/bcryptjs": "latest",
-    "@types/node": "latest",
-    "@types/qrcode": "^1.5.6",
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
-    "autoprefixer": "latest",
-    "eslint": "latest",
-    "eslint-config-next": "latest",
-    "postcss": "latest",
-    "prisma": "^6.19.3",
-    "tailwindcss": "^3.4.19",
-    "tsx": "latest",
-    "typescript": "latest",
-    "vitest": "latest"
+    "@playwright/test": "1.61.1",
+    "@types/node": "26.1.1",
+    "@types/qrcode": "1.5.6",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "autoprefixer": "10.5.2",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.2.10",
+    "postcss": "8.5.18",
+    "prisma": "6.19.3",
+    "tailwindcss": "3.4.19",
+    "tsx": "4.23.1",
+    "typescript": "6.0.3",
+    "vitest": "4.1.10"
   },
   "packageManager": "npm@11.4.2",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=22 <25",
+      "onFail": "error"
+    },
+    "packageManager": {
+      "name": "npm",
+      "version": ">=11 <12",
+      "onFail": "error"
+    }
+  },
   "engines": {
-    "node": ">=20.11.0",
-    "npm": ">=10.0.0"
+    "node": ">=22 <25",
+    "npm": ">=11 <12"
+  },
+  "allowScripts": {
+    "@prisma/client@6.19.3": true,
+    "@prisma/engines@6.19.3": true,
+    "esbuild@0.28.1": true,
+    "prisma@6.19.3": true,
+    "sharp@0.34.5": true,
+    "unrs-resolver@1.12.2": true
   }
 }

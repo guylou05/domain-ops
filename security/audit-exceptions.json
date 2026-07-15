@@ -1,0 +1,20 @@
+{
+  "exceptions": [
+    {
+      "id": "GHSA-qx2v-qp2m-jg93",
+      "package": "postcss",
+      "severity": "moderate",
+      "reviewedOn": "2026-07-15",
+      "expiresOn": "2026-10-13",
+      "rationale": "Next.js 16.2.10 bundles the affected PostCSS range and npm reports no compatible upgrade. DomainScout does not stringify user-controlled CSS. Reassess on every Next.js update."
+    },
+    {
+      "id": "GHSA-w5hq-g745-h8pq",
+      "package": "uuid",
+      "severity": "moderate",
+      "reviewedOn": "2026-07-15",
+      "expiresOn": "2026-10-13",
+      "rationale": "NextAuth 4.24.14 depends on the affected UUID range and npm reports no compatible v4 fix. DomainScout does not call UUID buffer-writing APIs. Remove during the Auth.js upgrade."
+    }
+  ]
+}

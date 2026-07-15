@@ -32,7 +32,7 @@ This file defines the development order after the implemented milestones in `REA
    - Redis-backed limits for credential auth, registration, recovery, and verification delivery
    - Privacy-safe counters, local fallback, and operational enforcement telemetry
    - UI-managed thresholds and seeded workflow coverage
-7. [ ] Supply Chain Maintenance
+7. [x] Supply Chain Maintenance
    - Automated dependency review and vulnerability policy
    - Controlled framework upgrade cadence and rollback evidence
 8. [ ] Authenticated Production Canaries
