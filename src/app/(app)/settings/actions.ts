@@ -131,6 +131,10 @@ export async function updateRuntimeSettings(formData: FormData): Promise<void> {
         enabled: formData.get('renewalRemindersEnabled') === 'on',
         intervalMinutes: Number(formData.get('renewalRemindersIntervalMinutes')),
       },
+      savedSearchDiscovery: {
+        enabled: formData.get('savedSearchDiscoveryEnabled') === 'on',
+        intervalMinutes: Number(formData.get('savedSearchDiscoveryIntervalMinutes')),
+      },
     },
   });
 

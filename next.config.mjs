@@ -4,7 +4,7 @@ const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-  experimental: { serverActions: { allowedOrigins: ['localhost:3000'] } },
+  experimental: { serverActions: { allowedOrigins: ['localhost:3000'], bodySizeLimit: '3mb' } },
   turbopack: { root: projectRoot },
   async headers() {
     return [{

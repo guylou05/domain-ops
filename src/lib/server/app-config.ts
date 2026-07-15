@@ -53,6 +53,7 @@ export type AppConfig = {
     buyerResearchRefresh: JobScheduleConfig;
     portfolioSnapshot: JobScheduleConfig;
     renewalReminders: JobScheduleConfig;
+    savedSearchDiscovery: JobScheduleConfig;
   };
 };
 
@@ -108,6 +109,7 @@ const DEFAULT_CONFIG: AppConfig = {
     buyerResearchRefresh: { enabled: true, intervalMinutes: 360 },
     portfolioSnapshot: { enabled: true, intervalMinutes: 1440 },
     renewalReminders: { enabled: true, intervalMinutes: 1440 },
+    savedSearchDiscovery: { enabled: true, intervalMinutes: 60 },
   },
 };
 
@@ -230,6 +232,7 @@ export function parseAppConfig(value: unknown): AppConfig {
       buyerResearchRefresh: readJobSchedule(schedules.buyerResearchRefresh, DEFAULT_CONFIG.jobSchedules.buyerResearchRefresh),
       portfolioSnapshot: readJobSchedule(schedules.portfolioSnapshot, DEFAULT_CONFIG.jobSchedules.portfolioSnapshot),
       renewalReminders: readJobSchedule(schedules.renewalReminders, DEFAULT_CONFIG.jobSchedules.renewalReminders),
+      savedSearchDiscovery: readJobSchedule(schedules.savedSearchDiscovery, DEFAULT_CONFIG.jobSchedules.savedSearchDiscovery),
     },
   };
 }

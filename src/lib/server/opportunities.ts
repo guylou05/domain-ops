@@ -9,6 +9,7 @@ export type OpportunityListFilters = {
 };
 
 export type OpportunityListItem = {
+  id: string;
   domain: string;
   score: number;
   registrationPrice: number | null;
@@ -18,6 +19,8 @@ export type OpportunityListItem = {
   buyerCount: number;
   available: boolean | null;
   checkedAt: Date | null;
+  source: string;
+  approvalStatus: string;
 };
 
 export type OpportunityDetail = OpportunityListItem & {
@@ -126,6 +129,7 @@ export async function getOpportunityList(filters: OpportunityListFilters = {}): 
     const latestCheck = opportunity.domain.checks[0];
 
     return {
+      id: opportunity.id,
       domain: opportunity.domain.name,
       score: opportunity.score,
       registrationPrice: latestCheck ? decimalToNumber(latestCheck.registrationPrice) : null,
@@ -135,6 +139,8 @@ export async function getOpportunityList(filters: OpportunityListFilters = {}): 
       buyerCount: opportunity.buyerCount,
       available: latestCheck?.available ?? null,
       checkedAt: latestCheck?.checkedAt ?? null,
+      source: opportunity.domain.source,
+      approvalStatus: opportunity.approvalStatus,
     };
   });
 
@@ -189,6 +195,7 @@ export async function getOpportunityDetail(domainName: string): Promise<Opportun
   });
 
   return {
+    id: opportunity.id,
     domain: opportunity.domain.name,
     score: opportunity.score,
     registrationPrice: latestCheck ? decimalToNumber(latestCheck.registrationPrice) : null,
@@ -200,6 +207,7 @@ export async function getOpportunityDetail(domainName: string): Promise<Opportun
     checkedAt: latestCheck?.checkedAt ?? null,
     notes: opportunity.notes,
     source: opportunity.domain.source,
+    approvalStatus: opportunity.approvalStatus,
     renewalPrice: latestCheck ? decimalToNumber(latestCheck.renewalPrice) : null,
     premium: latestCheck?.premium ?? null,
     registrar: latestCheck?.registrar ?? null,

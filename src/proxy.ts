@@ -9,6 +9,7 @@ const protectedRoutes = [
   '/buyer-research',
   '/confirm-access',
   '/domain-generator',
+  '/discovery',
   '/expired-domains',
   '/integrations',
   '/notifications',

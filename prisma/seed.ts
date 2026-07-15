@@ -1,4 +1,4 @@
-import { PrismaClient, RiskLevel, Role, Status } from '@prisma/client';
+import { Prisma, PrismaClient, RiskLevel, Role, Status } from '@prisma/client';
 import { hash } from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -33,6 +33,20 @@ async function main() {
     },
   });
 
+  for (const source of [
+    ['Manual entry', 'MANUAL'], ['Generated ideas', 'GENERATED'], ['Expired inventory', 'EXPIRED'],
+    ['Auction feed', 'AUCTION'], ['Closeout feed', 'CLOSEOUT'], ['Trend research', 'TREND'], ['External provider', 'EXTERNAL_PROVIDER'],
+  ] as const) {
+    await prisma.discoverySource.upsert({ where: { name_type: { name: source[0], type: source[1] } }, update: { enabled: true }, create: { name: source[0], type: source[1], enabled: true, config: { phase: 'discovery-operations' } } });
+  }
+
+  let savedDiscovery = await prisma.savedSearch.findFirst({ where: { workspaceId: workspace.id, name: 'Weekly AI closeouts' } });
+  savedDiscovery ??= await prisma.savedSearch.create({ data: { workspaceId: workspace.id, createdById: user.id, name: 'Weekly AI closeouts', source: 'CLOSEOUT', schedule: 'WEEKLY', criteria: { query: 'AI automation closeouts', industry: 'AI software', keywords: ['agent', 'workflow'], tlds: ['.com', '.ai'], count: 8 }, nextRunAt: new Date(Date.UTC(2026, 6, 22, 12)) } });
+
+  if (!(await prisma.discoveryJob.findFirst({ where: { workspaceId: workspace.id, savedSearchId: savedDiscovery.id } }))) {
+    await prisma.discoveryJob.create({ data: { workspaceId: workspace.id, createdById: user.id, savedSearchId: savedDiscovery.id, source: 'CLOSEOUT', criteria: savedDiscovery.criteria as Prisma.InputJsonValue, status: 'COMPLETED', progress: 100, resultCount: 6, startedAt: new Date(Date.UTC(2026, 6, 14, 12)), completedAt: new Date(Date.UTC(2026, 6, 14, 12, 1)) } });
+  }
+
   await prisma.appSetting.upsert({
     where: { key: 'runtime' },
     update: {},
@@ -55,6 +69,7 @@ async function main() {
           buyerResearchRefresh: { enabled: true, intervalMinutes: 360 },
           portfolioSnapshot: { enabled: true, intervalMinutes: 1440 },
           renewalReminders: { enabled: true, intervalMinutes: 1440 },
+          savedSearchDiscovery: { enabled: true, intervalMinutes: 60 },
         },
       },
     },

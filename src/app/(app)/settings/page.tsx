@@ -302,7 +302,7 @@ export default async function SettingsPage({
           </label>
           <fieldset className="grid gap-3 border-t border-white/10 pt-4 lg:col-span-2">
             <legend className="pr-3 text-sm font-semibold text-slate-200">Recurring task cadence</legend>
-            <div className="grid gap-3 md:grid-cols-4">
+            <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
               {[
                 {
                   key: 'dailyOpportunityDigest',
@@ -323,6 +323,11 @@ export default async function SettingsPage({
                   key: 'renewalReminders',
                   label: 'Renewal reminders',
                   schedule: settings.appConfig.jobSchedules.renewalReminders,
+                },
+                {
+                  key: 'savedSearchDiscovery',
+                  label: 'Saved search discovery',
+                  schedule: settings.appConfig.jobSchedules.savedSearchDiscovery,
                 },
               ].map((task) => (
                 <div className="grid gap-3 rounded-lg border border-white/10 p-3" key={task.key}>

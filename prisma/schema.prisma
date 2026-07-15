@@ -312,6 +312,9 @@ model DomainOpportunity {
   buyerCount         Int
   status             Status    @default(ACTIVE)
   notes              String?
+  approvalStatus     String    @default("PENDING")
+  approvedAt         DateTime?
+  approvedById       String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   domain             Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
@@ -396,11 +399,19 @@ model DiscoveryJob {
   createdById String
   status      JobStatus @default(QUEUED)
   source      String
+  savedSearchId String?
   criteria    Json
   progress    Int       @default(0)
+  resultCount Int       @default(0)
   error       String?
+  startedAt   DateTime?
+  completedAt DateTime?
+  cancelledAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  @@index([workspaceId, status, createdAt])
+  @@index([savedSearchId, createdAt])
 }
 
 model DiscoverySource {
@@ -409,15 +420,43 @@ model DiscoverySource {
   type    String
   enabled Boolean @default(true)
   config  Json    @default("{}")
+
+  @@unique([name, type])
 }
 
 model SavedSearch {
   id          String @id @default(cuid())
   workspaceId String
+  createdById String
   name        String
+  source      String
   schedule    String
   criteria    Json
   status      Status @default(ACTIVE)
+  lastRunAt   DateTime?
+  nextRunAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([workspaceId, status, nextRunAt])
+}
+
+model ImportBatch {
+  id             String   @id @default(cuid())
+  workspaceId    String
+  createdById    String
+  filename       String
+  industry       String
+  status         String   @default("REVIEW")
+  totalRows      Int
+  validRows      Int
+  duplicateRows  Int
+  errorRows      Int
+  rows           Json
+  importedAt     DateTime?
+  createdAt      DateTime @default(now())
+
+  @@index([workspaceId, status, createdAt])
 }
 
 model Watchlist {

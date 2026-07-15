@@ -39,6 +39,7 @@ export default async function PortfolioPage({ searchParams }: { searchParams?: P
         <Link className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white" href="/opportunities">
           Review opportunities
         </Link>
+        <Link className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold" href="/api/exports/portfolio">Export CSV</Link>
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">

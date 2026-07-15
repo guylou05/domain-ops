@@ -46,6 +46,7 @@ describe('app config parsing', () => {
         buyerResearchRefresh: { enabled: true, intervalMinutes: 360 },
         portfolioSnapshot: { enabled: true, intervalMinutes: 1440 },
         renewalReminders: { enabled: true, intervalMinutes: 1440 },
+        savedSearchDiscovery: { enabled: true, intervalMinutes: 60 },
       },
     });
   });
@@ -145,6 +146,7 @@ describe('app config parsing', () => {
         buyerResearchRefresh: { enabled: true, intervalMinutes: 360 },
         portfolioSnapshot: { enabled: true, intervalMinutes: 1440 },
         renewalReminders: { enabled: true, intervalMinutes: 1440 },
+        savedSearchDiscovery: { enabled: true, intervalMinutes: 60 },
       },
     });
   });

@@ -20,6 +20,7 @@ function recurringTasks(config: AppConfig): RecurringTask[] {
     { type: 'buyer_research_refresh', schedule: config.jobSchedules.buyerResearchRefresh },
     { type: 'portfolio_snapshot', schedule: config.jobSchedules.portfolioSnapshot },
     { type: 'renewal_reminders', schedule: config.jobSchedules.renewalReminders },
+    { type: 'scheduled_discovery', schedule: config.jobSchedules.savedSearchDiscovery },
   ];
   return tasks.filter((task) => task.schedule.enabled);
 }

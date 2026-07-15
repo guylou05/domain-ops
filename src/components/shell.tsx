@@ -5,7 +5,7 @@ import { MobileNavigation } from './mobile-navigation';
 import { switchWorkspace } from '@/app/(app)/workspace-actions';
 import type { WorkspaceNavigation } from '@/lib/server/workspace-context';
 
-const nav = ['Overview', 'Opportunities', 'Domain Generator', 'Expired Domains', 'Auctions', 'Watchlists', 'Buyer Research', 'Portfolio', 'Renewals', 'Outreach', 'Analytics', 'Reports', 'Notifications', 'Integrations', 'Operations', 'Settings', 'Admin'];
+const nav = ['Overview', 'Opportunities', 'Discovery', 'Domain Generator', 'Expired Domains', 'Auctions', 'Watchlists', 'Buyer Research', 'Portfolio', 'Renewals', 'Outreach', 'Analytics', 'Reports', 'Notifications', 'Integrations', 'Operations', 'Settings', 'Admin'];
 
 export function AppShell({ children, workspaceNavigation }: { children: React.ReactNode; workspaceNavigation: WorkspaceNavigation }) {
   const current = workspaceNavigation.workspaces.find((workspace) => workspace.id === workspaceNavigation.currentWorkspaceId);

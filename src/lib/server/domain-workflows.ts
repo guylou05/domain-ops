@@ -128,24 +128,24 @@ export async function persistAnalyzedOpportunities(context: WorkspaceContext, an
   return results;
 }
 
-export async function generateAnalyzeAndPersist(context: WorkspaceContext, input: GenerationInput): Promise<PersistedOpportunity[]> {
+export async function generateAnalyzeAndPersist(context: WorkspaceContext, input: GenerationInput, source = 'GENERATOR'): Promise<PersistedOpportunity[]> {
   const parsed = generationSchema.parse(input);
   const config = await getAppConfig();
   const apiKey = await resolveProviderCredential(context.workspaceId, 'registrar');
   const domains = generateDomainIdeas(parsed);
   return withEntitlementUsage(context.workspaceId, 'domain_checks', domains.length, async () => {
     const analyses = await observeOperationalCall({ workspaceId: context.workspaceId, source: 'provider', event: 'provider.registrar_batch', metadata: { mode: config.availabilityProvider, count: domains.length } }, () => analyzeDomainsWithProviderMode(domains, parsed.industry, config.availabilityProvider, config.providerEndpoints.registrar, apiKey));
-    return persistAnalyzedOpportunities(context, analyses, 'GENERATOR');
+    return persistAnalyzedOpportunities(context, analyses, source);
   }, (results) => results.length);
 }
 
-export async function importAnalyzeAndPersist(context: WorkspaceContext, rawDomains: string, industry: string): Promise<PersistedOpportunity[]> {
+export async function importAnalyzeAndPersist(context: WorkspaceContext, rawDomains: string, industry: string, source = 'MANUAL_OR_CSV_IMPORT'): Promise<PersistedOpportunity[]> {
   const domains = parseDomainLines(rawDomains);
   if (domains.length === 0) throw new Error('No valid domains were provided.');
   const config = await getAppConfig();
   const apiKey = await resolveProviderCredential(context.workspaceId, 'registrar');
   return withEntitlementUsage(context.workspaceId, 'domain_checks', domains.length, async () => {
     const analyses = await observeOperationalCall({ workspaceId: context.workspaceId, source: 'provider', event: 'provider.registrar_batch', metadata: { mode: config.availabilityProvider, count: domains.length } }, () => analyzeDomainsWithProviderMode(domains, industry || 'general', config.availabilityProvider, config.providerEndpoints.registrar, apiKey));
-    return persistAnalyzedOpportunities(context, analyses, 'MANUAL_OR_CSV_IMPORT');
+    return persistAnalyzedOpportunities(context, analyses, source);
   }, (results) => results.length);
 }

@@ -86,6 +86,64 @@ test.describe('seeded workspace workflows', () => {
     await expect(page.getByText('Sales revenue', { exact: true })).toBeVisible();
   });
 
+  test('scheduled discovery, CSV mobility, bulk review, export, and workspace isolation', async ({ page }) => {
+    const suffix = Date.now();
+    const importedDomain = `mobility${suffix}.com`;
+    const foreignWorkspace = await prisma.workspace.create({ data: { name: 'Foreign Discovery Workspace', slug: `foreign-discovery-${suffix}` } });
+    const foreignBatch = await prisma.importBatch.create({
+      data: { workspaceId: foreignWorkspace.id, createdById: 'foreign-user', filename: 'private.csv', industry: 'private', totalRows: 1, validRows: 1, duplicateRows: 0, errorRows: 0, rows: [{ row: 2, domain: 'private-workspace-only.com', status: 'VALID', message: 'Ready to import.' }] },
+    });
+
+    await login(page);
+    await page.goto('/discovery');
+    await expect(page.getByRole('heading', { name: 'Discovery operations' })).toBeVisible();
+
+    await page.getByPlaceholder('Search name').fill(`Daily trends ${suffix}`);
+    await page.locator('form').filter({ has: page.getByPlaceholder('Search name') }).locator('select[name="schedule"]').selectOption('DAILY');
+    await page.locator('form').filter({ has: page.getByPlaceholder('Search name') }).locator('select[name="source"]').selectOption('TREND');
+    await page.locator('form').filter({ has: page.getByPlaceholder('Search name') }).getByPlaceholder('Search concept').fill(`mobility trend ${suffix}`);
+    await page.getByRole('button', { name: 'Save search' }).click();
+    await expect(page.getByText(`Daily trends ${suffix}`)).toBeVisible();
+    await page.getByText(`Daily trends ${suffix}`).locator('xpath=ancestor::div[contains(@class,"border-l-2")]').getByRole('button', { name: 'Run' }).click();
+    const queuedJob = page.getByText(/Trend.*QUEUED/).first().locator('xpath=ancestor::div[contains(@class,"border-l-2")]');
+    await expect(queuedJob).toBeVisible();
+    await queuedJob.getByRole('button', { name: 'Cancel' }).click();
+    await expect(page.getByText(/Trend.*CANCELLED/).first()).toBeVisible();
+
+    await page.locator('input[type="file"]').setInputFiles({
+      name: 'mobility.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from(`domain\n${importedDomain}\nworkflowpilot.ai\n${importedDomain}\n=cmd()`),
+    });
+    await page.getByRole('button', { name: 'Review file' }).click();
+    await expect(page.getByText('1 valid')).toBeVisible();
+    await expect(page.getByText(/duplicates/)).toBeVisible();
+    await expect(page.getByText(/errors/)).toBeVisible();
+    await page.getByRole('button', { name: 'Import valid rows' }).click();
+    await expect(page).toHaveURL(/\/opportunities\?imported=1/);
+
+    await page.goto(`/opportunities?search=${importedDomain}`);
+    await page.getByLabel(`Select ${importedDomain}`).check();
+    await page.getByRole('button', { name: 'Approve' }).click();
+    await expect(page.getByText('APPROVED')).toBeVisible();
+    await page.getByLabel(`Select ${importedDomain}`).check();
+    await page.getByRole('button', { name: 'Compare' }).click();
+    await expect(page.getByRole('heading', { name: 'Opportunity comparison' })).toBeVisible();
+    await page.getByLabel(`Select ${importedDomain}`).check();
+    await page.getByRole('button', { name: 'Add to watchlist' }).click();
+    await page.goto('/watchlists');
+    await expect(page.getByText(importedDomain, { exact: true })).toBeVisible();
+
+    const exportResponse = await page.request.get('/api/exports/opportunities');
+    expect(exportResponse.ok()).toBe(true);
+    expect(exportResponse.headers()['content-disposition']).toContain('opportunities.csv');
+    expect(await exportResponse.text()).toContain(importedDomain);
+
+    await page.goto(`/discovery?batch=${foreignBatch.id}`);
+    await expect(page.getByText('private-workspace-only.com')).not.toBeVisible();
+    await expect(page.getByText('private.csv')).not.toBeVisible();
+  });
+
   test('admin can queue background jobs', async ({ page }) => {
     await login(page);
     await page.goto('/admin');

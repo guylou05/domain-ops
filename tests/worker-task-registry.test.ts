@@ -8,6 +8,7 @@ describe('worker task registry', () => {
       'buyer_research_refresh',
       'portfolio_snapshot',
       'renewal_reminders',
+      'scheduled_discovery',
     ]);
   });
 

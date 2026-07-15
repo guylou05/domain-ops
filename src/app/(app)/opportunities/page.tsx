@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { addOpportunityToWatchlist } from './actions';
+import { addOpportunityToWatchlist, bulkOpportunityAction } from './actions';
 import { getOpportunityList } from '@/lib/server/opportunities';
 import { hasActiveParams, readParam, type SearchParams } from '@/lib/list-search-params';
 
@@ -26,6 +26,8 @@ export default async function Opportunities({ searchParams }: { searchParams?: P
   const opportunities = await getOpportunityList(filters);
   const filtered = hasActiveParams(params, ['search', 'risk', 'availability', 'sort']) && filters.sort !== 'score';
   const hasFilters = hasActiveParams(params, ['search', 'risk', 'availability']) || filtered;
+  const comparedNames = readParam(params, 'compare').split(',').filter(Boolean).slice(0, 5);
+  const compared = opportunities.filter((item) => comparedNames.includes(item.domain));
 
   return (
     <div>
@@ -78,6 +80,10 @@ export default async function Opportunities({ searchParams }: { searchParams?: P
         </div>
       </form>
 
+      {compared.length > 0 ? (
+        <section className="card mt-6"><div className="flex items-center justify-between gap-3"><h2 className="text-xl font-semibold">Opportunity comparison</h2><Link className="text-sm text-brand" href="/opportunities">Close</Link></div><div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">{compared.map((item) => <div className="border-l-2 border-white/10 pl-3" key={item.id}><p className="font-semibold text-brand">{item.domain}</p><p className="mt-2 text-sm">Score {item.score} · {item.riskLevel}</p><p className="text-sm text-slate-400">{formatCurrency(item.retailMin)}-{formatCurrency(item.retailMax)} · {item.buyerCount} buyers</p></div>)}</div></section>
+      ) : null}
+
       <div className="card mt-6 overflow-x-auto">
         {opportunities.length === 0 ? (
           <div className="py-10 text-center">
@@ -90,9 +96,10 @@ export default async function Opportunities({ searchParams }: { searchParams?: P
             </Link>
           </div>
         ) : (
-          <table className="w-full text-left text-sm">
+          <><form action={bulkOpportunityAction} className="mb-4 flex flex-wrap gap-2" id="bulk-opportunities"><button className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold" name="intent" value="compare">Compare</button><button className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold" name="intent" value="watchlist">Add to watchlist</button><button className="rounded-lg bg-brand px-3 py-2 text-xs font-semibold" name="intent" value="approve">Approve</button><Link className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold" href="/api/exports/opportunities">Export CSV</Link></form><table className="w-full text-left text-sm">
             <thead>
               <tr className="text-slate-400">
+                <th className="pb-3"><span className="sr-only">Select</span></th>
                 <th className="pb-3">Domain</th>
                 <th className="pb-3">Score</th>
                 <th className="pb-3">Availability</th>
@@ -100,12 +107,15 @@ export default async function Opportunities({ searchParams }: { searchParams?: P
                 <th className="pb-3">Retail range</th>
                 <th className="pb-3">Risk</th>
                 <th className="pb-3">Buyers</th>
+                <th className="pb-3">Source</th>
+                <th className="pb-3">Approval</th>
                 <th className="pb-3">Watchlist</th>
               </tr>
             </thead>
             <tbody>
               {opportunities.map((opportunity) => (
                 <tr className="border-t border-white/10" key={opportunity.domain}>
+                  <td className="pr-3"><input aria-label={`Select ${opportunity.domain}`} form="bulk-opportunities" name="opportunityId" type="checkbox" value={opportunity.id}/></td>
                   <td className="py-3 pr-4">
                     <Link className="font-medium text-brand" href={`/opportunities/${encodeURIComponent(opportunity.domain)}`}>
                       {opportunity.domain}
@@ -119,6 +129,8 @@ export default async function Opportunities({ searchParams }: { searchParams?: P
                   </td>
                   <td className="pr-4">{opportunity.riskLevel}</td>
                   <td className="pr-4">{opportunity.buyerCount}</td>
+                  <td className="pr-4">{opportunity.source.replace('DISCOVERY_', '')}</td>
+                  <td className="pr-4">{opportunity.approvalStatus}</td>
                   <td>
                     <form action={addOpportunityToWatchlist}>
                       <input name="domain" type="hidden" value={opportunity.domain} />
@@ -130,7 +142,7 @@ export default async function Opportunities({ searchParams }: { searchParams?: P
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></>
         )}
       </div>
     </div>

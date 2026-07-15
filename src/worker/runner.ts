@@ -9,6 +9,7 @@ import {
 import { nextLeaseExpiry, readLeaseMs, readWorkerId } from './lease';
 import { isWorkerTaskType, type WorkerTaskType } from './task-registry';
 import { safeRecordOperationalEvent } from '@/lib/server/observability';
+import { runDueSavedSearchesForWorkspace } from '@/lib/server/discovery';
 
 export type JobRunResult = {
   id: string;
@@ -42,6 +43,10 @@ async function executeTask(type: WorkerTaskType, workspaceId: string): Promise<s
     case 'renewal_reminders': {
       const notifications = await createRenewalRemindersForWorkspace(workspaceId);
       return `Created ${notifications} renewal reminder notifications.`;
+    }
+    case 'scheduled_discovery': {
+      const results = await runDueSavedSearchesForWorkspace(workspaceId);
+      return `Created ${results} opportunities from due saved searches.`;
     }
   }
 }
