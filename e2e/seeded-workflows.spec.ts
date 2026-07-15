@@ -134,7 +134,7 @@ test.describe('seeded workspace workflows', () => {
     await expect(page.getByText(/Trialing/)).toBeVisible();
     await expect(page.getByText('0 / 5000')).toBeVisible();
 
-    await page.getByPlaceholder('Current password').fill('playwright-password');
+    await page.locator('input[name="currentPassword"]').fill('playwright-password');
     await page.getByPlaceholder('New password', { exact: true }).fill('playwright-password-updated');
     await page.getByPlaceholder('Confirm new password').fill('playwright-password-updated');
     await page.getByRole('button', { name: 'Change password' }).click();
