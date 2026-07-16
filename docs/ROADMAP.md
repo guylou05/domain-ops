@@ -63,7 +63,7 @@ This file is the canonical development sequence for DomainScout AI. A phase is c
    - Production trademark, history, and approved public-business-data adapters with evidence, freshness, and legal-use controls
    - Provider caching, quotas, rate limits, stale-data labels, health telemetry, credential readiness, and failure isolation
    - Exit gate: contract tests cover every adapter and credentialed smoke checks prove each enabled live integration
-13. [ ] Outreach CRM and Approved Delivery
+13. [x] Outreach CRM and Approved Delivery
    - Buyer and contact create, edit, detail, notes, relevance, status, and activity-history workflows
    - Campaign creation, template library, personalized drafts, follow-up sequences, tasks, reminders, and bulk actions
    - Explicitly approved delivery through supported email adapters with contact history and delivery outcomes
