@@ -189,6 +189,65 @@ test.describe('seeded workspace workflows', () => {
     await expect(prisma.comparableSale.count({ where: { workspaceId: workspace.id, subjectDomain: 'workflowpilot.ai' } })).resolves.toBeGreaterThan(1);
   });
 
+  test('buyer research reaches approved delivery, response, offer, and suppression', async ({ page }) => {
+    const suffix = Date.now(); const company = `Playwright Buyer ${suffix}`; const email = `buyer-${suffix}@example.com`; const campaignName = `Approved outreach ${suffix}`; const templateName = `Buyer template ${suffix}`; const subject = `Domain fit for ${company}`;
+    await login(page);
+    await page.goto('/buyer-research');
+    const buyerForm = page.locator('form').filter({ has: page.getByRole('heading', { name: 'Add buyer' }) });
+    await buyerForm.locator('select[name="domainId"]').selectOption({ label: 'workflowpilot.ai' });
+    await buyerForm.locator('input[name="companyName"]').fill(company);
+    await buyerForm.locator('input[name="industry"]').fill('Workflow software');
+    await buyerForm.locator('input[name="reasonForFit"]').fill('Direct product and domain alignment.');
+    await buyerForm.getByRole('button', { name: 'Create buyer' }).click();
+    await expect(page).toHaveURL(/\/buyer-research\//);
+    const contactForm = page.locator('form').filter({ has: page.getByRole('heading', { name: 'Add contact' }) });
+    await contactForm.locator('input[name="name"]').fill('Dana Buyer');
+    await contactForm.locator('input[name="title"]').fill('Founder');
+    await contactForm.locator('input[name="email"]').fill(email);
+    await contactForm.getByRole('button', { name: 'Add contact' }).click();
+    await expect(page.locator('input[name="email"]')).toHaveCount(2);
+    await expect(page.locator('input[name="email"]').first()).toHaveValue(email);
+    const contact = await prisma.buyerContact.findFirstOrThrow({ where: { workspaceId: (await prisma.workspace.findUniqueOrThrow({ where: { slug: 'demo-domain-portfolio' } })).id, email } });
+
+    await page.goto('/outreach');
+    const campaignForm = page.locator('form').filter({ has: page.getByRole('heading', { name: 'New campaign' }) });
+    await campaignForm.locator('input[name="name"]').fill(campaignName);
+    await campaignForm.getByRole('button', { name: 'Create campaign' }).click();
+    const templateForm = page.locator('form').filter({ has: page.getByRole('heading', { name: 'Template library' }) });
+    await templateForm.locator('input[name="name"]').fill(templateName);
+    await templateForm.locator('input[name="subject"]').fill('Domain fit for {{company}}');
+    await templateForm.locator('textarea[name="body"]').fill('Hi {{first_name}}, {{domain}} is a direct fit for {{company}}.');
+    await templateForm.getByRole('button', { name: 'Save template' }).click();
+    const draftForm = page.getByRole('heading', { name: 'Personalized draft' }).locator('xpath=parent::section').locator('form');
+    await draftForm.locator('select[name="campaignId"]').selectOption({ label: campaignName });
+    await draftForm.locator('select[name="contactId"]').selectOption(contact.id);
+    await draftForm.locator('select[name="templateId"]').selectOption({ label: templateName });
+    await draftForm.getByRole('button', { name: 'Create personalized draft' }).click();
+    let messagePanel = page.getByText(subject, { exact: true }).locator('xpath=ancestor::article');
+    await expect(messagePanel.getByText(new RegExp(`Hi Dana, workflowpilot.ai is a direct fit for ${company}`))).toBeVisible();
+    await messagePanel.getByRole('button', { name: 'Approve' }).click();
+    messagePanel = page.getByText(subject, { exact: true }).locator('xpath=ancestor::article');
+    await messagePanel.getByRole('button', { name: 'Send approved' }).click();
+    await expect(messagePanel.getByText(/SENT/)).toBeVisible();
+    await messagePanel.locator('textarea[name="responseBody"]').fill('Interested and offering immediately.');
+    await messagePanel.locator('input[name="offerAmount"]').fill('2500');
+    await messagePanel.getByRole('button', { name: 'Record response' }).click();
+    await expect(page.getByText(/RESPONDED/).first()).toBeVisible();
+
+    messagePanel = page.getByText(subject, { exact: true }).locator('xpath=ancestor::article');
+    await messagePanel.locator('textarea[name="body"]').fill('Following up on the domain offer.');
+    await messagePanel.locator('input[name="scheduledAt"]').fill('2026-08-01T12:00');
+    await messagePanel.getByRole('button', { name: 'Create follow-up' }).click();
+    const followUp = page.getByText(`Re: ${subject}`, { exact: true }).locator('xpath=ancestor::article');
+    await followUp.getByRole('button', { name: 'Approve' }).click();
+    messagePanel = page.getByText(subject, { exact: true }).locator('xpath=ancestor::article');
+    await messagePanel.getByRole('button', { name: 'Record opt-out' }).click();
+    await expect(page.getByText(email, { exact: true }).last()).toBeVisible();
+    await expect(page.getByText(`Re: ${subject}`, { exact: true }).locator('xpath=ancestor::article').getByText(/SUPPRESSED/)).toBeVisible();
+    await expect(prisma.offer.findFirst({ where: { buyerEmail: email, amount: 2500 } })).resolves.not.toBeNull();
+    await expect(prisma.outreachSuppression.findFirst({ where: { email, active: true } })).resolves.not.toBeNull();
+  });
+
   test('admin can queue background jobs', async ({ page }) => {
     await login(page);
     await page.goto('/admin');

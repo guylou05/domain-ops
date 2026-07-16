@@ -30,6 +30,7 @@ DomainScout AI is a domain-investment research and portfolio operations app. It 
 - [x] Reports with generated portfolio snapshots.
 - [x] Buyer research, history checks, and marketplace listing generation.
 - [x] Outreach approval and notification read-state workflows.
+- [x] Buyer/contact CRM, campaigns, templates, sequences, approved delivery, responses, offers, tasks, opt-outs, and suppression enforcement.
 - [x] Settings, integrations, feature flags, and audit-backed admin controls.
 - [x] Server-rendered search, filter, and sort controls for opportunities, portfolio, and marketplace listings.
 - [x] Background job queueing and worker execution for digest, buyer research, and portfolio snapshot tasks.

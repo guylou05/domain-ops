@@ -1,92 +1,21 @@
-import Link from 'next/link';
-import { approveOutreachMessage } from './actions';
-import { getOutreachCampaigns } from '@/lib/server/outreach';
+import { approveOutreachMessage, bulkApproveOutreach, completeOutreachTask, createFollowUp, createOutreachCampaign, createOutreachDraft, createOutreachTask, createOutreachTemplate, deliverOutreachMessage, recordOutreachResponse, suppressOutreachContact } from './actions';
+import { getOutreachWorkspace } from '@/lib/server/outreach';
 
 export const dynamic = 'force-dynamic';
-
-function formatDate(value: Date | null): string {
-  if (!value) return 'Not approved';
-  return value.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
+const date = (value: Date | null) => value ? value.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'Not scheduled';
 
 export default async function OutreachPage() {
-  const campaigns = await getOutreachCampaigns();
-  const totalMessages = campaigns.reduce((sum, campaign) => sum + campaign.messageCount, 0);
-  const approvedMessages = campaigns.reduce((sum, campaign) => sum + campaign.approvedCount, 0);
-
-  return (
-    <div>
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-          <h1 className="text-3xl font-bold">Outreach</h1>
-          <p className="mt-2 max-w-2xl text-sm text-slate-400">
-            Campaign drafts and approval status for buyer outreach workflows.
-          </p>
-        </div>
-        <div className="rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300">
-          {approvedMessages}/{totalMessages} approved
-        </div>
-      </div>
-
-      {campaigns.length === 0 ? (
-        <div className="card mt-6 py-10 text-center">
-          <h2 className="text-lg font-semibold">No outreach campaigns yet</h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">
-            Seed the demo database or create campaigns from ready buyer research targets.
-          </p>
-          <Link className="mt-5 inline-block rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white" href="/buyer-research">
-            Open buyer research
-          </Link>
-        </div>
-      ) : (
-        <div className="mt-6 grid gap-4">
-          {campaigns.map((campaign) => (
-            <section className="card" key={campaign.id}>
-              <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-                <div>
-                  <h2 className="text-xl font-semibold">{campaign.name}</h2>
-                  <p className="mt-1 text-sm text-slate-400">
-                    {campaign.status} · {campaign.messageCount} messages · {campaign.approvedCount} approved
-                  </p>
-                </div>
-                <Link className="text-sm text-brand" href="/buyer-research">
-                  Buyer targets
-                </Link>
-              </div>
-
-              {campaign.messages.length === 0 ? (
-                <p className="mt-5 rounded-lg border border-dashed border-white/10 p-4 text-sm text-slate-400">
-                  No messages are attached to this campaign yet.
-                </p>
-              ) : (
-                <div className="mt-5 grid gap-4 lg:grid-cols-2">
-                  {campaign.messages.map((message) => (
-                    <article className="rounded-lg border border-white/10 bg-white/5 p-4" key={message.id}>
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <h3 className="font-semibold">{message.subject}</h3>
-                          <p className="mt-1 text-sm text-slate-400">
-                            {message.status} · {formatDate(message.approvedAt)}
-                          </p>
-                        </div>
-                        {message.approvedAt ? (
-                          <span className="text-sm font-semibold text-emerald-300">Approved</span>
-                        ) : (
-                          <form action={approveOutreachMessage}>
-                            <input name="messageId" type="hidden" value={message.id} />
-                            <button className="rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white">Approve</button>
-                          </form>
-                        )}
-                      </div>
-                      <p className="mt-4 whitespace-pre-line text-sm text-slate-300">{message.body}</p>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </section>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+  const view = await getOutreachWorkspace(); const messages = view.campaigns.flatMap((campaign) => campaign.messages); const approved = messages.filter((message) => message.approvedAt).length;
+  return <div>
+    <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><h1 className="text-3xl font-bold">Outreach</h1><p className="mt-2 max-w-2xl text-sm text-slate-400">Buyer campaigns, approved delivery, responses, tasks, and suppression controls.</p></div><div className="rounded-lg border border-white/10 px-3 py-2 text-sm">{approved}/{messages.length} approved</div></div>
+    <section className="mt-6 grid gap-4 xl:grid-cols-3">
+      <form action={createOutreachCampaign} className="card grid gap-3"><h2 className="text-xl font-semibold">New campaign</h2><input className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" name="name" placeholder="Campaign name" required /><textarea className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" name="description" placeholder="Purpose" rows={2} /><input className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" name="scheduledAt" type="datetime-local" /><button className="rounded-lg bg-brand px-4 py-2 font-semibold">Create campaign</button></form>
+      <form action={createOutreachTemplate} className="card grid gap-3"><h2 className="text-xl font-semibold">Template library</h2><input className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" name="name" placeholder="Template name" required /><input className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" name="subject" placeholder="Subject with {{company}}" required /><textarea className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" name="body" placeholder="Hi {{first_name}}, ... {{domain}}" rows={3} required /><button className="rounded-lg bg-brand px-4 py-2 font-semibold">Save template</button></form>
+      <form action={createOutreachTask} className="card grid gap-3"><h2 className="text-xl font-semibold">Task or reminder</h2><select className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" name="campaignId"><option value="">General task</option>{view.campaigns.map((campaign) => <option key={campaign.id} value={campaign.id}>{campaign.name}</option>)}</select><input className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" name="title" placeholder="Task title" required /><input className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" name="dueAt" type="datetime-local" /><textarea className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" name="notes" placeholder="Notes" rows={2} /><button className="rounded-lg bg-brand px-4 py-2 font-semibold">Add task</button></form>
+    </section>
+    <section className="card mt-6"><h2 className="text-xl font-semibold">Personalized draft</h2><form action={createOutreachDraft} className="mt-4 grid gap-3 lg:grid-cols-3"><select className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" name="campaignId" required><option value="">Campaign</option>{view.campaigns.map((campaign) => <option key={campaign.id} value={campaign.id}>{campaign.name}</option>)}</select><select className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" name="contactId" required><option value="">Eligible contact</option>{view.contacts.filter((contact) => !contact.doNotContact && !contact.optedOutAt).map((contact) => <option key={contact.id} value={contact.id}>{contact.name ?? contact.email} / {contact.buyer.companyName} / {contact.buyer.domain.name}</option>)}</select><select className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" name="templateId"><option value="">Custom message</option>{view.templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select><input className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 lg:col-span-2" name="subject" placeholder="Custom subject or use template" /><input className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" name="scheduledAt" type="datetime-local" /><textarea className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 lg:col-span-3" name="body" placeholder="Custom body or use template" rows={3} /><button className="rounded-lg bg-brand px-4 py-2 font-semibold lg:col-span-3">Create personalized draft</button></form></section>
+    <form action={bulkApproveOutreach} className="mt-6 flex items-center gap-3" id="bulk-outreach"><button className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold">Approve selected drafts</button><span className="text-xs text-slate-500">Approval never sends automatically.</span></form>
+    <div className="mt-4 grid gap-4">{view.campaigns.map((campaign) => <section className="card" key={campaign.id}><div className="flex justify-between gap-3"><div><h2 className="text-xl font-semibold">{campaign.name}</h2><p className="mt-1 text-sm text-slate-400">{campaign.status} / {campaign.messages.length} messages / {date(campaign.scheduledAt)}</p></div></div><div className="mt-4 grid gap-4">{campaign.messages.map((message) => <article className="border-l-2 border-white/10 pl-4" key={message.id}><div className="flex flex-wrap items-start justify-between gap-3"><div className="flex min-w-0 items-start gap-3">{message.status === 'DRAFT' ? <input aria-label={`Select ${message.subject}`} form="bulk-outreach" name="messageId" type="checkbox" value={message.id} /> : null}<div><h3 className="font-semibold">{message.subject}</h3><p className="mt-1 text-xs text-slate-400">{message.status} / Step {message.sequenceStep} / {message.contact?.email ?? 'No recipient'} / {message.domain?.name ?? 'No domain'}</p></div></div><div className="flex flex-wrap gap-2">{message.status === 'DRAFT' ? <form action={approveOutreachMessage}><input name="messageId" type="hidden" value={message.id} /><button className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold">Approve</button></form> : null}{message.status === 'APPROVED' ? <form action={deliverOutreachMessage}><input name="messageId" type="hidden" value={message.id} /><button className="rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold">Send approved</button></form> : null}{message.contactId && !message.contact?.doNotContact ? <form action={suppressOutreachContact}><input name="contactId" type="hidden" value={message.contactId} /><input name="source" type="hidden" value="OPT_OUT" /><input name="reason" type="hidden" value="Recipient opt-out recorded." /><button className="rounded-lg border border-rose-400/20 px-3 py-1.5 text-xs font-semibold text-rose-300">Record opt-out</button></form> : null}</div></div><p className="mt-3 whitespace-pre-line text-sm text-slate-300">{message.body}</p>{message.sentAt ? <div className="mt-3 grid gap-3 lg:grid-cols-2"><form action={recordOutreachResponse} className="grid gap-2"><input name="messageId" type="hidden" value={message.id} /><select className="rounded-lg border border-white/10 bg-slate-950 px-2 py-1 text-sm" name="responseStatus"><option>INTERESTED</option><option>NOT_INTERESTED</option><option>QUESTION</option><option>OPT_OUT</option></select><textarea className="rounded-lg border border-white/10 bg-slate-950 px-2 py-1 text-sm" name="responseBody" placeholder="Response notes" required /><input className="rounded-lg border border-white/10 bg-slate-950 px-2 py-1 text-sm" min="1" name="offerAmount" placeholder="Optional offer amount" type="number" /><button className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold">Record response</button></form><form action={createFollowUp} className="grid gap-2"><input name="messageId" type="hidden" value={message.id} /><input className="rounded-lg border border-white/10 bg-slate-950 px-2 py-1 text-sm" name="subject" placeholder="Follow-up subject" /><textarea className="rounded-lg border border-white/10 bg-slate-950 px-2 py-1 text-sm" name="body" placeholder="Follow-up body" required /><input className="rounded-lg border border-white/10 bg-slate-950 px-2 py-1 text-sm" name="scheduledAt" type="datetime-local" required /><button className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold">Create follow-up</button></form></div> : null}{message.deliveries.length ? <p className="mt-3 text-xs text-slate-500">Latest delivery: {message.deliveries[0].status} via {message.deliveries[0].provider}</p> : null}</article>)}</div></section>)}</div>
+    <section className="mt-6 grid gap-4 lg:grid-cols-2"><div><h2 className="text-xl font-semibold">Open tasks</h2><div className="mt-3 divide-y divide-white/10">{view.tasks.map((task) => <div className="flex justify-between gap-3 py-3" key={task.id}><div><p className={task.status === 'COMPLETED' ? 'line-through text-slate-500' : 'font-medium'}>{task.title}</p><p className="mt-1 text-xs text-slate-500">{date(task.dueAt)}</p></div>{task.status === 'OPEN' ? <form action={completeOutreachTask}><input name="id" type="hidden" value={task.id} /><button className="text-xs font-semibold text-brand">Complete</button></form> : null}</div>)}</div></div><div><h2 className="text-xl font-semibold">Suppression list</h2><div className="mt-3 divide-y divide-white/10">{view.suppressions.length ? view.suppressions.map((item) => <div className="py-3" key={item.id}><p className="font-medium">{item.email}</p><p className="mt-1 text-xs text-slate-500">{item.reason} / {item.source}</p></div>) : <p className="text-sm text-slate-400">No suppressed recipients.</p>}</div></div></section>
+  </div>;
 }

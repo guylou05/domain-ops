@@ -258,30 +258,31 @@ model UsageRecord {
 }
 
 model Domain {
-  id              String               @id @default(cuid())
-  workspaceId     String
-  createdById     String
-  name            String
-  tld             String
-  status          Status               @default(ACTIVE)
-  source          String
-  metadata        Json                 @default("{}")
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
-  workspace       Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdBy       User                 @relation(fields: [createdById], references: [id])
-  checks          DomainCheck[]
-  opportunity     DomainOpportunity?
-  scores          DomainScore[]
-  valuations      Valuation[]
-  trademarkChecks TrademarkCheck[]
-  historyChecks   DomainHistoryCheck[]
-  watchlistItems  WatchlistItem[]
-  portfolioItems  PortfolioItem[]
-  buyers          Buyer[]
-  offers          Offer[]
-  sales           Sale[]
-  renewals        Renewal[]
+  id               String               @id @default(cuid())
+  workspaceId      String
+  createdById      String
+  name             String
+  tld              String
+  status           Status               @default(ACTIVE)
+  source           String
+  metadata         Json                 @default("{}")
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  workspace        Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy        User                 @relation(fields: [createdById], references: [id])
+  checks           DomainCheck[]
+  opportunity      DomainOpportunity?
+  scores           DomainScore[]
+  valuations       Valuation[]
+  trademarkChecks  TrademarkCheck[]
+  historyChecks    DomainHistoryCheck[]
+  watchlistItems   WatchlistItem[]
+  portfolioItems   PortfolioItem[]
+  buyers           Buyer[]
+  offers           Offer[]
+  sales            Sale[]
+  renewals         Renewal[]
+  outreachMessages OutreachMessage[]
 
   @@unique([workspaceId, name])
   @@index([workspaceId, status])
@@ -612,7 +613,7 @@ model MarketplaceListing {
 }
 
 model Buyer {
-  id             String         @id @default(cuid())
+  id             String            @id @default(cuid())
   workspaceId    String
   domainId       String
   companyName    String
@@ -622,36 +623,163 @@ model Buyer {
   reasonForFit   String
   relevanceScore Int
   outreachStatus String
-  domain         Domain         @relation(fields: [domainId], references: [id])
+  notes          String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  domain         Domain            @relation(fields: [domainId], references: [id])
   contacts       BuyerContact[]
+  messages       OutreachMessage[]
+  activities     ContactActivity[]
+
+  @@index([workspaceId, outreachStatus, relevanceScore])
 }
 
 model BuyerContact {
-  id          String  @id @default(cuid())
-  buyerId     String
-  name        String?
-  title       String?
-  email       String?
-  phone       String?
-  linkedinUrl String?
-  buyer       Buyer   @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  id           String            @id @default(cuid())
+  workspaceId  String
+  buyerId      String
+  name         String?
+  title        String?
+  email        String?
+  phone        String?
+  linkedinUrl  String?
+  status       String            @default("ACTIVE")
+  notes        String?
+  doNotContact Boolean           @default(false)
+  optedOutAt   DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  buyer        Buyer             @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  messages     OutreachMessage[]
+  activities   ContactActivity[]
+
+  @@index([workspaceId, email, status])
 }
 
 model OutreachCampaign {
-  id          String @id @default(cuid())
+  id          String            @id @default(cuid())
   workspaceId String
+  createdById String
   name        String
-  status      Status @default(ACTIVE)
+  description String?
+  status      Status            @default(ACTIVE)
+  scheduledAt DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  messages    OutreachMessage[]
+  tasks       OutreachTask[]
+
+  @@index([workspaceId, status, createdAt])
 }
 
 model OutreachMessage {
-  id          String    @id @default(cuid())
+  id                String                  @id @default(cuid())
+  workspaceId       String
+  campaignId        String?
+  buyerId           String?
+  contactId         String?
+  domainId          String?
+  templateId        String?
+  sequenceStep      Int                     @default(1)
+  subject           String
+  body              String
+  status            String
+  scheduledAt       DateTime?
+  approvedAt        DateTime?
+  approvedById      String?
+  sentAt            DateTime?
+  providerMessageId String?
+  failureReason     String?
+  responseStatus    String?
+  responseBody      String?
+  respondedAt       DateTime?
+  offerId           String?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  campaign          OutreachCampaign?       @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  buyer             Buyer?                  @relation(fields: [buyerId], references: [id], onDelete: SetNull)
+  contact           BuyerContact?           @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  domain            Domain?                 @relation(fields: [domainId], references: [id], onDelete: SetNull)
+  deliveries        OutreachDeliveryEvent[]
+
+  @@index([workspaceId, status, scheduledAt])
+  @@index([contactId, createdAt])
+}
+
+model OutreachTemplate {
+  id          String   @id @default(cuid())
   workspaceId String
-  campaignId  String?
+  createdById String
+  name        String
   subject     String
   body        String
+  status      Status   @default(ACTIVE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([workspaceId, name])
+}
+
+model OutreachTask {
+  id           String            @id @default(cuid())
+  workspaceId  String
+  campaignId   String?
+  assignedToId String?
+  title        String
+  notes        String?
+  dueAt        DateTime?
+  status       String            @default("OPEN")
+  completedAt  DateTime?
+  createdAt    DateTime          @default(now())
+  campaign     OutreachCampaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status, dueAt])
+}
+
+model ContactActivity {
+  id          String        @id @default(cuid())
+  workspaceId String
+  buyerId     String
+  contactId   String?
+  actorId     String?
+  type        String
+  summary     String
+  metadata    Json          @default("{}")
+  occurredAt  DateTime      @default(now())
+  buyer       Buyer         @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  contact     BuyerContact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, buyerId, occurredAt])
+}
+
+model OutreachSuppression {
+  id          String    @id @default(cuid())
+  workspaceId String
+  email       String
+  reason      String
+  source      String
+  active      Boolean   @default(true)
+  createdById String?
+  createdAt   DateTime  @default(now())
+  revokedAt   DateTime?
+
+  @@unique([workspaceId, email])
+  @@index([workspaceId, active, createdAt])
+}
+
+model OutreachDeliveryEvent {
+  id          String          @id @default(cuid())
+  workspaceId String
+  messageId   String
+  provider    String
   status      String
-  approvedAt  DateTime?
+  providerId  String?
+  detail      String?
+  metadata    Json            @default("{}")
+  occurredAt  DateTime        @default(now())
+  message     OutreachMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status, occurredAt])
 }
 
 model Offer {

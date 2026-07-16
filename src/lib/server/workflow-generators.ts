@@ -59,6 +59,7 @@ async function generateBuyerTargets(workspaceId: string, limit: number): Promise
 
     await prisma.buyerContact.create({
       data: {
+        workspaceId,
         buyerId: buyer.id,
         name: `Research Lead ${index + 1}`,
         title: 'Growth Lead',

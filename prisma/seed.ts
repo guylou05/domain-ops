@@ -391,6 +391,7 @@ async function main() {
       if (!existingContact) {
         await prisma.buyerContact.create({
           data: {
+            workspaceId: workspace.id,
             buyerId: buyerRecord.id,
             name: contact.name,
             title: contact.title,
@@ -409,6 +410,7 @@ async function main() {
   outreachCampaign ??= await prisma.outreachCampaign.create({
     data: {
       workspaceId: workspace.id,
+      createdById: user.id,
       name: 'AI buyer shortlist',
       status: Status.ACTIVE,
     },

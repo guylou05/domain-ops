@@ -13,10 +13,13 @@ export type BuyerResearchView = {
   domain: string;
   opportunityScore: number | null;
   contacts: Array<{
+    id: string;
     name: string | null;
     title: string | null;
     email: string | null;
     linkedinUrl: string | null;
+    status: string;
+    doNotContact: boolean;
   }>;
 };
 
@@ -48,10 +51,23 @@ export async function getBuyerResearch(): Promise<BuyerResearchView[]> {
     domain: buyer.domain.name,
     opportunityScore: buyer.domain.opportunity?.score ?? null,
     contacts: buyer.contacts.map((contact) => ({
+      id: contact.id,
       name: contact.name,
       title: contact.title,
       email: contact.email,
       linkedinUrl: contact.linkedinUrl,
+      status: contact.status,
+      doNotContact: contact.doNotContact,
     })),
   }));
+}
+
+export async function getBuyerDetail(id: string) {
+  const context = await requireWorkspaceContext();
+  return prisma.buyer.findFirst({ where: { id, workspaceId: context.workspaceId }, include: { domain: true, contacts: { orderBy: { createdAt: 'asc' } }, activities: { orderBy: { occurredAt: 'desc' }, take: 100 } } });
+}
+
+export async function getBuyerDomainOptions() {
+  const context = await requireWorkspaceContext();
+  return prisma.domain.findMany({ where: { workspaceId: context.workspaceId, status: 'ACTIVE' }, select: { id: true, name: true }, orderBy: { name: 'asc' }, take: 250 });
 }

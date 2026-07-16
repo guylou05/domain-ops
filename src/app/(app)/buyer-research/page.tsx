@@ -1,12 +1,12 @@
 import Link from 'next/link';
-import { generateBuyerTargets } from './actions';
-import { getBuyerResearch } from '@/lib/server/buyer-research';
+import { createBuyer, generateBuyerTargets } from './actions';
+import { getBuyerDomainOptions, getBuyerResearch } from '@/lib/server/buyer-research';
 
 export const dynamic = 'force-dynamic';
 
 export default async function BuyerResearchPage({ searchParams }: { searchParams?: Promise<{ error?: string }> }) {
   const error = (await searchParams)?.error;
-  const buyers = await getBuyerResearch();
+  const [buyers, domains] = await Promise.all([getBuyerResearch(), getBuyerDomainOptions()]);
   const readyCount = buyers.filter((buyer) => buyer.outreachStatus === 'READY').length;
 
   return (
@@ -30,6 +30,19 @@ export default async function BuyerResearchPage({ searchParams }: { searchParams
 
       {error ? <p className="mt-4 rounded-lg border border-red-400/30 bg-red-400/5 p-3 text-sm text-red-200">{error}</p> : null}
 
+      <form action={createBuyer} className="card mt-6 grid gap-3 lg:grid-cols-4">
+        <h2 className="text-xl font-semibold lg:col-span-4">Add buyer</h2>
+        <select className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" name="domainId" required><option value="">Matched domain</option>{domains.map((domain) => <option key={domain.id} value={domain.id}>{domain.name}</option>)}</select>
+        <input className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" name="companyName" placeholder="Company name" required />
+        <input className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" name="industry" placeholder="Industry" required />
+        <input className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" max="100" min="0" name="relevanceScore" placeholder="Relevance" type="number" defaultValue="70" />
+        <input className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" name="website" placeholder="Website" type="url" />
+        <input className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2" name="location" placeholder="Location" />
+        <input className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 lg:col-span-2" name="reasonForFit" placeholder="Reason for fit" required />
+        <textarea className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 lg:col-span-3" name="notes" placeholder="Buyer notes" rows={2} />
+        <button className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold">Create buyer</button>
+      </form>
+
       {buyers.length === 0 ? (
         <div className="card mt-6 py-10 text-center">
           <h2 className="text-lg font-semibold">No buyer research yet</h2>
@@ -52,7 +65,7 @@ export default async function BuyerResearchPage({ searchParams }: { searchParams
               <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
                 <div>
                   <div className="flex flex-wrap items-center gap-3">
-                    <h2 className="text-xl font-semibold">{buyer.companyName}</h2>
+                    <h2 className="text-xl font-semibold"><Link className="hover:text-brand" href={`/buyer-research/${buyer.id}`}>{buyer.companyName}</Link></h2>
                     <span className="rounded-full bg-white/10 px-2 py-1 text-xs text-slate-300">{buyer.outreachStatus}</span>
                   </div>
                   <p className="mt-2 text-sm text-slate-400">
@@ -89,7 +102,7 @@ export default async function BuyerResearchPage({ searchParams }: { searchParams
                     <div className="mt-3 grid gap-3 md:grid-cols-2">
                       {buyer.contacts.map((contact) => (
                         <div className="rounded-lg bg-white/5 p-3 text-sm" key={`${buyer.id}-${contact.email ?? contact.name}`}>
-                          <p className="font-medium">{contact.name ?? 'Unknown contact'}</p>
+                          <p className="font-medium">{contact.name ?? 'Unknown contact'}{contact.doNotContact ? ' / DO NOT CONTACT' : ''}</p>
                           <p className="mt-1 text-slate-400">{contact.title ?? 'Title unknown'}</p>
                           {contact.email ? <p className="mt-2 text-slate-300">{contact.email}</p> : null}
                           {contact.linkedinUrl ? (
